@@ -132,6 +132,7 @@ const REGRAS: Array<[RegExp, string, string]> = [
   [/^\/routine\/versions\/:id/, 'id', 'routine_version'],
   [/^\/shifts\/ata-read-requests\/:id/, 'id', 'ata_read_request'],
   [/^\/shifts\/ata-write-requests\/:id/, 'id', 'ata_write_request'],
+  [/^\/nursing\/education-links\/:id/, 'id', 'education_link'],
   [/^\/shifts\/ata\/:ataId/, 'ataId', 'ata'],
   [/^\/shifts\/episodes\/:episodeId/, 'episodeId', 'ata_episode'],
   [/^\/shifts\/:id/, 'id', 'shift'],

@@ -63,6 +63,7 @@ export const ONDE: Record<string, { tela: string; aba: string }> = {
   health_evolution: { tela: 'Saúde', aba: 'saude' },
   hospitalization: { tela: 'Internação hospitalar', aba: 'internacao' },
   person: { tela: 'Acolhidos', aba: 'acolhidos' },
+  education_link: { tela: 'Acolhidos', aba: 'acolhidos' },
   family_stay: { tela: 'Acolhidos', aba: 'acolhidos' },
   pia: { tela: 'Acolhidos, no perfil da criança', aba: 'acolhidos' },
   document: { tela: 'Acolhidos, na aba Documentos da criança', aba: 'acolhidos' },

@@ -267,6 +267,10 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'education.support': 'Apoio educacional registrado',
   'education.evolution': 'Evolução educacional escrita',
   'education.concept': 'Conceito educacional do bimestre registrado',
+  'education.link.created': 'Vínculo educacional cadastrado',
+  'education.link.corrected': 'Vínculo educacional corrigido',
+  'education.link.ended': 'Vínculo educacional encerrado',
+  'education.grade': 'Nota da escola lançada',
 
   // -------------------------------------------------------------------- Cozinha
   'kitchen.request': 'Pedido à cozinha registrado',

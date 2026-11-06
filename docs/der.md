@@ -730,6 +730,27 @@ versões substituídas continuam na tabela — são elas que provam que houve
 correção. Lê quem alcança a criança, **o educador de plantão inclusive**: é ele
 quem senta ao lado na lição de casa.
 
+### `education_link`, `education_link_change`, `education_grade`, `education_link_notice`
+**OS VÍNCULOS EDUCACIONAIS** (migração 1674, fase 282, avaliação de 05/11, módulo 07; decidido em
+06/11): escola, SCFV, educação integral, aprendizagem, estágio e curso, como uma linha de contratos
+na aba Educação do perfil, vários ao mesmo tempo (de manhã a escola, à tarde a aprendizagem).
+
+| coluna | o que é |
+|---|---|
+| `kind`, `kind_other` | o tipo, da lista fechada; *outro* exige o nome |
+| `institution`, `course`, `grade`, `class_group` | a instituição, o curso, a série ou ano e a turma |
+| `shift`, `weekdays` | o turno e os dias da semana (1 segunda a 7 domingo), que a frequência vai ler |
+| `training_unit`, `company`, `address` | a unidade de formação e a empresa, quando houver, e o endereço para quem leva e busca |
+| `starts_on`, `expected_end`, `ended_on`, `end_reason` | o começo, a previsão de término e o encerramento de fato, com o motivo |
+
+**Nada se apaga.** Corrigir e encerrar passam por funções que guardam o que constava antes em
+`education_link_change` (o `before` em jsonb, o motivo, o nome e a hora), na mesma transação. A nota
+da escola mora em `education_grade`, por período e disciplina, como a escola deu (número, letra ou
+conceito); corrigir é outra linha com `replaces_id`, e a anterior ganha `replaced_at` e continua
+legível. `education_link_notice` é a marca de já avisei do fim previsto, a 30 e a 7 dias, à técnica,
+à coordenação e ao Líder Diurno (`app_vinculos_terminando`, pelo relógio do dia). Escreve a equipe do
+Registro Educacional; lê quem alcança a casa.
+
 ### `general_night_house_amendment`
 **O que constava ANTES numa linha da ATA Geral** (migração 1440, fase 138), da
 decisão da Fundação em 21/09/2026: *"quem corrige a ata é o educador líder,
@@ -982,7 +1003,7 @@ ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a 
 de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
 retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
-## Inventário — 147 tabelas por partição
+## Inventário — 151 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -992,7 +1013,7 @@ retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
 | activities (8) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception, activity_bulk |
-| nursing (12) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_note_attachment, hospitalization_medication, hospitalization_companion |
+| nursing (16) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, education_link, education_link_change, education_grade, education_link_notice, hospitalization, hospitalization_note, hospitalization_note_attachment, hospitalization_medication, hospitalization_companion |
 | reports (7) | followup, followup_source, report_document, report_delivery, export_log, life_milestone, followup_return |
 | checks (5) | collective_check, check_result, check_result_amendment, check_bulk, house_check_model |
 | notifications (5) | notification, escalation, escalation_level, push_subscription, notification_push |

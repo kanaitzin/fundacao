@@ -5252,12 +5252,479 @@ interface ConceitoEducacional {
   substituido: boolean; corrigeUmAnterior: boolean;
 }
 
+/* ======================================================================
+ * OS VÍNCULOS EDUCACIONAIS (fase 282, decidido em 06/11).
+ *
+ * "Em ordem linear, parecido com um contrato: educação infantil de tal época a tal
+ * época." Vários ao mesmo tempo (de manhã a escola, à tarde a aprendizagem). Cada
+ * vínculo fecha numa linha com o tipo, a instituição e o período, e o triângulo
+ * abre o resto: turma, turno, dias, endereço, as notas e o histórico de correções.
+ * Nada se apaga: corrigir guarda o que constava antes, encerrar guarda o dia e o
+ * motivo, e a nota corrigida continua legível.
+ * ====================================================================== */
+interface MudancaDoVinculo {
+  id: string; tipo: 'correcao' | 'encerramento'; antes: Record<string, unknown>;
+  motivo: string; em: string; por: string | null;
+}
+interface NotaDoVinculo {
+  id: string; periodo: string; disciplina: string; nota: string; observacao: string | null;
+  corrigeUmaAnterior: boolean; substituida: boolean; em: string; por: string | null;
+}
+export interface VinculoEducacional {
+  id: string; tipo: string; tipoRotulo: string; tipoOutro: string | null;
+  instituicao: string; curso: string | null; serie: string | null; turma: string | null;
+  turno: string | null; turnoRotulo: string | null; dias: number[];
+  unidade: string | null; empresa: string | null; endereco: string | null;
+  inicio: string; fimPrevisto: string | null; encerradoEm: string | null;
+  motivoDoEncerramento: string | null; vigente: boolean;
+  criadoPor: string | null; criadoEm: string; mudadoPor: string | null; mudadoEm: string;
+  historico: MudancaDoVinculo[]; notas: NotaDoVinculo[];
+}
+type Opcao = { cod: string; label: string };
+
+const DIAS_DA_SEMANA = [
+  { cod: 1, label: 'Seg' }, { cod: 2, label: 'Ter' }, { cod: 3, label: 'Qua' },
+  { cod: 4, label: 'Qui' }, { cod: 5, label: 'Sex' }, { cod: 6, label: 'Sáb' }, { cod: 7, label: 'Dom' },
+];
+const ORDEM_DO_TURNO: Record<string, number> = { manha: 1, tarde: 2, noite: 3, integral: 4, variavel: 5 };
+/* O que cada campo do banco se chama na tela, para o histórico dizer o que mudou. */
+const NOME_DO_CAMPO: Record<string, string> = {
+  kind: 'Tipo', kind_other: 'Tipo', institution: 'Instituição', course: 'Curso',
+  grade: 'Série ou ano', class_group: 'Turma', shift: 'Turno', weekdays: 'Dias',
+  training_unit: 'Unidade de formação', company: 'Empresa', address: 'Endereço',
+  starts_on: 'Começo', expected_end: 'Previsão de término',
+};
+const CAMPO_NA_TELA: Record<string, keyof VinculoEducacional> = {
+  kind: 'tipo', kind_other: 'tipoOutro', institution: 'instituicao', course: 'curso',
+  grade: 'serie', class_group: 'turma', shift: 'turno', weekdays: 'dias',
+  training_unit: 'unidade', company: 'empresa', address: 'endereco',
+  starts_on: 'inicio', expected_end: 'fimPrevisto',
+};
+
+function periodoDoVinculo(v: VinculoEducacional): string {
+  const fim = v.encerradoEm ? `até ${dia(v.encerradoEm)}`
+    : v.fimPrevisto ? `até ${dia(v.fimPrevisto)}, previsto` : 'sem data de término';
+  return `De ${dia(v.inicio)} ${fim}`;
+}
+function diasEscritos(dias: number[]): string {
+  if (!dias.length) return '—';
+  return DIAS_DA_SEMANA.filter((d) => dias.includes(d.cod)).map((d) => d.label).join(', ');
+}
+function valorEscrito(campo: string, valor: unknown, rotulos: { tipos: Opcao[]; turnos: Opcao[] }): string {
+  if (valor == null || valor === '') return 'em branco';
+  if (campo === 'kind') return rotulos.tipos.find((t) => t.cod === valor)?.label ?? String(valor);
+  if (campo === 'shift') return rotulos.turnos.find((t) => t.cod === valor)?.label ?? String(valor);
+  if (campo === 'weekdays') return diasEscritos((valor as unknown[]).map(Number));
+  if (campo === 'starts_on' || campo === 'expected_end') return dia(String(valor));
+  return String(valor);
+}
+
+function VinculosEducacionais({ personId, vinculos, pode, tipos, turnos, recarregar }: {
+  personId: string; vinculos: VinculoEducacional[]; pode: boolean;
+  tipos: Opcao[]; turnos: Opcao[]; recarregar: () => Promise<void>;
+}) {
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [folha, setFolha] = useState<null | { qual: 'corrigir' | 'encerrar' | 'nota'; v: VinculoEducacional; nota?: NotaDoVinculo }>(null);
+  /* Cadastrar fica num estado à parte: o botão que a Acolhe+AI pode apertar só abre a folha. */
+  const [novo, setNovo] = useState(false);
+  const [recado, setRecado] = useState('');
+  const agora = vinculos.filter((v) => v.vigente)
+    .sort((a, b) => (ORDEM_DO_TURNO[a.turno ?? ''] ?? 9) - (ORDEM_DO_TURNO[b.turno ?? ''] ?? 9));
+  const linha = maisNovoEmCima(vinculos, (v) => v.inicio);
+
+  return (
+    <>
+      <div className="eyebrow">Vínculos educacionais</div>
+      {recado && <div className="notice c-ok" role="status">{recado}</div>}
+      {agora.length > 0 && (
+        <div className="card vinculos-agora">
+          <b>Agora</b>
+          <ul>
+            {agora.map((v) => (
+              <li key={v.id}>
+                <span className="vinculo-turno">{v.turnoRotulo ?? 'Turno não informado'}</span>
+                {' '}{v.tipoRotulo} · {v.instituicao}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {vinculos.length === 0 && (
+        <p className="mutetxt">
+          Nenhum vínculo cadastrado. Escola, SCFV, aprendizagem, estágio e curso entram aqui, com o
+          começo e a previsão de término.
+        </p>
+      )}
+      <ol className="vinculos">
+        {linha.map((v) => {
+          const abre = aberto === v.id;
+          return (
+            <li key={v.id} className={`vinculo${v.vigente ? '' : ' encerrado'}`}>
+              <button type="button" className="vinculo-cabeca" aria-expanded={abre}
+                      aria-controls={`vinculo-${v.id}`} onClick={() => setAberto(abre ? null : v.id)}>
+                <span className="vinculo-triangulo" aria-hidden="true">▸</span>
+                <span className="vinculo-resumo">
+                  <span className="vinculo-tipo">{v.tipoRotulo}{v.turnoRotulo ? ` · ${v.turnoRotulo}` : ''}</span>
+                  <b>{v.instituicao}</b>
+                  <span className="mutetxt">{periodoDoVinculo(v)}</span>
+                </span>
+                <span className={`pill ${v.vigente ? 'c-info' : 'c-mute'}`}>{v.vigente ? 'Vigente' : 'Encerrado'}</span>
+              </button>
+              {abre && (
+                <div className="vinculo-corpo" id={`vinculo-${v.id}`}>
+                  <dl className="compromisso-dados">
+                    {v.curso && <><dt>Curso</dt><dd>{v.curso}</dd></>}
+                    {v.serie && <><dt>Série ou ano</dt><dd>{v.serie}</dd></>}
+                    {v.turma && <><dt>Turma</dt><dd>{v.turma}</dd></>}
+                    <dt>Turno</dt><dd>{v.turnoRotulo ?? '—'}</dd>
+                    <dt>Dias</dt><dd>{diasEscritos(v.dias)}</dd>
+                    {v.unidade && <><dt>Unidade</dt><dd>{v.unidade}</dd></>}
+                    {v.empresa && <><dt>Empresa</dt><dd>{v.empresa}</dd></>}
+                    {v.endereco && <><dt>Endereço</dt><dd>{v.endereco}</dd></>}
+                    <dt>Começo</dt><dd>{dia(v.inicio)}</dd>
+                    <dt>Previsão de término</dt><dd>{v.fimPrevisto ? dia(v.fimPrevisto) : '—'}</dd>
+                    {v.encerradoEm && <><dt>Encerrado em</dt><dd>{dia(v.encerradoEm)}. {v.motivoDoEncerramento}</dd></>}
+                    <dt>Cadastrado por</dt><dd>{v.criadoPor ?? '—'}, {diaEHora(v.criadoEm)}</dd>
+                  </dl>
+
+                  <div className="vinculo-parte">Notas</div>
+                  {v.notas.length === 0 && <p className="mutetxt">Nenhuma nota lançada.</p>}
+                  {v.notas.length > 0 && (
+                    <ul className="vinculo-notas">
+                      {maisNovoEmCima(v.notas, (n) => n.em).map((n) => (
+                        <li key={n.id} className={n.substituida ? 'substituida' : undefined}>
+                          <div className="vinculo-nota-linha">
+                            <span className="grow"><b>{n.disciplina}</b> · {n.periodo}</span>
+                            <b className="vinculo-nota">{n.nota}</b>
+                          </div>
+                          {n.observacao && <div>{n.observacao}</div>}
+                          <div className="mutetxt">
+                            {n.por ?? '—'}, {diaEHora(n.em)}
+                            {n.corrigeUmaAnterior ? ' · corrige uma anterior' : ''}
+                            {n.substituida ? ' · corrigida depois' : ''}
+                          </div>
+                          {pode && !n.substituida && (
+                            <button type="button" className="btn sm ghost"
+                                    onClick={() => setFolha({ qual: 'nota', v, nota: n })}>Corrigir esta nota</button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {v.historico.length > 0 && (
+                    <>
+                      <div className="vinculo-parte">Histórico</div>
+                      <ul className="vinculo-historico">
+                        {v.historico.map((m, i) => {
+                          const depois: Record<string, unknown> = i === 0
+                            ? Object.fromEntries(Object.entries(CAMPO_NA_TELA).map(([k, c]) => [k, v[c]]))
+                            : v.historico[i - 1].antes;
+                          const mudou = m.tipo === 'correcao'
+                            ? Object.keys(NOME_DO_CAMPO).filter((k) => k in m.antes
+                                && JSON.stringify(m.antes[k] ?? null) !== JSON.stringify(depois[k] ?? null))
+                            : [];
+                          return (
+                            <li key={m.id}>
+                              <b>{m.tipo === 'encerramento' ? 'Encerrado' : 'Corrigido'}</b> por {m.por ?? '—'},
+                              {' '}{diaEHora(m.em)}. {m.motivo}
+                              {mudou.length > 0 && (
+                                <div className="mutetxt">
+                                  Antes: {mudou.map((k) => `${NOME_DO_CAMPO[k]} ${valorEscrito(k, m.antes[k], { tipos, turnos })}`).join('; ')}.
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  )}
+
+                  {pode && (
+                    <div className="row vinculo-acoes">
+                      <button type="button" className="btn sm sec" onClick={() => setFolha({ qual: 'nota', v })}>Lançar nota</button>
+                      <button type="button" className="btn sm ghost" onClick={() => setFolha({ qual: 'corrigir', v })}>Corrigir</button>
+                      {v.vigente && (
+                        <button type="button" className="btn sm ghost" onClick={() => setFolha({ qual: 'encerrar', v })}>Encerrar</button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {pode && (
+        <button data-acolhe-abre="" type="button" className="btn sec block" style={{ marginBottom: 12 }}
+                onClick={() => setNovo(true)}>
+          Cadastrar um vínculo
+        </button>
+      )}
+
+      {novo && (
+        <FolhaVinculo tipos={tipos} turnos={turnos} atual={null}
+          onFechar={() => setNovo(false)}
+          onSalvar={async (corpo) => {
+            const r = await api<{ aviso: string }>(`/nursing/education/${personId}/links`,
+              { method: 'POST', body: JSON.stringify(corpo) });
+            setNovo(false); setRecado(r?.aviso ?? ''); await recarregar();
+          }} />
+      )}
+      {folha && folha.qual === 'corrigir' && (
+        <FolhaVinculo tipos={tipos} turnos={turnos} atual={folha.v}
+          onFechar={() => setFolha(null)}
+          onSalvar={async (corpo) => {
+            const r = await api<{ aviso: string }>(`/nursing/education-links/${folha.v.id}/correct`,
+              { method: 'POST', body: JSON.stringify(corpo) });
+            setFolha(null); setRecado(r?.aviso ?? ''); await recarregar();
+          }} />
+      )}
+      {folha && folha.qual === 'encerrar' && (
+        <FolhaEncerrarVinculo v={folha.v} onFechar={() => setFolha(null)}
+          onSalvar={async (corpo) => {
+            const r = await api<{ aviso: string }>(`/nursing/education-links/${folha.v.id}/end`,
+              { method: 'POST', body: JSON.stringify(corpo) });
+            setFolha(null); setRecado(r?.aviso ?? ''); await recarregar();
+          }} />
+      )}
+      {folha && folha.qual === 'nota' && (
+        <FolhaNotaDoVinculo v={folha.v} corrige={folha.nota ?? null} onFechar={() => setFolha(null)}
+          onSalvar={async (corpo) => {
+            const r = await api<{ aviso: string }>(`/nursing/education-links/${folha.v.id}/grades`,
+              { method: 'POST', body: JSON.stringify(corpo) });
+            setFolha(null); setRecado(r?.aviso ?? ''); await recarregar();
+          }} />
+      )}
+    </>
+  );
+}
+
+function hojeNoAparelho(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Cadastrar ou corrigir. Corrigir pede o motivo e manda só o que mudou. */
+function FolhaVinculo({ atual, tipos, turnos, onFechar, onSalvar }: {
+  atual: VinculoEducacional | null; tipos: Opcao[]; turnos: Opcao[];
+  onFechar: () => void; onSalvar: (c: Record<string, unknown>) => Promise<void>;
+}) {
+  const [f, setF] = useState({
+    tipo: atual?.tipo ?? '', tipoOutro: atual?.tipoOutro ?? '', instituicao: atual?.instituicao ?? '',
+    curso: atual?.curso ?? '', serie: atual?.serie ?? '', turma: atual?.turma ?? '',
+    turno: atual?.turno ?? '', dias: atual?.dias ?? [1, 2, 3, 4, 5],
+    unidade: atual?.unidade ?? '', empresa: atual?.empresa ?? '', endereco: atual?.endereco ?? '',
+    inicio: atual?.inicio ?? '', fimPrevisto: atual?.fimPrevisto ?? '',
+  });
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const muda = (k: keyof typeof f, v: unknown) => setF((x) => ({ ...x, [k]: v }));
+  const mudou = atual ? Object.fromEntries(Object.entries(f).filter(([k, v]) =>
+    JSON.stringify(v ?? '') !== JSON.stringify((atual as any)[k] ?? (k === 'dias' ? [] : '')))) : f;
+  const pode = !salvando && f.tipo !== '' && f.instituicao.trim().length >= 2 && f.inicio !== ''
+    && (f.tipo !== 'outro' || f.tipoOutro.trim().length >= 2)
+    && (!atual || (motivo.trim().length >= 5 && Object.keys(mudou).length > 0));
+  const ehTrabalho = ['aprendizagem', 'estagio'].includes(f.tipo);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-vinc"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-vinc">{atual ? 'Corrigir o vínculo' : 'Cadastrar um vínculo'}</h3>
+        {atual && (
+          <div className="notice c-info">O que consta hoje fica no histórico do vínculo, com o motivo e o seu nome.</div>
+        )}
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+        <label className="f">Tipo</label>
+        <div className="opts">
+          {tipos.map((t) => (
+            <button type="button" key={t.cod} className="opt c-med" aria-pressed={f.tipo === t.cod}
+                    onClick={() => muda('tipo', t.cod)}>{t.label}</button>
+          ))}
+        </div>
+        {f.tipo === 'outro' && (
+          <>
+            <label className="f" htmlFor="vinc-outro">Qual</label>
+            <input id="vinc-outro" value={f.tipoOutro} onChange={(e) => muda('tipoOutro', e.target.value)} />
+          </>
+        )}
+        <label className="f" htmlFor="vinc-inst">{ehTrabalho ? 'Programa ou instituição' : 'Escola, serviço ou instituição'}</label>
+        <input id="vinc-inst" value={f.instituicao} onChange={(e) => muda('instituicao', e.target.value)} />
+        <label className="f" htmlFor="vinc-curso">Curso <small>quando houver</small></label>
+        <input id="vinc-curso" value={f.curso} onChange={(e) => muda('curso', e.target.value)} />
+        <div className="grade-2">
+          <div>
+            <label className="f" htmlFor="vinc-serie">Série ou ano</label>
+            <input id="vinc-serie" value={f.serie} onChange={(e) => muda('serie', e.target.value)} />
+          </div>
+          <div>
+            <label className="f" htmlFor="vinc-turma">Turma</label>
+            <input id="vinc-turma" value={f.turma} onChange={(e) => muda('turma', e.target.value)} />
+          </div>
+        </div>
+        <label className="f">Turno</label>
+        <div className="opts">
+          {turnos.map((t) => (
+            <button type="button" key={t.cod} className="opt c-med" aria-pressed={f.turno === t.cod}
+                    onClick={() => muda('turno', f.turno === t.cod ? '' : t.cod)}>{t.label}</button>
+          ))}
+        </div>
+        <label className="f">Dias</label>
+        <div className="opts">
+          {DIAS_DA_SEMANA.map((d) => (
+            <button type="button" key={d.cod} className="opt c-med" aria-pressed={f.dias.includes(d.cod)}
+                    onClick={() => muda('dias', f.dias.includes(d.cod)
+                      ? f.dias.filter((x) => x !== d.cod) : [...f.dias, d.cod].sort())}>{d.label}</button>
+          ))}
+        </div>
+        {ehTrabalho && (
+          <>
+            <label className="f" htmlFor="vinc-unid">Unidade de formação</label>
+            <input id="vinc-unid" value={f.unidade} onChange={(e) => muda('unidade', e.target.value)} />
+            <label className="f" htmlFor="vinc-emp">Empresa</label>
+            <input id="vinc-emp" value={f.empresa} onChange={(e) => muda('empresa', e.target.value)} />
+          </>
+        )}
+        <label className="f" htmlFor="vinc-end">Endereço <small>para quem leva e busca</small></label>
+        <input id="vinc-end" value={f.endereco} onChange={(e) => muda('endereco', e.target.value)} />
+        <div className="grade-2">
+          <div>
+            <label className="f" htmlFor="vinc-ini">Começo</label>
+            <input id="vinc-ini" type="date" value={f.inicio} onChange={(e) => muda('inicio', e.target.value)} />
+          </div>
+          <div>
+            <label className="f" htmlFor="vinc-fim">Previsão de término</label>
+            <input id="vinc-fim" type="date" value={f.fimPrevisto} onChange={(e) => muda('fimPrevisto', e.target.value)} />
+          </div>
+        </div>
+        {atual && (
+          <>
+            <label className="f" htmlFor="vinc-mot">Motivo da correção</label>
+            <textarea id="vinc-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                      placeholder="Ex.: a escola mudou a turma; a data de início estava errada." />
+          </>
+        )}
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={async () => {
+                    setSalvando(true); setErro('');
+                    try {
+                      await onSalvar(atual ? { ...mudou, motivo: motivo.trim() } : f);
+                    } catch (e) {
+                      setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+                    } finally { setSalvando(false); }
+                  }}>
+            {salvando ? 'Registrando…' : atual ? 'Corrigir com o meu nome' : 'Cadastrar com o meu nome'}
+          </button>
+        </div>
+        {!pode && !salvando && (
+          <p className="mutetxt" style={{ marginBottom: 0 }}>
+            {atual ? 'Mude o que estava errado e escreva o motivo.' : 'Escolha o tipo, escreva a instituição e o dia do começo.'}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FolhaEncerrarVinculo({ v, onFechar, onSalvar }: {
+  v: VinculoEducacional; onFechar: () => void; onSalvar: (c: Record<string, unknown>) => Promise<void>;
+}) {
+  const [em, setEm] = useState(hojeNoAparelho());
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const pode = !salvando && em !== '' && motivo.trim().length >= 5;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-encv"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-encv">Encerrar o vínculo</h3>
+        <p className="mutetxt">{v.tipoRotulo} · {v.instituicao}. Ele continua na linha da criança.</p>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <label className="f" htmlFor="encv-em">Terminou em</label>
+        <input id="encv-em" type="date" value={em} onChange={(e) => setEm(e.target.value)} />
+        <label className="f" htmlFor="encv-mot">Por que terminou</label>
+        <textarea id="encv-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: concluiu o ano; mudou de escola; o contrato de aprendizagem acabou." />
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={async () => {
+                    setSalvando(true); setErro('');
+                    try { await onSalvar({ em, motivo: motivo.trim() }); }
+                    catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível registrar.'); }
+                    finally { setSalvando(false); }
+                  }}>
+            {salvando ? 'Registrando…' : 'Encerrar com o meu nome'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FolhaNotaDoVinculo({ v, corrige, onFechar, onSalvar }: {
+  v: VinculoEducacional; corrige: NotaDoVinculo | null;
+  onFechar: () => void; onSalvar: (c: Record<string, unknown>) => Promise<void>;
+}) {
+  const [periodo, setPeriodo] = useState(corrige?.periodo ?? '');
+  const [disciplina, setDisciplina] = useState(corrige?.disciplina ?? '');
+  const [nota, setNota] = useState('');
+  const [observacao, setObservacao] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const pode = !salvando && periodo.trim().length >= 2 && disciplina.trim().length >= 2 && nota.trim() !== '';
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-notav"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-notav">{corrige ? 'Corrigir a nota' : 'Lançar nota'}</h3>
+        <p className="mutetxt">
+          {v.instituicao}. {corrige
+            ? `A nota ${corrige.nota} continua legível, marcada como corrigida.`
+            : 'Escreva a nota como a escola deu: número, letra ou conceito.'}
+        </p>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <label className="f" htmlFor="notav-per">Período</label>
+        <input id="notav-per" value={periodo} onChange={(e) => setPeriodo(e.target.value)}
+               placeholder="Ex.: 1º trimestre de 2026" />
+        <label className="f" htmlFor="notav-dis">Disciplina ou área</label>
+        <input id="notav-dis" value={disciplina} onChange={(e) => setDisciplina(e.target.value)} />
+        <label className="f" htmlFor="notav-nota">Nota</label>
+        <input id="notav-nota" value={nota} onChange={(e) => setNota(e.target.value)} />
+        <label className="f" htmlFor="notav-obs">Observação <small>se houver</small></label>
+        <textarea id="notav-obs" value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={async () => {
+                    setSalvando(true); setErro('');
+                    try {
+                      await onSalvar({ periodo: periodo.trim(), disciplina: disciplina.trim(), nota: nota.trim(),
+                                       observacao: observacao.trim() || null, substitui: corrige?.id ?? null });
+                    } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível registrar.'); }
+                    finally { setSalvando(false); }
+                  }}>
+            {salvando ? 'Registrando…' : 'Lançar com o meu nome'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ESCREVEM_EDUCACAO = ['educador', 'lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 function Educacao({ personId, houseId, papel }: {
   personId: string; houseId: string; papel: string;
 }) {
   const [dados, setDados] = useState<{ apoio: ApoioEducacional | null;
+                                       vinculos?: VinculoEducacional[];
                                        evolucoes: EvolucaoEducacional[];
                                        conceitos: ConceitoEducacional[] } | null>(null);
   const [erro, setErro] = useState('');
@@ -5295,6 +5762,8 @@ function Educacao({ personId, houseId, papel }: {
     modos: { cod: string; label: string }[];
     conceitos: { cod: string; label: string }[];
     bimestres: { cod: number; label: string }[];
+    tiposDeVinculo?: { cod: string; label: string }[];
+    turnos?: { cod: string; label: string }[];
     aviso?: string;
   } | null>(null);
 
@@ -5321,8 +5790,15 @@ function Educacao({ personId, houseId, papel }: {
     <>
       {/* REGISTRO EDUCACIONAL (fase 277, decisão de 05/11): o nome que a equipe usa,
           no lugar de *Registrar apoio educacional*. O que se registra é o mesmo. */}
-      <div className="eyebrow">Registro Educacional</div>
       {!dados && <p className="mutetxt">Abrindo…</p>}
+
+      {dados && (
+        <VinculosEducacionais personId={personId} vinculos={dados.vinculos ?? []} pode={pode}
+          tipos={vocabulario?.tiposDeVinculo ?? []} turnos={vocabulario?.turnos ?? []}
+          recarregar={carregar} />
+      )}
+
+      <div className="eyebrow">Registro Educacional</div>
 
       {dados && (
         <div className="card stack">

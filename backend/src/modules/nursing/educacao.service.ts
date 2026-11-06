@@ -4,6 +4,7 @@ import {
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { EventBus } from '../../kernel/events/event-bus.service';
 
 /**
  * O PRONTUÁRIO DE EDUCAÇÃO — que existia no banco e não tinha por onde ser
@@ -59,6 +60,44 @@ export const CONCEITOS_EDUCACAO = [
 const ROTULO_CONCEITO: Record<string, string> =
   Object.fromEntries(CONCEITOS_EDUCACAO.map((c) => [c.cod, c.label]));
 
+/**
+ * OS VÍNCULOS EDUCACIONAIS (fase 282, decidido em 06/11). Os tipos, na ordem em que a
+ * pessoa da Fundação os disse, e o turno. A tela lê daqui (§12.2).
+ */
+export const TIPOS_DE_VINCULO = [
+  { cod: 'educacao_infantil', label: 'Educação infantil' },
+  { cod: 'ensino_fundamental', label: 'Ensino fundamental' },
+  { cod: 'ensino_medio', label: 'Ensino médio' },
+  { cod: 'eja', label: 'EJA' },
+  { cod: 'ensino_tecnico', label: 'Ensino técnico' },
+  { cod: 'ensino_superior', label: 'Ensino superior' },
+  { cod: 'educacao_integral', label: 'Educação integral' },
+  { cod: 'scfv', label: 'SCFV' },
+  { cod: 'aprendizagem', label: 'Aprendizagem profissional' },
+  { cod: 'estagio', label: 'Estágio' },
+  { cod: 'curso', label: 'Curso' },
+  { cod: 'outro', label: 'Outro' },
+];
+export const TURNOS_DO_VINCULO = [
+  { cod: 'manha', label: 'Manhã' },
+  { cod: 'tarde', label: 'Tarde' },
+  { cod: 'noite', label: 'Noite' },
+  { cod: 'integral', label: 'Integral' },
+  { cod: 'variavel', label: 'Horário variável' },
+];
+const ROTULO_TIPO: Record<string, string> = Object.fromEntries(TIPOS_DE_VINCULO.map((t) => [t.cod, t.label]));
+const ROTULO_TURNO: Record<string, string> = Object.fromEntries(TURNOS_DO_VINCULO.map((t) => [t.cod, t.label]));
+/** O aviso do fim previsto: 30 e 7 dias, fixos (decidido em 06/11). */
+export const VINCULO_AVISO_DIAS = [30, 7];
+
+/** Os campos do vínculo como a tela os manda, e como o banco os guarda. */
+const CAMPOS_DO_VINCULO: Record<string, string> = {
+  tipo: 'kind', tipoOutro: 'kind_other', instituicao: 'institution', curso: 'course',
+  serie: 'grade', turma: 'class_group', turno: 'shift', dias: 'weekdays',
+  unidade: 'training_unit', empresa: 'company', endereco: 'address',
+  inicio: 'starts_on', fimPrevisto: 'expected_end',
+};
+
 /** Quem digita o conceito — decisão da Fundação em 21/09/2026, por extenso. */
 const DIGITAM_CONCEITO = ['equipe_tecnica', 'coordenador', 'lider_diurno'];
 
@@ -67,6 +106,7 @@ export class EducacaoService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(EventBus) private readonly bus: EventBus,
   ) {}
 
   vocabulario() {
@@ -77,6 +117,8 @@ export class EducacaoService {
          não inventa a sua lista, e foi por inventar uma que a fase 130 existiu. */
       conceitos: CONCEITOS_EDUCACAO,
       bimestres: [1, 2, 3, 4].map((n) => ({ cod: n, label: `${n}º bimestre` })),
+      tiposDeVinculo: TIPOS_DE_VINCULO,
+      turnos: TURNOS_DO_VINCULO,
       aviso: 'O que ficar em branco aqui sai como "não há" no relatório e na audiência — e num '
         + 'documento judicial, seção vazia se lê como ausência de trabalho.',
     };
@@ -121,7 +163,50 @@ export class EducacaoService {
           ORDER BY ano DESC, bimestre DESC, created_at DESC
           LIMIT 40`, [personId]);
 
+      /*
+       * OS VÍNCULOS (fase 282): todos, vigentes e encerrados, com o histórico de cada
+       * um e as notas. A tela põe em ordem; o servidor só entrega inteiro.
+       */
+      const { rows: vinculos } = await c.query(
+        `SELECT l.*, l.starts_on::text AS inicio, l.expected_end::text AS fim_previsto,
+                l.ended_on::text AS encerrado_em,
+                app_user_display_name(l.created_by) AS criado_por,
+                app_user_display_name(l.updated_by) AS mudado_por
+           FROM education_link l
+          WHERE l.person_id = $1
+          ORDER BY l.starts_on DESC, l.created_at DESC`, [personId]);
+      const ids = vinculos.map((v) => v.id);
+      const { rows: mudancas } = ids.length ? await c.query(
+        `SELECT id, link_id, kind, before, reason, changed_at,
+                app_user_display_name(changed_by) AS por
+           FROM education_link_change WHERE link_id = ANY($1::uuid[])
+          ORDER BY changed_at DESC`, [ids]) : { rows: [] as any[] };
+      const { rows: notas } = ids.length ? await c.query(
+        `SELECT id, link_id, period, subject, grade, note, replaces_id, replaced_at, created_at,
+                app_user_display_name(created_by) AS por
+           FROM education_grade WHERE link_id = ANY($1::uuid[])
+          ORDER BY created_at DESC`, [ids]) : { rows: [] as any[] };
+
       return {
+        vinculos: vinculos.map((v) => ({
+          id: v.id, tipo: v.kind, tipoRotulo: v.kind === 'outro' ? (v.kind_other ?? 'Outro') : ROTULO_TIPO[v.kind],
+          tipoOutro: v.kind_other, instituicao: v.institution, curso: v.course, serie: v.grade,
+          turma: v.class_group, turno: v.shift, turnoRotulo: v.shift ? ROTULO_TURNO[v.shift] : null,
+          dias: (v.weekdays ?? []).map(Number), unidade: v.training_unit, empresa: v.company,
+          endereco: v.address, inicio: v.inicio, fimPrevisto: v.fim_previsto,
+          encerradoEm: v.encerrado_em, motivoDoEncerramento: v.end_reason,
+          vigente: v.encerrado_em == null,
+          criadoPor: v.criado_por, criadoEm: v.created_at,
+          mudadoPor: v.mudado_por, mudadoEm: v.updated_at,
+          historico: mudancas.filter((m) => m.link_id === v.id).map((m) => ({
+            id: m.id, tipo: m.kind, antes: m.before, motivo: m.reason, em: m.changed_at, por: m.por,
+          })),
+          notas: notas.filter((n) => n.link_id === v.id).map((n) => ({
+            id: n.id, periodo: n.period, disciplina: n.subject, nota: n.grade, observacao: n.note,
+            corrigeUmaAnterior: n.replaces_id != null, substituida: n.replaced_at != null,
+            em: n.created_at, por: n.por,
+          })),
+        })),
         conceitos: conceitos.map((k) => ({
           id: k.id, ano: k.ano, bimestre: k.bimestre,
           conceito: k.conceito, rotulo: ROTULO_CONCEITO[k.conceito] ?? k.conceito,
@@ -310,5 +395,185 @@ export class EducacaoService {
         : 'Conceito registrado com o seu nome. Ele fala do acompanhamento neste bimestre, '
           + 'e não da criança.',
     };
+  }
+
+  /* ===================== OS VÍNCULOS (fase 282) ===================== */
+
+  private conferirEscreve(user: AuthenticatedUser) {
+    if (!ESCREVEM.includes(user.role)) {
+      throw new ForbiddenException(
+        'Quem cadastra e corrige os vínculos educacionais é a equipe da casa: educador, líder, '
+        + 'técnica ou coordenação.');
+    }
+  }
+
+  /** Confere e traduz o corpo da tela para o que o banco guarda. */
+  private vinculoDoCorpo(input: any, parcial: boolean): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const [daTela, doBanco] of Object.entries(CAMPOS_DO_VINCULO)) {
+      if (input?.[daTela] !== undefined) out[doBanco] = input[daTela];
+    }
+    if (!parcial || out.kind !== undefined) {
+      if (!TIPOS_DE_VINCULO.some((t) => t.cod === out.kind)) {
+        throw new BadRequestException('Escolha o tipo do vínculo: escola, SCFV, aprendizagem, estágio ou outro da lista.');
+      }
+      if (out.kind === 'outro' && String(out.kind_other ?? '').trim().length < 2) {
+        throw new BadRequestException('Diga qual é o vínculo, já que ele não está na lista.');
+      }
+    }
+    if (!parcial || out.institution !== undefined) {
+      if (String(out.institution ?? '').trim().length < 2) {
+        throw new BadRequestException('Escreva o nome da escola, do serviço ou da empresa.');
+      }
+    }
+    if (out.shift != null && out.shift !== '' && !TURNOS_DO_VINCULO.some((t) => t.cod === out.shift)) {
+      throw new BadRequestException('Escolha o turno da lista.');
+    }
+    if (out.weekdays !== undefined) {
+      const dias = Array.isArray(out.weekdays) ? out.weekdays.map(Number) : [];
+      if (dias.some((d) => !Number.isInteger(d) || d < 1 || d > 7)) {
+        throw new BadRequestException('Os dias do vínculo vão de segunda a domingo.');
+      }
+      out.weekdays = [...new Set(dias)].sort();
+    }
+    const data = /^\d{4}-\d{2}-\d{2}$/;
+    if (!parcial || out.starts_on !== undefined) {
+      if (!data.test(String(out.starts_on ?? ''))) {
+        throw new BadRequestException('Diga quando o vínculo começou.');
+      }
+    }
+    if (out.expected_end != null && out.expected_end !== '' && !data.test(String(out.expected_end))) {
+      throw new BadRequestException('A previsão de término precisa ser uma data.');
+    }
+    return out;
+  }
+
+  private emPortugues(e: any): never {
+    const m = String(e?.message ?? '');
+    if (m.includes('sem_permissao_vinculo')) {
+      throw new ForbiddenException('Quem cadastra e corrige os vínculos educacionais é a equipe da casa.');
+    }
+    if (m.includes('acolhido_fora_de_escopo') || m.includes('vinculo_inexistente')) {
+      throw new NotFoundException('Vínculo ou acolhido não encontrado.');
+    }
+    if (m.includes('motivo_curto')) throw new BadRequestException('Escreva o motivo, em poucas palavras.');
+    if (m.includes('vinculo_ja_encerrado')) throw new BadRequestException('Este vínculo já foi encerrado.');
+    if (m.includes('encerramento_antes_do_inicio')) {
+      throw new BadRequestException('O encerramento não pode ser antes do começo do vínculo.');
+    }
+    if (m.includes('encerramento_no_futuro')) {
+      throw new BadRequestException('Encerre no dia em que terminou. Para um fim que ainda vem, use a previsão de término.');
+    }
+    if (m.includes('vinculo_fim_depois_do_inicio')) {
+      throw new BadRequestException('A previsão de término não pode ser antes do começo.');
+    }
+    if (m.includes('nota_inexistente')) throw new NotFoundException('Nota não encontrada neste vínculo.');
+    if (m.includes('nota_ja_corrigida')) throw new BadRequestException('Esta nota já foi corrigida. Corrija a mais nova.');
+    throw e;
+  }
+
+  async cadastrarVinculo(user: AuthenticatedUser, personId: string, input: any) {
+    this.conferirEscreve(user);
+    const corpo = this.vinculoDoCorpo(input, false);
+    let id: string;
+    try {
+      id = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT app_cadastrar_vinculo_educacional($1, $2::jsonb) AS id`,
+        [personId, JSON.stringify(corpo)])).rows[0].id);
+    } catch (e) { this.emPortugues(e); }
+    await this.audit.log({
+      action: 'education.link.created', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'education_link', entityId: id!, detail: { personId, tipo: corpo.kind },
+    });
+    return { id: id!, aviso: 'Vínculo cadastrado com o seu nome.' };
+  }
+
+  async corrigirVinculo(user: AuthenticatedUser, linkId: string, input: any) {
+    this.conferirEscreve(user);
+    const corpo = this.vinculoDoCorpo(input, true);
+    const motivo = String(input?.motivo ?? '').trim();
+    if (motivo.length < 5) throw new BadRequestException('Escreva o motivo da correção, em poucas palavras.');
+    let houseId: string;
+    try {
+      houseId = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT app_corrigir_vinculo_educacional($1, $2::jsonb, $3) AS casa`,
+        [linkId, JSON.stringify(corpo), motivo])).rows[0].casa);
+    } catch (e) { this.emPortugues(e); }
+    await this.audit.log({
+      action: 'education.link.corrected', actorId: user.id, houseId: houseId!,
+      entity: 'education_link', entityId: linkId, detail: { campos: Object.keys(corpo) },
+    });
+    return { ok: true, aviso: 'Vínculo corrigido. O que constava antes ficou no histórico, com o motivo.' };
+  }
+
+  async encerrarVinculo(user: AuthenticatedUser, linkId: string, input: any) {
+    this.conferirEscreve(user);
+    const em = String(input?.em ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(em)) throw new BadRequestException('Diga em que dia o vínculo terminou.');
+    const motivo = String(input?.motivo ?? '').trim();
+    if (motivo.length < 5) throw new BadRequestException('Escreva por que terminou: concluiu, mudou de escola, desistiu.');
+    let houseId: string;
+    try {
+      houseId = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT app_encerrar_vinculo_educacional($1, $2::date, $3) AS casa`,
+        [linkId, em, motivo])).rows[0].casa);
+    } catch (e) { this.emPortugues(e); }
+    await this.audit.log({
+      action: 'education.link.ended', actorId: user.id, houseId: houseId!,
+      entity: 'education_link', entityId: linkId, detail: { em },
+    });
+    return { ok: true, aviso: 'Vínculo encerrado. Ele continua na linha da criança.' };
+  }
+
+  async lancarNota(user: AuthenticatedUser, linkId: string, input: any) {
+    this.conferirEscreve(user);
+    const periodo = String(input?.periodo ?? '').trim();
+    const disciplina = String(input?.disciplina ?? '').trim();
+    const nota = String(input?.nota ?? '').trim();
+    if (periodo.length < 2) throw new BadRequestException('Diga o período da nota: 1º trimestre de 2026, por exemplo.');
+    if (disciplina.length < 2) throw new BadRequestException('Diga a disciplina ou a área.');
+    if (!nota) throw new BadRequestException('Escreva a nota como a escola deu.');
+    const substitui = input?.substitui ? String(input.substitui) : null;
+    if (substitui && !/^[0-9a-f-]{36}$/i.test(substitui)) throw new BadRequestException('Nota a corrigir inválida.');
+    let id: string;
+    try {
+      id = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT app_lancar_nota_educacional($1, $2, $3, $4, $5, $6) AS id`,
+        [linkId, periodo, disciplina, nota, input?.observacao ?? null, substitui])).rows[0].id);
+    } catch (e) { this.emPortugues(e); }
+    const houseId = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT house_id FROM education_grade WHERE id = $1`, [id!])).rows[0]?.house_id);
+    await this.audit.log({
+      action: 'education.grade', actorId: user.id, houseId,
+      entity: 'education_grade', entityId: id!, detail: { linkId, corrigiu: substitui != null },
+    });
+    return { id: id!, aviso: substitui
+      ? 'Nota corrigida. A anterior continua legível, com o nome de quem a lançou.'
+      : 'Nota lançada com o seu nome.' };
+  }
+
+  /** O relógio do dia: o fim previsto de um vínculo chegando, a 30 e a 7 dias. */
+  async avisarVinculosDaCasa(user: AuthenticatedUser, houseId: string) {
+    const linhas = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT out_vinculo, out_pessoa, out_nome, out_instituicao, out_fim::text AS fim, out_dias
+         FROM app_vinculos_terminando($1)`, [houseId])).rows);
+    for (const r of linhas) {
+      const dia = `${r.fim.slice(8, 10)}/${r.fim.slice(5, 7)}`;
+      const quando = Number(r.out_dias) === 7 ? 'na última semana' : 'no último mês';
+      const aviso = {
+        entity: 'education_link', entityId: r.out_vinculo,
+        reason: 'vinculo_educacional_terminando',
+        title: `O vínculo de ${r.out_nome} com ${r.out_instituicao} está ${quando}`,
+        body: `A previsão de término é ${dia}. Combine com a criança e com quem acompanha o que vem `
+          + 'depois, e encerre ou corrija o vínculo na aba Educação do perfil quando souber.',
+        priority: 'normal' as const, groupKey: `vinculo:${r.out_vinculo}:${r.out_dias}`,
+      };
+      await this.bus.publish('escalation.requested', { ...aviso, level: 'tecnica_coordenacao' },
+        { actorId: user.id, houseId });
+      await this.bus.publish('escalation.requested', { ...aviso, level: 'lider' },
+        { actorId: user.id, houseId });
+    }
+    return { ok: true, avisados: linhas.length };
   }
 }

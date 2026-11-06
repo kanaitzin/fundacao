@@ -63,6 +63,35 @@ export class NursingController {
     return this.educacao.registrarConceito(user, personId, body ?? {});
   }
 
+  /**
+   * OS VÍNCULOS EDUCACIONAIS (fase 282): escola, SCFV, aprendizagem, estágio, com
+   * começo, fim previsto e encerramento. Corrigir guarda o que constava antes;
+   * a nota se corrige com outra linha. Lidos no `GET education/:personId`.
+   */
+  @Post('education/:personId/links')
+  cadastrarVinculo(@CurrentUser() user: AuthenticatedUser,
+                   @Param('personId', ParseUUIDPipe) personId: string, @Body() body: any) {
+    return this.educacao.cadastrarVinculo(user, personId, body ?? {});
+  }
+
+  @Post('education-links/:id/correct')
+  corrigirVinculo(@CurrentUser() user: AuthenticatedUser,
+                  @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.educacao.corrigirVinculo(user, id, body ?? {});
+  }
+
+  @Post('education-links/:id/end')
+  encerrarVinculo(@CurrentUser() user: AuthenticatedUser,
+                  @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.educacao.encerrarVinculo(user, id, body ?? {});
+  }
+
+  @Post('education-links/:id/grades')
+  lancarNota(@CurrentUser() user: AuthenticatedUser,
+             @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.educacao.lancarNota(user, id, body ?? {});
+  }
+
   @Post('education/:personId/evolutions')
   registrarEvolucaoEducacional(@CurrentUser() user: AuthenticatedUser,
                                @Param('personId', ParseUUIDPipe) personId: string,

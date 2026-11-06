@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 282, dia: '06/11/2026', aba: 'acolhidos',
+    texto: 'Os vínculos educacionais na aba Educação do perfil: escola, educação infantil, fundamental, médio, superior, EJA, técnico, educação integral, SCFV, aprendizagem, estágio e curso, em linha, do mais novo ao mais antigo, como contratos de tal época a tal época. A criança pode ter mais de um ao mesmo tempo, e Agora mostra o que vale em cada turno. O triângulo abre o vínculo inteiro: turma, série, dias, endereço, empresa, as notas da escola e o histórico. Corrigir pede o motivo e guarda o que estava antes; encerrar pede o dia e o porquê, e o vínculo continua na linha. A técnica, a coordenação e o Líder Diurno recebem o aviso no último mês e na última semana antes do fim previsto.' },
   { fase: 281, dia: '06/11/2026', aba: 'ata',
     texto: 'Quem escreve na ATA de outro turno: na ATA de cada turno escreve quem está na escala dele, e também a equipe técnica, a coordenação, a Enfermagem e o líder do turno. Quem não está na escala toca em Pedir para escrever neste turno e diz o motivo; o líder do turno ou a coordenação vê o pedido na própria ATA e autoriza ou recusa, e as duas coisas ficam registradas com o nome e a hora. Sem escala lançada no turno, ninguém é travado. Ler continua como era.' },
   { fase: 280, dia: '06/11/2026', aba: 'agenda',

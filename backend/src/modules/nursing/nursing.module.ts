@@ -21,6 +21,6 @@ import { NursingOfflineHandlers } from './nursing.offline';
   controllers: [NursingController],
   providers: [NursingService, InternacaoService,
     EducacaoService, HealthSummaryService, NursingOfflineHandlers],
-  exports: [NursingService, HealthSummaryService],
+  exports: [NursingService, HealthSummaryService, EducacaoService],
 })
 export class NursingModule {}

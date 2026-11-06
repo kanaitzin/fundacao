@@ -2545,3 +2545,33 @@ button[data-gravando]{ cursor:progress }
 .agenda-dia.vazio{ cursor:default; opacity:.7 }
 .agenda-dia:focus-visible{ outline:3px solid var(--brand); outline-offset:1px }
 .agenda-conta{ font-size:12px; font-weight:800; color:var(--brand-solid); background:var(--brand-soft); border-radius:999px; padding:0 7px }
+
+/* OS VÍNCULOS EDUCACIONAIS (fase 282): a linha como contrato, de tal época a tal época.
+   O trilho e o ponto são da marca do tema, nunca cor de estado; o encerrado fica mais
+   claro, e o triângulo gira quando abre. */
+.vinculos-agora ul{ margin:6px 0 0; padding:0; list-style:none; display:grid; gap:4px }
+.vinculos-agora .vinculo-turno{ display:inline-block; min-width:5.5em; font-weight:700; color:var(--muted) }
+.vinculos{ list-style:none; margin:4px 0 12px; padding:0 0 0 14px; border-left:2px solid var(--line) }
+.vinculo{ position:relative; margin:0 0 10px; background:var(--surface); border:1px solid var(--line);
+  border-radius:12px }
+.vinculo::before{ content:""; position:absolute; left:-21px; top:18px; width:12px; height:12px;
+  border-radius:50%; background:var(--brand); border:2px solid var(--ground) }
+.vinculo.encerrado::before{ background:var(--muted) }
+.vinculo.encerrado .vinculo-cabeca{ opacity:.75 }
+.vinculo-cabeca{ display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px;
+  background:none; border:0; text-align:left; font:inherit; color:inherit; cursor:pointer; min-height:44px }
+.vinculo-triangulo{ flex:0 0 auto; transition:transform var(--mov-curto, .15s) ease; color:var(--muted) }
+.vinculo-cabeca[aria-expanded="true"] .vinculo-triangulo{ transform:rotate(90deg) }
+.vinculo-resumo{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:1px }
+.vinculo-tipo{ font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted) }
+.vinculo-corpo{ padding:0 12px 12px 34px }
+.vinculo-parte{ margin:10px 0 4px; font-weight:700 }
+.vinculo-historico{ margin:0; padding-left:18px; display:grid; gap:6px }
+.vinculo-acoes{ margin-top:10px; flex-wrap:wrap; gap:8px }
+.vinculo-notas{ list-style:none; margin:0; padding:0; display:grid; gap:8px }
+.vinculo-notas li{ padding:6px 0; border-bottom:1px solid var(--line); display:grid; gap:2px; justify-items:start }
+.vinculo-notas li.substituida{ opacity:.6 }
+.vinculo-nota-linha{ display:flex; gap:10px; align-items:baseline; width:100% }
+.vinculo-nota{ font-size:16px }
+.grade-2{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap:0 12px }
+@media (prefers-reduced-motion: reduce){ .vinculo-triangulo{ transition:none } }

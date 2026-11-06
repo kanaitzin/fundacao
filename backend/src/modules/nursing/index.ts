@@ -6,3 +6,4 @@
 export { NursingModule } from './nursing.module';
 export { NursingService, SLA_TRIAGEM_HORAS } from './nursing.service';
 export { HealthSummaryService, FINALIDADES } from './health-summary.service';
+export { EducacaoService } from './educacao.service';

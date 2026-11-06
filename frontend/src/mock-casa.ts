@@ -1312,6 +1312,101 @@ const EVOLUCOES_EDU: Record<string, { id: string; em: string; texto: string;
   ],
 };
 /**
+ * OS VÍNCULOS EDUCACIONAIS no servidor de mentira (fase 282).
+ *
+ * Três crianças mostram os três jeitos de a linha ser: a Alice com a educação
+ * infantil encerrada e, agora, a escola de manhã e o SCFV à tarde; o Kauã com o
+ * fundamental encerrado, o ensino médio de manhã e a aprendizagem à tarde, no
+ * último mês, com uma correção no histórico e as notas; o Enzo com uma escola só.
+ */
+interface VinculoMock {
+  id: string; tipo: string; tipoRotulo: string; tipoOutro: string | null; instituicao: string;
+  curso: string | null; serie: string | null; turma: string | null; turno: string | null;
+  turnoRotulo: string | null; dias: number[]; unidade: string | null; empresa: string | null;
+  endereco: string | null; inicio: string; fimPrevisto: string | null; encerradoEm: string | null;
+  motivoDoEncerramento: string | null; vigente: boolean; criadoPor: string | null; criadoEm: string;
+  mudadoPor: string | null; mudadoEm: string;
+  historico: { id: string; tipo: string; antes: Record<string, unknown>; motivo: string; em: string; por: string | null }[];
+  notas: { id: string; periodo: string; disciplina: string; nota: string; observacao: string | null;
+           corrigeUmaAnterior: boolean; substituida: boolean; em: string; por: string | null }[];
+}
+const TIPOS_DE_VINCULO_MOCK = [
+  { cod: 'educacao_infantil', label: 'Educação infantil' },
+  { cod: 'ensino_fundamental', label: 'Ensino fundamental' },
+  { cod: 'ensino_medio', label: 'Ensino médio' },
+  { cod: 'eja', label: 'EJA' },
+  { cod: 'ensino_tecnico', label: 'Ensino técnico' },
+  { cod: 'ensino_superior', label: 'Ensino superior' },
+  { cod: 'educacao_integral', label: 'Educação integral' },
+  { cod: 'scfv', label: 'SCFV' },
+  { cod: 'aprendizagem', label: 'Aprendizagem profissional' },
+  { cod: 'estagio', label: 'Estágio' },
+  { cod: 'curso', label: 'Curso' },
+  { cod: 'outro', label: 'Outro' },
+];
+const TURNOS_DO_VINCULO_MOCK = [
+  { cod: 'manha', label: 'Manhã' }, { cod: 'tarde', label: 'Tarde' }, { cod: 'noite', label: 'Noite' },
+  { cod: 'integral', label: 'Integral' }, { cod: 'variavel', label: 'Horário variável' },
+];
+function vinculoMock(v: Partial<VinculoMock> & { id: string; tipo: string; instituicao: string; inicio: string }): VinculoMock {
+  return {
+    tipoOutro: null, curso: null, serie: null, turma: null, turno: null, dias: [1, 2, 3, 4, 5],
+    unidade: null, empresa: null, endereco: null, fimPrevisto: null, encerradoEm: null,
+    motivoDoEncerramento: null, criadoPor: 'Equipe técnica', criadoEm: emDias(-60),
+    mudadoPor: 'Equipe técnica', mudadoEm: emDias(-60), historico: [], notas: [],
+    ...v,
+    tipoRotulo: TIPOS_DE_VINCULO_MOCK.find((t) => t.cod === v.tipo)?.label ?? 'Outro',
+    turnoRotulo: TURNOS_DO_VINCULO_MOCK.find((t) => t.cod === v.turno)?.label ?? null,
+    vigente: !v.encerradoEm,
+  };
+}
+const VINCULOS_EDU: Record<string, VinculoMock[]> = {
+  p01: [
+    vinculoMock({ id: 've1', tipo: 'educacao_infantil', instituicao: 'EMEI Pequeno Príncipe',
+      turno: 'tarde', inicio: '2023-02-06', fimPrevisto: '2024-12-13', encerradoEm: '2024-12-13',
+      motivoDoEncerramento: 'Concluiu a educação infantil e foi para o primeiro ano.' }),
+    vinculoMock({ id: 've2', tipo: 'ensino_fundamental', instituicao: 'EMEF Jardim das Acácias',
+      serie: '2º ano', turma: '21', turno: 'manha', inicio: '2025-02-17', fimPrevisto: '2026-12-18',
+      endereco: 'Rua das Acácias, 120, Partenon',
+      notas: [
+        { id: 'vn1', periodo: '2º trimestre de 2026', disciplina: 'Língua Portuguesa', nota: 'Satisfatório',
+          observacao: 'A professora destacou a leitura em voz alta.', corrigeUmaAnterior: false,
+          substituida: false, em: emDias(-20), por: 'Equipe técnica' },
+        { id: 'vn2', periodo: '2º trimestre de 2026', disciplina: 'Matemática', nota: 'Em desenvolvimento',
+          observacao: null, corrigeUmaAnterior: false, substituida: false, em: emDias(-20), por: 'Equipe técnica' },
+      ] }),
+    vinculoMock({ id: 've3', tipo: 'scfv', instituicao: 'SCFV Bom Fim', turno: 'tarde', dias: [2, 4],
+      inicio: '2025-03-10', endereco: 'Av. Oswaldo Aranha, 900' }),
+  ],
+  p10: [
+    vinculoMock({ id: 've4', tipo: 'ensino_fundamental', instituicao: 'Escola Estadual Pôr do Sol',
+      serie: '9º ano', turno: 'manha', inicio: '2022-02-21', fimPrevisto: '2025-12-19',
+      encerradoEm: '2025-12-19', motivoDoEncerramento: 'Concluiu o ensino fundamental.' }),
+    vinculoMock({ id: 've5', tipo: 'ensino_medio', instituicao: 'Escola Estadual Pôr do Sol',
+      serie: '1º ano', turma: '101', turno: 'manha', inicio: '2026-02-23', fimPrevisto: '2028-12-15',
+      endereco: 'Rua Saturnino de Brito, 45',
+      historico: [{ id: 'vh1', tipo: 'correcao', antes: { class_group: '102' },
+        motivo: 'A escola mudou a turma depois da primeira semana.', em: emDias(-200), por: 'Joana Lima' }],
+      notas: [
+        { id: 'vn3', periodo: '1º trimestre de 2026', disciplina: 'Matemática', nota: '6,0', observacao: null,
+          corrigeUmaAnterior: false, substituida: true, em: emDias(-150), por: 'Equipe técnica' },
+        { id: 'vn4', periodo: '1º trimestre de 2026', disciplina: 'Matemática', nota: '7,0',
+          observacao: 'A escola corrigiu o boletim.', corrigeUmaAnterior: true, substituida: false,
+          em: emDias(-140), por: 'Equipe técnica' },
+        { id: 'vn5', periodo: '1º trimestre de 2026', disciplina: 'Língua Portuguesa', nota: '8,0',
+          observacao: null, corrigeUmaAnterior: false, substituida: false, em: emDias(-150), por: 'Equipe técnica' },
+      ] }),
+    vinculoMock({ id: 've6', tipo: 'aprendizagem', instituicao: 'Programa Jovem Aprendiz Horizonte',
+      curso: 'Auxiliar administrativo', turno: 'tarde', dias: [2, 3, 4], unidade: 'Unidade Centro',
+      empresa: 'Cais do Porto Logística', endereco: 'Av. Mauá, 1050', inicio: diaRelativo(-330),
+      fimPrevisto: diaRelativo(20) }),
+  ],
+  p05: [
+    vinculoMock({ id: 've7', tipo: 'ensino_fundamental', instituicao: 'EMEF Jardim das Acácias',
+      serie: '7º ano', turma: '72', turno: 'tarde', inicio: '2026-02-17', fimPrevisto: '2026-12-18' }),
+  ],
+};
+/**
  * O CONCEITO POR BIMESTRE (fase 137).
  *
  * Três linhas de propósito, e são três casos diferentes: o bimestre que foi bem,
@@ -7406,12 +7501,103 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                   { cod: 'acompanha_com_apoio', label: 'Acompanha, com apoio em curso' },
                   { cod: 'nao_acompanha', label: 'Não está acompanhando — pede providência' }],
       bimestres: [1, 2, 3, 4].map((n) => ({ cod: n, label: `${n}º bimestre` })),
+      tiposDeVinculo: TIPOS_DE_VINCULO_MOCK,
+      turnos: TURNOS_DO_VINCULO_MOCK,
       aviso: 'O que ficar em branco aqui sai como "não há" no relatório e na audiência.',
     };
   }
   if (seg[0] === 'nursing' && seg[1] === 'education' && seg.length === 3 && metodo === 'GET') {
     return { apoio: APOIO_EDU[seg[2]] ?? null, evolucoes: EVOLUCOES_EDU[seg[2]] ?? [],
-      conceitos: CONCEITOS_EDU[seg[2]] ?? [] };
+      conceitos: CONCEITOS_EDU[seg[2]] ?? [], vinculos: VINCULOS_EDU[seg[2]] ?? [] };
+  }
+
+  /* OS VÍNCULOS EDUCACIONAIS (fase 282): as mesmas recusas do servidor. */
+  const ESCREVE_VINCULO = ['educador', 'lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+  const acharVinculo = (id: string) => {
+    for (const [pessoa, lista] of Object.entries(VINCULOS_EDU)) {
+      const v = lista.find((x) => x.id === id);
+      if (v) return { pessoa, v };
+    }
+    return null;
+  };
+  const fotografia = (v: VinculoMock): Record<string, unknown> => ({
+    kind: v.tipo, kind_other: v.tipoOutro, institution: v.instituicao, course: v.curso, grade: v.serie,
+    class_group: v.turma, shift: v.turno, weekdays: v.dias, training_unit: v.unidade, company: v.empresa,
+    address: v.endereco, starts_on: v.inicio, expected_end: v.fimPrevisto,
+    ended_on: v.encerradoEm, end_reason: v.motivoDoEncerramento,
+  });
+  if (seg[0] === 'nursing' && seg[1] === 'education' && seg[3] === 'links' && metodo === 'POST') {
+    if (!ESCREVE_VINCULO.includes(eu.role)) {
+      return new Recusa(403, 'Quem cadastra e corrige os vínculos educacionais é a equipe da casa: educador, líder, técnica ou coordenação.');
+    }
+    if (!TIPOS_DE_VINCULO_MOCK.some((t) => t.cod === b.tipo)) {
+      return new Recusa(400, 'Escolha o tipo do vínculo: escola, SCFV, aprendizagem, estágio ou outro da lista.');
+    }
+    if (String(b.instituicao ?? '').trim().length < 2) return new Recusa(400, 'Escreva o nome da escola, do serviço ou da empresa.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.inicio ?? ''))) return new Recusa(400, 'Diga quando o vínculo começou.');
+    const v = vinculoMock({
+      id: uid(), tipo: b.tipo, tipoOutro: b.tipoOutro || null, instituicao: String(b.instituicao).trim(),
+      curso: b.curso || null, serie: b.serie || null, turma: b.turma || null, turno: b.turno || null,
+      dias: Array.isArray(b.dias) ? b.dias.map(Number) : [1, 2, 3, 4, 5], unidade: b.unidade || null,
+      empresa: b.empresa || null, endereco: b.endereco || null, inicio: b.inicio,
+      fimPrevisto: b.fimPrevisto || null, criadoPor: eu.fullName, criadoEm: new Date().toISOString(),
+      mudadoPor: eu.fullName, mudadoEm: new Date().toISOString() });
+    if (v.tipo === 'outro') v.tipoRotulo = v.tipoOutro ?? 'Outro';
+    VINCULOS_EDU[seg[2]] = [v, ...(VINCULOS_EDU[seg[2]] ?? [])];
+    return { id: v.id, aviso: 'Vínculo cadastrado com o seu nome.' };
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'education-links' && metodo === 'POST') {
+    if (!ESCREVE_VINCULO.includes(eu.role)) {
+      return new Recusa(403, 'Quem cadastra e corrige os vínculos educacionais é a equipe da casa: educador, líder, técnica ou coordenação.');
+    }
+    const achado = acharVinculo(seg[2]);
+    if (!achado) return new Recusa(404, 'Vínculo ou acolhido não encontrado.');
+    const v = achado.v;
+    if (seg[3] === 'correct') {
+      const motivo = String(b.motivo ?? '').trim();
+      if (motivo.length < 5) return new Recusa(400, 'Escreva o motivo da correção, em poucas palavras.');
+      v.historico = [{ id: uid(), tipo: 'correcao', antes: fotografia(v), motivo,
+                       em: new Date().toISOString(), por: eu.fullName }, ...v.historico];
+      const campos = ['tipo', 'tipoOutro', 'instituicao', 'curso', 'serie', 'turma', 'turno', 'dias',
+                      'unidade', 'empresa', 'endereco', 'inicio', 'fimPrevisto'] as const;
+      for (const c of campos) if (b[c] !== undefined) (v as any)[c] = b[c] === '' ? null : b[c];
+      v.tipoRotulo = v.tipo === 'outro' ? (v.tipoOutro ?? 'Outro')
+        : TIPOS_DE_VINCULO_MOCK.find((t) => t.cod === v.tipo)?.label ?? 'Outro';
+      v.turnoRotulo = TURNOS_DO_VINCULO_MOCK.find((t) => t.cod === v.turno)?.label ?? null;
+      v.mudadoPor = eu.fullName; v.mudadoEm = new Date().toISOString();
+      return { ok: true, aviso: 'Vínculo corrigido. O que constava antes ficou no histórico, com o motivo.' };
+    }
+    if (seg[3] === 'end') {
+      const em = String(b.em ?? '');
+      const motivo = String(b.motivo ?? '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(em)) return new Recusa(400, 'Diga em que dia o vínculo terminou.');
+      if (motivo.length < 5) return new Recusa(400, 'Escreva por que terminou: concluiu, mudou de escola, desistiu.');
+      if (v.encerradoEm) return new Recusa(400, 'Este vínculo já foi encerrado.');
+      if (em < v.inicio) return new Recusa(400, 'O encerramento não pode ser antes do começo do vínculo.');
+      if (em > HOJE) return new Recusa(400, 'Encerre no dia em que terminou. Para um fim que ainda vem, use a previsão de término.');
+      v.historico = [{ id: uid(), tipo: 'encerramento', antes: fotografia(v), motivo,
+                       em: new Date().toISOString(), por: eu.fullName }, ...v.historico];
+      v.encerradoEm = em; v.motivoDoEncerramento = motivo; v.vigente = false;
+      return { ok: true, aviso: 'Vínculo encerrado. Ele continua na linha da criança.' };
+    }
+    if (seg[3] === 'grades') {
+      const periodo = String(b.periodo ?? '').trim();
+      const disciplina = String(b.disciplina ?? '').trim();
+      const nota = String(b.nota ?? '').trim();
+      if (periodo.length < 2) return new Recusa(400, 'Diga o período da nota: 1º trimestre de 2026, por exemplo.');
+      if (disciplina.length < 2) return new Recusa(400, 'Diga a disciplina ou a área.');
+      if (!nota) return new Recusa(400, 'Escreva a nota como a escola deu.');
+      const anterior = b.substitui ? v.notas.find((n) => n.id === b.substitui) : null;
+      if (b.substitui && !anterior) return new Recusa(404, 'Nota não encontrada neste vínculo.');
+      if (anterior?.substituida) return new Recusa(400, 'Esta nota já foi corrigida. Corrija a mais nova.');
+      if (anterior) anterior.substituida = true;
+      const id = uid();
+      v.notas = [{ id, periodo, disciplina, nota, observacao: b.observacao || null,
+                   corrigeUmaAnterior: anterior != null, substituida: false,
+                   em: new Date().toISOString(), por: eu.fullName }, ...v.notas];
+      return { id, aviso: anterior ? 'Nota corrigida. A anterior continua legível, com o nome de quem a lançou.'
+        : 'Nota lançada com o seu nome.' };
+    }
   }
 
   /**

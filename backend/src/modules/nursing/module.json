@@ -14,7 +14,8 @@
     "NursingService",
     "HealthSummaryService",
     "SLA_TRIAGEM_HORAS",
-    "FINALIDADES"
+    "FINALIDADES",
+    "EducacaoService"
   ],
   "tabelas": [
     "health_encounter",
@@ -28,7 +29,11 @@
     "hospitalization_note",
     "hospitalization_note_attachment",
     "hospitalization_medication",
-    "hospitalization_companion"
+    "hospitalization_companion",
+    "education_link",
+    "education_link_change",
+    "education_grade",
+    "education_link_notice"
   ],
   "removivel": true,
   "observacao": "Lê a grade de medicamentos pelo banco, sem importar o módulo medications. O prazo de triagem (pendência 33.4.2) é configurável por NURSING_TRIAGE_SLA_HOURS."
