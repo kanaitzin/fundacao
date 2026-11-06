@@ -472,7 +472,7 @@ o item respondido sai do §0.
 **FEITO — fase 281** (§2): quem escreve na ATA de outro turno. **Regra nova de quem escreve na ATA** mora em
 `app_pode_escrever_na_ata` (o gatilho da `ata_note` e a tela leem a mesma) e no `podeEscreverNaAta` do protótipo.
 **Suíte que escreve linha na ATA** como educador numa data com escala lançada põe o educador na escala ou escreve
-como técnica. **Medido na 281:** a `quem-escreve-na-ata-de-outro-turno` (5 de 5), a suíte inteira (1454 de 1454), o `ensaio:uso` sobre o protótipo novo (838 cobranças, sem reprovação) e a sonda da ATA a 390 px (o educador fora da escala pede, o líder autoriza, a linha passa, nenhum erro). **Não rodou** o relógio adiantado. **Próxima:** os módulos que sobram da avaliação de 05/11, e depois a troca de casa no alto do protótipo para a Coordenação Geral. MEDIDO_281
+como técnica. **Medido na 281:** a `quem-escreve-na-ata-de-outro-turno` (5 de 5), a suíte inteira (1454 de 1454), o `ensaio:uso` sobre o protótipo novo (838 cobranças, sem reprovação) e a sonda da ATA a 390 px (o educador fora da escala pede, o líder autoriza, a linha passa, nenhum erro). **Não rodou** o relógio adiantado. **Próxima:** os módulos que sobram da avaliação de 05/11, e depois a troca de casa no alto do protótipo para a Coordenação Geral. E o do celular (322 telas, sem achado).
 
 **FEITO — fase 280** (§2): a agenda com o compromisso inteiro. **Medido na 280:** o `agenda` (12 de 12, com o
 responsável da data lido pela técnica, que não é a nomeada), o `desmarcar-ocorrencia` e a sonda a 390 px como técnica
