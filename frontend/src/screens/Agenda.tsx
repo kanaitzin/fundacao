@@ -35,8 +35,52 @@ interface Ocorrencia {
   personId: string | null; pessoa: string; coletivo: boolean;
   recorrencia: string; indeterminado: boolean;
   horaSaida: string | null; endereco: string | null;
+  /** Quem responde por esta data (fase 280); null é o plantão do horário. */
+  responsavel?: string | null;
   desmarcada: boolean; motivoDesmarque: string | null;
 }
+
+const SEMANA_AG = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+/**
+ * O PERÍODO EM GRADE (fase 280, avaliação de 05/11): quantos compromissos tem cada
+ * dia, e o toque leva até o dia na lista. A lista continua sendo onde se lê.
+ */
+function GradeDaAgenda({ de, dias, porDia }: { de: string; dias: number; porDia: Map<string, Ocorrencia[]> }) {
+  const datas = Array.from({ length: dias }, (_, i) => maisDias(de, i));
+  const recuo = (new Date(`${de}T12:00:00Z`).getUTCDay() + 6) % 7;
+  return (
+    <div className="card calendario agenda-grade" style={{ marginTop: 12 }}>
+      <div className="cal-semana" aria-hidden="true">{SEMANA_AG.map((x) => <span key={x}>{x}</span>)}</div>
+      <div className="cal-dias">
+        {Array.from({ length: recuo }, (_, i) => <span key={`v${i}`} className="cal-dia fora" />)}
+        {datas.map((d) => {
+          const n = (porDia.get(d) ?? []).filter((o) => !o.desmarcada).length;
+          const num = Number(d.slice(8));
+          const rot = num === 1 || d === de ? `${num}/${d.slice(5, 7)}` : String(num);
+          return n > 0 ? (
+            <button key={d} type="button" className="cal-dia agenda-dia"
+                    aria-label={`${num}/${d.slice(5, 7)}: ${n === 1 ? 'um compromisso' : `${n} compromissos`}. Ir para o dia`}
+                    onClick={() => document.getElementById(`agenda-${d}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <span className="cal-num">{rot}</span><span className="agenda-conta">{n}</span>
+            </button>
+          ) : (
+            <span key={d} className="cal-dia agenda-dia vazio"><span className="cal-num">{rot}</span></span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** A hora de terminar, pela duração: "09:00" e 90 dão "10:30". */
+function horaDoFim(hora: string, min: number | null): string | null {
+  if (!min) return null;
+  const [h, m] = hora.split(':').map(Number);
+  const t = h * 60 + m + min;
+  return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+const duracaoPorExtenso = (min: number) =>
+  min < 60 ? `${min} min` : min % 60 === 0 ? `${min / 60} h` : `${Math.floor(min / 60)} h ${min % 60} min`;
 interface Vigente {
   id: string; tipo: string; titulo: string; local: string | null;
   pessoa: string; coletivo: boolean;
@@ -199,8 +243,11 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
               </p>
             </div>
           )}
+          {carregou && porDia.size > 0 && (
+            <GradeDaAgenda de={hoje()} dias={dias} porDia={porDia} />
+          )}
           {[...porDia.entries()].map(([d, itens]) => (
-            <section key={d} className="passagem">
+            <section key={d} className="passagem" id={`agenda-${d}`}>
               <div className="eyebrow">{diaLongo(d)}</div>
               <ol className="doses">
                 {itens.map((o) => (
@@ -211,20 +258,22 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
                     <span className="hora">{o.horaSaida ?? o.hora}</span>
                     <div className="grow">
                       <b className="ff">{o.titulo}</b>
-                      <div className="mutetxt">
-                        {o.pessoa}
-                        {o.local ? ` · ${o.local}` : ''}
-                        {o.duracaoMin ? ` · ${o.duracaoMin} min` : ''}
-                      </div>
-                      {o.horaSaida && (
-                        <div className="mutetxt">
-                          Sair {o.horaSaida} · estar lá {o.hora}
-                          {o.endereco ? ` · ${o.endereco}` : ''}
-                        </div>
-                      )}
-                      {!o.horaSaida && o.endereco && (
-                        <div className="mutetxt">{o.endereco}</div>
-                      )}
+                      {/* O COMPROMISSO INTEIRO (fase 280, avaliação de 05/11): com quem, o tipo,
+                          o início e o fim, o local, o endereço e quem responde, à vista. */}
+                      <dl className="compromisso-dados">
+                        <dt>Com quem</dt><dd>{o.pessoa}</dd>
+                        <dt>Tipo</dt><dd>{opcoes?.tipos.find((t) => t.cod === o.tipo)?.label ?? o.tipo}</dd>
+                        <dt>Horário</dt>
+                        <dd>
+                          {horaDoFim(o.hora, o.duracaoMin) ? `das ${o.hora} às ${horaDoFim(o.hora, o.duracaoMin)}` : `às ${o.hora}`}
+                          {o.duracaoMin ? ` (${duracaoPorExtenso(o.duracaoMin)})` : ''}
+                          {o.horaSaida ? ` · sair da casa às ${o.horaSaida}` : ''}
+                        </dd>
+                        {o.local && <><dt>Local</dt><dd>{o.local}</dd></>}
+                        {o.endereco && <><dt>Endereço</dt><dd>{o.endereco}</dd></>}
+                        <dt>Responsável</dt><dd>{o.responsavel ?? 'Quem estiver no plantão do horário'}</dd>
+                        <dt>Situação</dt><dd>{o.desmarcada ? 'Desmarcado' : 'Marcado'}</dd>
+                      </dl>
                       {o.desmarcada && (
                         <div className="estado">
                           <span className="pill c-crit">desmarcado</span>
@@ -254,7 +303,7 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
               </ol>
             </section>
           ))}
-          {porDia.size > 0 && dias < 60 && (
+          {porDia.size > 0 && dias < 365 && (
             <button className="btn sec block" style={{ marginTop: 14 }}
                     onClick={() => setDias(dias + 30)}>
               Ver mais 30 dias

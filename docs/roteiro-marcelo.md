@@ -216,7 +216,7 @@ vezes por turno.
 
 10. **A Lara tem fonoaudiologia hoje às 15h. A que horas vocês precisam sair, e
     para onde vão?**
-    Observar: ela encontra *Sair 14:00 · estar lá 15:00*, ou lê apenas as 15h e
+    Observar: ela encontra *sair da casa às 14:45* no horário, ou lê apenas as 15h e
     se organiza para sair no horário da consulta? Repara que o endereço vem
     separado do nome do local? Pergunte: *esse endereço serve para você chamar o
     transporte?*

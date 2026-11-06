@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 280, dia: '06/11/2026', aba: 'agenda',
+    texto: 'A agenda com o compromisso inteiro: cada data diz com quem, o tipo, o horário de início e de fim com a duração, a hora de sair da casa, o local, o endereço, quem responde (o nome, ou quem estiver no plantão) e se está marcado ou desmarcado. Em cima, o período em grade, com quantos compromissos tem cada dia, e o toque leva até o dia. Ver mais 30 dias vai até um ano à frente.' },
   { fase: 279, dia: '06/11/2026', aba: 'escala',
     texto: 'A escala de plantão em calendário: o período em grade, e cada dia diz quantas pessoas estão de dia e de noite, com falta escrito no turno sem ninguém. Tocar num dia abre só aquele dia embaixo, com quem está, os horários e o líder do turno. As datas ficam em dois botões, Próximos 30 dias e Mês passado, e Outras datas abre o resto; o horário dos turnos e montar um mês vêm depois da grade.' },
   { fase: 278, dia: '06/11/2026', aba: 'dia',

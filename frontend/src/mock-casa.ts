@@ -10722,6 +10722,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           pessoa: c.personId ? kid(c.personId)?.nome ?? '—' : 'Casa toda',
           coletivo: !c.personId, recorrencia: c.recorrencia, indeterminado: c.fim === null,
           horaSaida: c.horaSaida ?? null, endereco: c.endereco ?? null,
+          responsavel: c.responsavelModo === 'pessoa' ? c.responsavelNome : null,
           /* O servidor de mentira responde o que o servidor responde: a
              ocorrência desmarcada CONTINUA na lista, marcada. */
           desmarcada: DESMARCADAS.has(`${c.id}:${iso}`),

@@ -323,7 +323,7 @@ const TAREFAS = [
     cargo: 'educador', secao: '1.10',
     nome: 'A que hora sair para a consulta, e para onde',
     caminho: [{ mais: 'Agenda' }],
-    procurar: [/Sair \d|estar lá/i],
+    procurar: [/sair da casa às \d/i],
   },
   {
     cargo: 'educador', secao: '1.11',

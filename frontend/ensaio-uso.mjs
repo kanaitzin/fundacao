@@ -2645,6 +2645,14 @@ erros.length = 0;
 if (!((await aba('Agenda')) || (await doMais('Agenda')))) {
   cobrar('a Agenda tem porta para a equipe técnica', false, 'não achei a aba nem o Mais');
 } else {
+  /* O COMPROMISSO INTEIRO E A GRADE (fase 280, avaliação de 05/11). */
+  await pg.waitForTimeout(600);
+  const dados = await pg.locator('.compromisso-dados').first().innerText().catch(() => '');
+  cobrar('cada compromisso diz o tipo, o horário de início e fim, o responsável e a situação',
+    /Tipo/.test(dados) && /das \d{2}:\d{2} às \d{2}:\d{2}|às \d{2}:\d{2}/.test(dados)
+    && /Responsável/.test(dados) && /Situação/.test(dados), dados.replace(/\s+/g, ' ').slice(0, 200));
+  cobrar('a agenda tem o período em grade, com os dias que têm compromisso',
+    await pg.locator('.agenda-grade .agenda-dia').count() >= 14 && await pg.locator('button.agenda-dia').count() > 0);
   const marcar = pg.locator('main.conteudo button').filter({ hasText: /Marcar compromisso/i });
   if (!(await marcar.count())) {
     cobrar('a Agenda tem o botão de marcar compromisso', false, (await conteudo()).slice(0, 200));

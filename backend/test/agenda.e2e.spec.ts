@@ -305,6 +305,13 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
     const c = vigentes.body.find((x: any) => x.id === res.body.id);
     expect(c.responsavelNomeado).toBe(true);
     expect(c.responsavel).toBe(educador.nome);
+
+    /* E a data da agenda diz quem responde (fase 280), lida pela técnica, que não é o
+       nomeado: o nome de outra pessoa sai pela função, nunca por JOIN em app_user. */
+    const agenda = await request(http)
+      .get(`/api/v1/activities/agenda?houseId=${AI3}&de=${hoje}&ate=${hoje}`).set(auth(tokens.tecnica));
+    const data = agenda.body.find((x: any) => x.compromissoId === res.body.id);
+    expect(data.responsavel).toBe(educador.nome);
   });
 
   it('sem nome, o compromisso é do plantão do horário — e ninguém é atribuído', async () => {
@@ -328,6 +335,9 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
       .get(`/api/v1/activities/agenda/commitments?houseId=${AI3}`).set(auth(tokens.coord));
     const c = vigentes.body.find((x: any) => x.id === res.body.id);
     expect(c.responsavel).toBe('Plantão do horário');
+    const agenda = await request(http)
+      .get(`/api/v1/activities/agenda?houseId=${AI3}&de=${hoje}&ate=${hoje}`).set(auth(tokens.tecnica));
+    expect(agenda.body.find((x: any) => x.compromissoId === res.body.id).responsavel).toBeNull();
   });
 
   /**

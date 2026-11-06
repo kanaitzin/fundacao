@@ -274,8 +274,10 @@ export class AgendaService {
   async agenda(user: AuthenticatedUser, houseId: string, de: string, ate: string, personId?: string) {
     const rows = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT a.*, app_person_display_name(a.person_id) AS pessoa
+        `SELECT a.*, app_person_display_name(a.person_id) AS pessoa,
+                c.responsible_mode, app_user_display_name(c.responsible_id) AS responsavel_nome
            FROM app_commitment_agenda($1,$2,$3) a
+           LEFT JOIN commitment c ON c.id = a.commitment_id -- rls-join-ok (commitment): o compromisso é da mesma casa da agenda
           WHERE ($4::uuid IS NULL OR a.person_id = $4)
           ORDER BY a.em, a.hora`, [houseId, de, ate, personId ?? null]);
       return rows;
@@ -289,6 +291,8 @@ export class AgendaService {
          que o atendimento estava previsto e não aconteceu. */
       horaSaida: r.hora_saida ? String(r.hora_saida).slice(0, 5) : null,
       endereco: r.endereco,
+      /* Quem responde por esta data (fase 280, avaliação de 05/11): o nome, ou o plantão. */
+      responsavel: r.responsible_mode === 'pessoa' ? (r.responsavel_nome ?? null) : null,
       desmarcada: r.desmarcada === true,
       motivoDesmarque: r.motivo_desmarque,
     }));
