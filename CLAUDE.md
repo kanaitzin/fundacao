@@ -452,6 +452,20 @@ responder, os documentos de papel e os dados a receber, o que o DPO vê, o que s
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
 
+**O PLANO COMBINADO EM 06/11** (com a pessoa da Fundação, para a reunião no Pão):
+1. Terminar a avaliação de 05/11: **279** a escala e a Equipe em calendário; **280** a agenda com local, endereço,
+   responsável e duração; **281** quem fecha a ATA de outro turno; depois os módulos que sobram (Educação com vínculo,
+   avisos e frequência; Atendimentos com local, interno ou externo e exportar por período; Judiciário em blocos; Cozinha em
+   resumo por refeição; sigilo por registro de saúde).
+2. **No protótipo**, o Marcelo como Coordenação Geral das oito casas (cada uma com coordenação, equipe e crianças
+   próprias, o que a 225 já fez) e **uma setinha ao lado da casa, no alto, para trocar de casa**.
+3. **Só depois, o 1.0 online** (pedido explícito, com ajuda passo a passo): servidor alugado e domínio próprio, site
+   profissional, a Casa 03 como piloto, o Marcelo já cadastrado como Coordenação Geral com senha de teste que ele troca ao
+   entrar, o esqueci minha senha mandando ao Gmail institucional (SMTP do Google com senha de app, fase 179), e pronto para
+   ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
+   Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
+   com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
 **FEITO — fase 278** (§2): O Dia da Casa organizado, pelo módulo 11 da avaliação de 05/11. **Linha nova da linha do
 dia** que tem tela de origem ganha a entrada no `ORIGEM` do `Dia.tsx`: o Ver detalhes leva lá, e só lá se edita. **O
 filtro novo do Dia** se chama pelo nome no ensaio (`/^Toda a rotina$/`). **Medido na 278:** a sonda no protótipo a
