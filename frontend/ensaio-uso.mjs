@@ -4736,12 +4736,23 @@ console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fa
   await pgO.getByRole('button', { name: /Registrar atendimento da equipe técnica/ }).click(); await esp(600);
   const f = pgO.locator('.overlay').last();
   cobrar('a folha do atendimento pede a hora, já com a hora de agora', /^\d{2}:\d{2}$/.test(await f.locator('#at-hora').inputValue()));
-  await f.getByRole('button', { name: 'Serviço social' }).click();
+  await f.getByRole('button', { name: 'Assistência Social' }).click();
+  /* Onde foi, o local e quem atendeu (fase 284). */
+  await f.getByRole('button', { name: /^Externo/ }).click();
+  await f.locator('#at-local').fill('Casa da madrinha, Restinga');
+  await f.locator('#at-prof').fill('Sara Assistente Social');
   await f.locator('#at-hora').fill('00:05');
   await f.locator('#at-relato').fill('Ligação para a madrinha sobre o passeio da escola (ensaio 275).');
   await f.getByRole('button', { name: /^Registrar/ }).last().click(); await esp(1300);
   const primeiro = await pgO.locator('ol.relatorio-tecnico > li').first().innerText();
   cobrar('o atendimento registrado aparece no alto, com a hora escrita', /às 00:05/.test(primeiro) && /madrinha/.test(primeiro), primeiro.slice(0, 120));
+  cobrar('e diz Assistência Social, que foi fora da casa, onde e quem atendeu (fase 284)',
+    /Assistência Social/.test(primeiro) && /Externo, fora da casa, Casa da madrinha/.test(primeiro)
+      && /Atendimento por Sara Assistente Social/.test(primeiro), primeiro.slice(0, 200));
+  cobrar('quem registrou pode juntar arquivo ao atendimento',
+    await pgO.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Juntar arquivo' }).count() === 1);
+  cobrar('e a técnica tem o botão de baixar os atendimentos em Word',
+    await pgO.getByRole('button', { name: /Baixar os atendimentos em Word/ }).count() === 1);
 
   await pgO.locator('#at-busca').fill('madrinha passeio'); await esp(400);
   const achados = await pgO.locator('ol.relatorio-tecnico > li').count();
