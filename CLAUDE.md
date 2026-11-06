@@ -474,7 +474,7 @@ o item respondido sai do §0.
 **FEITO — fase 283** (§2): a frequência escolar. **Falta não é estado**: o dia de aula sem marca é *ainda não
 verificado*, e quem quiser contar ausências conta só as marcadas como *não foi*, com o motivo ao lado. **O dia de
 aula sai dos dias da semana do vínculo** (`weekdays`), e a regra mora no `app_marcar_frequencia`, repetida no
-`frequenciaDoVinculo` (servidor) e no `frequenciaMock` (protótipo). **Medido na 283:** MEDIDO_283
+`frequenciaDoVinculo` (servidor) e no `frequenciaMock` (protótipo). **Medido na 283:** a `a-frequencia-escolar` (7 de 7), a suíte inteira (1468 de 1468), o `ensaio:uso` sobre o protótipo novo (843 cobranças, sem reprovação), o do celular (322 telas, sem achado) e a sonda a 390 px (o educador marca Foi e Não foi com o motivo no Dia da Casa; a técnica corrige um dia do Kauã com o motivo; nenhum erro). **Não rodou** o relógio adiantado.
 **Próxima: 284**, o módulo 08 da avaliação, os atendimentos técnicos: o rótulo *Assistência Social*, o local e se foi
 interno ou externo, o anexo à vista no cartão, e baixar por mês ou período para técnica e coordenação. Depois, o
 Judiciário em blocos (09), a Cozinha por refeição (13) e o sigilo por registro de saúde.
