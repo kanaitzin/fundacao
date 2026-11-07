@@ -225,6 +225,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'health.triage_sign': 'Triagem de enfermagem assinada',
   'health.triage_denied': 'Triagem de enfermagem recusada',
   'health.evolution_submit': 'Evolução de saúde escrita',
+  'health.sigilo.marcado': 'Registro de saúde marcado como sigiloso',
+  'health.sigilo.tirado': 'Sigilo tirado de um registro de saúde',
   'health.summary_issue': 'Resumo de Saúde emitido',
   'health.summary_download': 'Resumo de Saúde retirado por quem o emitiu',
   'internacao.aberta': 'Internação hospitalar aberta',

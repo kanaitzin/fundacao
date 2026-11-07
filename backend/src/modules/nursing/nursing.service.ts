@@ -10,6 +10,7 @@ import { hojeNaInstituicao, rotuloForaDoHorario } from '../../kernel/common/temp
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDeSaude } from './saude-folha';
+import { LEEM_O_SIGILO, MARCAM_O_SIGILO, TIRAM_O_SIGILO, semOConteudo } from './sigilo-de-saude.regra';
 
 /** Prazo esperado de triagem — pendência institucional 33.4.2, configurável. */
 const SLA_TRIAGEM_HORAS = Number(process.env.NURSING_TRIAGE_SLA_HOURS ?? 24);
@@ -170,13 +171,16 @@ export class NursingService {
       const { rows: [alc] } = await c.query(`SELECT app_person_in_scope($1) AS ok`, [personId]);
       if (!alc?.ok) throw new NotFoundException('Acolhido não encontrado.');
       const { rows } = await c.query(
-        `SELECT id, kind, happened_at, specialty, place, return_on::text AS return_on
+        `SELECT id, kind, happened_at, specialty, place, return_on::text AS return_on, confidential
            FROM health_encounter
           WHERE person_id = $1 AND status = 'retorno_pendente'
           ORDER BY return_on, happened_at`, [personId]);
+      /* O retorno de uma consulta sigilosa não diz a especialidade nem o lugar (fase 287). */
+      const le = LEEM_O_SIGILO.includes(user.role);
       return rows.map((r) => ({
         id: r.id as string, retornoEm: r.return_on as string, quando: r.happened_at,
-        rotulo: [TIPO_ATENDIMENTO[r.kind] ?? r.kind, r.specialty, r.place].filter(Boolean).join(' · '),
+        rotulo: r.confidential && !le ? 'Retorno de um registro sigiloso'
+          : [TIPO_ATENDIMENTO[r.kind] ?? r.kind, r.specialty, r.place].filter(Boolean).join(' · '),
       }));
     });
     const tipos = await this.db.asUser(user.id, async (c) => {
@@ -233,6 +237,8 @@ export class NursingService {
      * que já tinha acontecido.
      */
     retornoDe?: string;
+    /** O sigilo marcado já no registro (fase 287). */
+    sigiloso?: boolean; motivoDoSigilo?: string | null;
   }) {
     if (input.retornoDe && !/^[0-9a-f-]{36}$/i.test(input.retornoDe)) {
       throw new BadRequestException('Escolha o retorno na lista dos retornos marcados da criança.');
@@ -294,6 +300,8 @@ export class NursingService {
       throw e;
     }
     const id = ids.out_evolution_id;
+    /* Quem registra já pode marcar como sigiloso (fase 287). */
+    if (input.sigiloso === true) await this.marcarSigilo(user, 'atendimento', id, true, input.motivoDoSigilo ?? null);
 
     await this.audit.log({
       action: 'health.evolution_submit', actorId: user.id, houseId: input.houseId,
@@ -342,7 +350,8 @@ export class NursingService {
                 -- rótulo solto sobre a criança.
                 e.behavior_before, e.behavior_after,
                 (SELECT t.request_note FROM nursing_triage t
-                  WHERE t.evolution_id = e.id ORDER BY t.at DESC LIMIT 1) AS pedido_complemento
+                  WHERE t.evolution_id = e.id ORDER BY t.at DESC LIMIT 1) AS pedido_complemento,
+                e.confidential
          FROM health_evolution e
          WHERE e.status <> 'assinada' AND ($1::uuid IS NULL OR e.house_id = $1)
          ORDER BY e.created_at`, [houseId ?? null]);
@@ -350,9 +359,10 @@ export class NursingService {
     });
 
     const agora = Date.now();
+    const le = LEEM_O_SIGILO.includes(user.role);
     return rows.map((r) => {
       const horas = (agora - new Date(r.created_at).getTime()) / 3_600_000;
-      return {
+      const linha = {
         id: r.id, acolhidoId: r.person_id, acolhido: r.pessoa, casa: r.casa,
         tipo: r.kind, quando: r.happened_at, local: r.place, especialidade: r.specialty,
         acompanhante: r.acompanhante,
@@ -368,7 +378,13 @@ export class NursingService {
         horasNaFila: Math.floor(horas),
         // Prazo é acompanhamento, não punição: sinaliza o que passou do combinado.
         foraDoPrazo: horas > SLA_TRIAGEM_HORAS,
+        sigiloso: !!r.confidential,
       };
+      /* A fila é da Enfermagem; quem mais a abrir não lê o registro sigiloso (fase 287). */
+      return r.confidential && !le
+        ? semOConteudo(linha, ['id', 'acolhidoId', 'acolhido', 'casa', 'tipo', 'quando', 'acompanhante',
+                               'status', 'horasNaFila', 'foraDoPrazo', 'sigiloso'])
+        : linha;
     });
   }
 
@@ -468,6 +484,42 @@ export class NursingService {
    *  * e a contagem no topo, para quem abre e precisa saber, em um olhar, se
    *    há algo esperando.
    */
+  /**
+   * MARCAR OU TIRAR O SIGILO de um registro de saúde (fase 287). `qual`: consulta ou
+   * atendimento; marcar é de quem registrou, da Enfermagem, da técnica e da coordenação;
+   * tirar é da técnica e da coordenação, com o motivo.
+   */
+  async marcarSigilo(user: AuthenticatedUser, qual: string, id: string, sigiloso: boolean, motivo: string | null) {
+    if (!['consulta', 'atendimento'].includes(qual)) throw new BadRequestException('Diga se é a consulta ou o atendimento.');
+    if (typeof sigiloso !== 'boolean') throw new BadRequestException('Diga se o registro fica sigiloso ou deixa de ser.');
+    let casa: string;
+    try {
+      casa = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT app_marcar_sigilo_de_saude($1, $2, $3, $4) AS casa`, [qual, id, sigiloso, motivo])).rows[0].casa);
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('registro_inexistente')) throw new NotFoundException('Registro de saúde não encontrado, ou fora do seu alcance.');
+      if (m.includes('ja_sigiloso')) throw new BadRequestException('Este registro já é sigiloso.');
+      if (m.includes('nao_e_sigiloso')) throw new BadRequestException('Este registro não é sigiloso.');
+      if (m.includes('sem_permissao_tirar_sigilo')) {
+        throw new ForbiddenException('Quem tira o sigilo é a equipe técnica ou a coordenação, com o motivo.');
+      }
+      if (m.includes('sem_permissao_sigilo')) {
+        throw new ForbiddenException('Marca como sigiloso quem registrou, a Enfermagem, a técnica ou a coordenação.');
+      }
+      if (m.includes('motivo_curto')) throw new BadRequestException('Escreva o motivo de tirar o sigilo.');
+      throw e;
+    }
+    await this.audit.log({
+      action: sigiloso ? 'health.sigilo.marcado' : 'health.sigilo.tirado', actorId: user.id, houseId: casa,
+      entity: qual === 'consulta' ? 'health_encounter' : 'health_evolution', entityId: id,
+      detail: { qual },
+    });
+    return { ok: true, aviso: sigiloso
+      ? 'Registro marcado como sigiloso. O conteúdo fica para a Enfermagem, a técnica e a coordenação.'
+      : 'O sigilo saiu deste registro, com o seu nome e o motivo.' };
+  }
+
   async history(user: AuthenticatedUser, personId: string) {
     const hoje = hojeNaInstituicao();
     return this.db.asUser(user.id, async (c) => {
@@ -475,7 +527,9 @@ export class NursingService {
         `SELECT id, kind, happened_at, place, specialty, professional, reason, outcome,
                 status, return_on::text AS return_on,
                 -- Cumprido por uma consulta registrada depois (1665).
-                (return_done_in IS NOT NULL) AS retorno_feito
+                (return_done_in IS NOT NULL) AS retorno_feito,
+                -- O sigilo por registro (1678) e quem registrou.
+                confidential, created_by, app_user_display_name(created_by) AS por
          FROM health_encounter WHERE person_id = $1 ORDER BY happened_at DESC LIMIT 100`, [personId]);
       const { rows: evolucoes } = await c.query(
         `SELECT e.id, e.kind, e.happened_at, e.state_return, e.guidance, e.status,
@@ -488,7 +542,8 @@ export class NursingService {
                 -- rótulo solto sobre a criança.
                 e.behavior_before, e.behavior_after,
                 (SELECT t.complement FROM nursing_triage t
-                  WHERE t.evolution_id = e.id AND t.action = 'assinada' ORDER BY t.at DESC LIMIT 1) AS complemento
+                  WHERE t.evolution_id = e.id AND t.action = 'assinada' ORDER BY t.at DESC LIMIT 1) AS complemento,
+                e.confidential, e.accompanied_by
          FROM health_evolution e
          WHERE e.person_id = $1 ORDER BY e.happened_at DESC LIMIT 100`, [personId]);
       const { rows: doses } = await c.query(
@@ -530,7 +585,23 @@ export class NursingService {
           WHERE h.person_id = $1
           ORDER BY m.given_at DESC LIMIT 100`, [personId]);
 
-      const atendimentos = encontros.map((e) => ({
+      /* O SIGILO POR REGISTRO (fase 287): quem não lê fica com o tipo, o dia e quem registrou. */
+      const le = LEEM_O_SIGILO.includes(user.role);
+      /* Quem marcou e quem tirou, com o motivo: só para quem lê o sigilo. */
+      const { rows: mudancas } = le ? await c.query(
+        `SELECT encounter_id, evolution_id, confidential, reason, created_at,
+                app_user_display_name(created_by) AS por
+           FROM health_confidential_change WHERE person_id = $1 ORDER BY created_at`, [personId]) : { rows: [] as any[] };
+      const doSigilo = (campo: 'encounter_id' | 'evolution_id', id: string) => mudancas
+        .filter((m: any) => m[campo] === id)
+        .map((m: any) => ({ sigiloso: m.confidential, motivo: m.reason, por: m.por, em: m.created_at }));
+      const sigilo = (sigiloso: boolean, autor: string | null) => ({
+        sigiloso,
+        podeMarcar: !sigiloso && (MARCAM_O_SIGILO.includes(user.role) || autor === user.id),
+        podeTirar: sigiloso && TIRAM_O_SIGILO.includes(user.role),
+      });
+      const atendimentos = encontros.map((e) => {
+        const linha = {
         id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
         quando: e.happened_at, local: e.place, especialidade: e.specialty,
         profissional: e.professional, motivo: e.reason, desfecho: e.outcome,
@@ -541,8 +612,16 @@ export class NursingService {
         // pendência. Quem lê precisa disso escrito, não deduzido da data.
         retornoVencido: e.status === 'retorno_pendente'
           && e.return_on != null && String(e.return_on) < hoje,
-      }));
-      const evolucoesMap = evolucoes.map((e) => ({
+        por: e.por ?? null,
+        ...sigilo(!!e.confidential, e.created_by),
+        historicoDoSigilo: doSigilo('encounter_id', e.id),
+        };
+        return e.confidential && !le
+          ? semOConteudo(linha, ['id', 'tipo', 'tipoRotulo', 'quando', 'por', 'sigiloso', 'podeMarcar', 'podeTirar'])
+          : linha;
+      });
+      const evolucoesMap = evolucoes.map((e) => {
+        const linha = {
         id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
         quando: e.happened_at, estadoRetorno: e.state_return,
         orientacoes: e.guidance, acompanhante: e.acompanhante,
@@ -552,7 +631,13 @@ export class NursingService {
         status: e.status,
         statusRotulo: ESTADO_EVOLUCAO[e.status] ?? e.status,
         complementoEnfermagem: e.complemento,
-      }));
+        ...sigilo(!!e.confidential, e.accompanied_by),
+        historicoDoSigilo: doSigilo('evolution_id', e.id),
+        };
+        return e.confidential && !le
+          ? semOConteudo(linha, ['id', 'tipo', 'tipoRotulo', 'quando', 'acompanhante', 'sigiloso', 'podeMarcar', 'podeTirar'])
+          : linha;
+      });
 
       return {
         atendimentos,

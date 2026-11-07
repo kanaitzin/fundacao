@@ -109,7 +109,9 @@ describe('A data que vem da URL', () => {
     /* Não são data nem hora: números, filtros e palavras de um conjunto fechado
        que o serviço resolve sem mandar ao banco como tempo. */
     const OUTROS = new Set(['tipo', 'dias', 'mode', 'unread', 'publico', 'periodo', 'mine',
-      'limite', 'escala', 'entity', 'encerradas', 'abertas']);
+      'limite', 'escala', 'entity', 'encerradas', 'abertas',
+      /* consulta ou atendimento, no sigilo do registro de saúde (fase 287). */
+      'qual']);
 
     const sem: string[] = [];
     const semClasse: string[] = [];

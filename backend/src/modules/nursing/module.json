@@ -34,7 +34,8 @@
     "education_link_change",
     "education_grade",
     "education_link_notice",
-    "education_attendance"
+    "education_attendance",
+    "health_confidential_change"
   ],
   "removivel": true,
   "observacao": "Lê a grade de medicamentos pelo banco, sem importar o módulo medications. O prazo de triagem (pendência 33.4.2) é configurável por NURSING_TRIAGE_SLA_HOURS."

@@ -294,7 +294,10 @@ export class FollowupsService {
 
       if (tem.has('health_evolution')) {
         const { rows } = await c.query(
-          `SELECT e.id, e.kind, e.happened_at AS quando, e.state_return, e.status,
+          `SELECT e.id, e.kind, e.happened_at AS quando,
+                  -- O registro sigiloso (fase 287) entra sem o conteúdo para quem não lê.
+                  CASE WHEN e.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso'
+                       ELSE e.state_return END AS state_return, e.status,
                   app_user_display_name(e.accompanied_by) AS autor
              FROM health_evolution e
             WHERE e.person_id = $1

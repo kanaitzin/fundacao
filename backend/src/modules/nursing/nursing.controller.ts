@@ -159,6 +159,13 @@ export class NursingController {
     return this.nursing.triage(user, id, body);
   }
 
+  /* Marcar ou tirar o sigilo de um registro de saúde (fase 287). */
+  @Post('health-records/:qual/:id/confidential')
+  sigilo(@CurrentUser() user: AuthenticatedUser, @Param('qual') qual: string,
+         @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: { sigiloso?: boolean; motivo?: string }) {
+    return this.nursing.marcarSigilo(user, qual, id, body?.sigiloso as boolean, body?.motivo ?? null);
+  }
+
   @RegistroDaRota('personId', 'person')
   @Get('history/:personId')
   history(@CurrentUser() user: AuthenticatedUser, @Param('personId', ParseUUIDPipe) personId: string) {

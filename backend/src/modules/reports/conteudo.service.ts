@@ -252,7 +252,12 @@ export class ConteudoService {
               AND ($4::uuid IS NULL OR ma.person_id = $4)`,
           [ini, fim, casa, pessoa]);
         const { rows: atendimentos } = await c.query(
-          `SELECT he.happened_at, he.kind, he.place, he.specialty, he.reason, he.outcome
+          /* O registro sigiloso (fase 287) sai sem o conteúdo para quem não lê. */
+          `SELECT he.happened_at, he.kind,
+                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.place END AS place,
+                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.specialty END AS specialty,
+                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso' ELSE he.reason END AS reason,
+                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.outcome END AS outcome
              FROM health_encounter he
             WHERE he.happened_at >= $1 AND he.happened_at < $2
               AND ($3::uuid IS NULL OR he.house_id = $3)
@@ -420,7 +425,8 @@ export class ConteudoService {
                 AND ($4::uuid IS NULL OR a.person_id = $4)
              UNION ALL
              SELECT he.happened_at, 'Saúde',
-                    concat_ws(', ', he.kind, he.specialty, he.place), he.status
+                    CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso'
+                         ELSE concat_ws(', ', he.kind, he.specialty, he.place) END, he.status
                FROM health_encounter he
               WHERE he.happened_at >= $1 AND he.happened_at < $2
                 AND ($3::uuid IS NULL OR he.house_id = $3)

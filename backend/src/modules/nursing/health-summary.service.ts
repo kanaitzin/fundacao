@@ -90,7 +90,13 @@ export class HealthSummaryService {
          ORDER BY pr.medication`, [personId]);
 
       const { rows: atendimentos } = await c.query(
-        `SELECT kind, happened_at, place, specialty, reason, outcome, status, return_on
+        /* O registro sigiloso (fase 287) entra sem o conteúdo para quem não lê. */
+        `SELECT kind, happened_at,
+                CASE WHEN confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE place END AS place,
+                CASE WHEN confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE specialty END AS specialty,
+                CASE WHEN confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso' ELSE reason END AS reason,
+                CASE WHEN confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE outcome END AS outcome,
+                status, return_on
          FROM health_encounter WHERE person_id = $1
          ORDER BY happened_at DESC LIMIT 5`, [personId]);
 
@@ -98,6 +104,7 @@ export class HealthSummaryService {
         `SELECT e.kind, e.happened_at, e.state_return, e.guidance, e.restrictions, e.return_deadline
          FROM health_evolution e
          WHERE e.person_id = $1 AND e.status = 'assinada'
+           AND (NOT e.confidential OR app_le_sigilo_de_saude())
          ORDER BY e.happened_at DESC LIMIT 1`, [personId]);
 
       return { p, casa, condicoes, restricoes, medicamentos, atendimentos, ultimaEvolucao };
