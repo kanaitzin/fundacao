@@ -12085,9 +12085,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * porque no servidor vêm de lá: a tela não mantém uma lista paralela.
    */
   /* Marcar ou tirar o sigilo de um registro de saúde (fase 287). */
-  if (seg[0] === 'nursing' && seg[1] === 'health-records' && seg[4] === 'confidential' && metodo === 'POST') {
-    const at = seg[2] === 'consulta' ? ATENDIMENTOS.find((a) => a.id === seg[3]) : undefined;
-    const ev = seg[2] === 'atendimento' ? TRIAGENS.find((t) => t.id === seg[3]) : undefined;
+  if (seg[0] === 'nursing' && seg[1] === 'health-records' && seg[3] === 'confidential' && metodo === 'POST') {
+    const at = b.qual === 'consulta' ? ATENDIMENTOS.find((a) => a.id === seg[2]) : undefined;
+    const ev = b.qual === 'atendimento' ? TRIAGENS.find((t) => t.id === seg[2]) : undefined;
     if (!at && !ev) return new Recusa(404, 'Registro de saúde não encontrado, ou fora do seu alcance.');
     const parAt = at ?? ATENDIMENTOS.find((a) => a.id === ev?.atId);
     const parEv = ev ?? TRIAGENS.find((t) => t.atId === at?.id);

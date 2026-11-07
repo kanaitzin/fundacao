@@ -46,7 +46,7 @@ const PARTES: Record<string, { livres?: Record<string, string>; so?: string[] }>
     "@Post('education-attendance/:id/proof')": 'é leitura do comprovante, feita por POST para ir à auditoria',
     "@Post('evolutions')": 'a evolução de saúde tem a regra dela, da Enfermagem',
     "@Post('evolutions/:id/triage')": 'a triagem é da Enfermagem',
-    "@Post('health-records/:qual/:id/confidential')": 'o sigilo de saúde tem a regra dele: o Gestor Geral não marca nem tira',
+    "@Post('health-records/:id/confidential')": 'o sigilo de saúde tem a regra dele: o Gestor Geral não marca nem tira',
     "@Post('history/:personId/export')": 'baixar o papel é ler',
     "@Post('hospitalizations/:id/export')": 'baixar o relatório da internação é ler',
     "@Post('summary/:personId')": 'o resumo de saúde é leitura montada',

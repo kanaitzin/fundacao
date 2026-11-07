@@ -31,7 +31,7 @@ describe('O sigilo por registro de saúde', () => {
   const historico = async (k: string) =>
     (await request(http).get(`/api/v1/nursing/history/${ids.crianca}`).set(auth(k))).body;
   const sigilo = (k: string, qual: string, id: string, corpo: Record<string, unknown>) =>
-    request(http).post(`/api/v1/nursing/health-records/${qual}/${id}/confidential`).set(auth(k)).send(corpo);
+    request(http).post(`/api/v1/nursing/health-records/${id}/confidential`).set(auth(k)).send({ qual, ...corpo });
   const enviar = (corpo: Record<string, unknown>) =>
     request(http).post('/api/v1/nursing/evolutions').set(auth('educador'))
       .send({ personId: ids.crianca, houseId: ids.AI3, tipo: 'consulta',

@@ -478,7 +478,7 @@ o item respondido sai do §0.
 **FEITO — fase 287** (§2): o sigilo por registro de saúde, e com ele **a avaliação de 05/11 está toda feita** (276 a
 287). **Leitura nova de consulta ou atendimento de saúde** esconde o conteúdo do registro sigiloso para quem não está em
 `LEEM_O_SIGILO`: no servidor da Enfermagem pelo `semOConteudo`, e nas consultas de outros módulos pelo
-`app_le_sigilo_de_saude()` no SQL. **Medido na 287:** MEDIDO_287.
+`app_le_sigilo_de_saude()` no SQL. **Medido na 287:** a `o-sigilo-por-registro-de-saude` (6 de 6), a suíte inteira (1480 de 1481; a única reprovação era a sondagem de escrita, que não conhecia o parâmetro `:qual` da rota: ele foi para o corpo, e a rota ficou `POST /nursing/health-records/:id/confidential`; as quatro suítes que a rota toca, 23 de 23), o `ensaio:uso` (854 cobranças, sem reprovação, com o bloco do registro sigiloso), o do celular (sem achado) e a sonda a 390 px depois da troca da rota (o educador vê só que existe; a técnica lê e tira o sigilo com o motivo; nenhum erro). **Não rodou** o relógio adiantado.
 **Próxima: 288**, no protótipo, a setinha ao lado da casa, no alto, para a Coordenação Geral trocar de casa (o item 2 do
 plano de 06/11). Depois, o 1.0 online, só quando a pessoa da Fundação pedir.
 

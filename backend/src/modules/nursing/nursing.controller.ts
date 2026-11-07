@@ -160,10 +160,10 @@ export class NursingController {
   }
 
   /* Marcar ou tirar o sigilo de um registro de saúde (fase 287). */
-  @Post('health-records/:qual/:id/confidential')
-  sigilo(@CurrentUser() user: AuthenticatedUser, @Param('qual') qual: string,
-         @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: { sigiloso?: boolean; motivo?: string }) {
-    return this.nursing.marcarSigilo(user, qual, id, body?.sigiloso as boolean, body?.motivo ?? null);
+  @Post('health-records/:id/confidential')
+  sigilo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+         @Body() body: { qual?: string; sigiloso?: boolean; motivo?: string }) {
+    return this.nursing.marcarSigilo(user, String(body?.qual ?? ''), id, body?.sigiloso as boolean, body?.motivo ?? null);
   }
 
   @RegistroDaRota('personId', 'person')

@@ -2483,8 +2483,8 @@ function FolhaDoSigilo({ item, sigiloso, onFechar, onPronto }: {
             setErro('');
             try {
               const r = await api<{ aviso: string }>(
-                `/nursing/health-records/${item.qual}/${item.registroId}/confidential`,
-                { method: 'POST', body: JSON.stringify({ sigiloso, motivo: motivo.trim() || null }) });
+                `/nursing/health-records/${item.registroId}/confidential`,
+                { method: 'POST', body: JSON.stringify({ qual: item.qual, sigiloso, motivo: motivo.trim() || null }) });
               onPronto(r.aviso);
             } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível mudar o sigilo.'); }
           }}>{sigiloso ? 'Marcar como sigiloso' : 'Tirar o sigilo'}</button>
