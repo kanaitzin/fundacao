@@ -477,14 +477,14 @@ o item respondido sai do §0.
 **FEITO — fase 286** (§2): a Cozinha em resumo por refeição, com a escolha de 07/11 (os dois: o plano de hoje e os
 cartões do período). **Função que junta tabelas de várias partições mora em quem já declara ler todas** (`reports`):
 a primeira versão ficou em `people` e o `arquitetura.spec` reprovou. **Refeição da casa** é a chamada de alimentação
-da 211; sem chamada definida, o plano diz quem define. **Medido na 286:** MEDIDO_286.
+da 211; sem chamada definida, o plano diz quem define. **Medido nas 285 e 286, juntas:** a `o-plano-do-dia-da-cozinha` (4 de 4), a suíte inteira (1475 de 1475), o `ensaio:uso` sobre o protótipo da 286 (849 cobranças, sem reprovação, com os blocos do Judiciário e o plano da Cozinha), o do celular (sem achado), o `roteiro` (sem reprovação) e as sondas a 390 px (o Judiciário da Alice e da Lara como técnica e educador; a Cozinha como educador e, a 1366 px, como coordenação; nada andando para o lado, nenhum erro). A sonda da Cozinha achou a janta *feita* com zero (a chamada só aberta) e o café do protótipo contando as crianças do acervo; consertados. **Não rodou** o relógio adiantado.
 **Próxima: 287**, o sigilo por registro no atendimento de saúde (o último módulo da avaliação de 05/11); depois, no
 protótipo, a setinha ao lado da casa para a Coordenação Geral trocar de casa.
 
 **FEITO — fase 285** (§2): o Judiciário em blocos. **Parte nova de aba que pode esperar o toque** usa o
 `BlocoQueAbre` do `Acolhidos.tsx` (título, uma linha do que tem dentro, triângulo); **aviso que precisa de alguém
 não entra em bloco fechado** (o da reavaliação ficou à vista). **Ensaio que lê o perfil** passa pelo `abrirBlocos`.
-**Medido na 285:** MEDIDO_285.
+**Medido na 285:** junto da 286, abaixo.
 **A 286 veio a seguir** (a Cozinha por refeição).
 
 **FEITO — fase 284** (§2): os atendimentos técnicos do módulo 08. **Campo novo no atendimento** entra no
