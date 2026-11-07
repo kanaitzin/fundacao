@@ -5554,6 +5554,39 @@ console.log('\n✔️  O botão que grava (fase 265)');
   await pgB.close();
 }
 
+console.log('\n🔒 O registro de saúde sigiloso (fase 287)');
+{
+  const pgS = await navegador.newPage({ viewport: { width: 390, height: 900 } });
+  const errosS = [];
+  pgS.on('pageerror', (e) => errosS.push(e.message));
+  const esp = (ms = 800) => pgS.waitForTimeout(ms);
+  const saudeDaAlice = async (cargo) => {
+    await pgS.goto(`file://${ARQUIVO}`); await esp(700);
+    await pgS.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+    await pgS.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+    cargoAtual = cargo;
+    await pgS.locator('select.troca-cargo-sel').selectOption(cargo); await esp(900);
+    await pgS.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+    await pgS.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+    await pgS.getByRole('tab', { name: /Saúde/ }).click(); await esp(1000);
+    return pgS.locator('#perfil-historico-saude li[data-sigiloso]');
+  };
+  let sig = await saudeDaAlice('educador');
+  const doEducador = (await sig.first().innerText().catch(() => '')).replace(/\s+/g, ' ');
+  cobrar('o educador vê que existe um registro sigiloso, o dia e quem registrou, sem o conteúdo',
+    /Registro de saúde sigiloso/.test(doEducador) && /Registrou:/.test(doEducador) && !/Psiquiatria/.test(doEducador), doEducador);
+  sig = await saudeDaAlice('equipe_tecnica');
+  const daTecnica = (await sig.first().innerText().catch(() => '')).replace(/\s+/g, ' ');
+  cobrar('a técnica lê o conteúdo, com quem marcou o sigilo', /Psiquiatria/.test(daTecnica) && /Marcado como sigiloso por/.test(daTecnica), daTecnica);
+  await sig.first().getByRole('button', { name: 'Tirar o sigilo' }).click(); await esp(400);
+  cobrar('tirar o sigilo pede o motivo', await pgS.locator('.overlay .rodape button').last().isDisabled());
+  await pgS.fill('#sig-mot', 'A família já sabe e a equipe acompanha.');
+  await pgS.locator('.overlay .rodape button').last().click(); await esp(1000);
+  cobrar('e o sigilo sai, dito na tela', /O sigilo saiu deste registro/.test(await pgS.locator('#perfil-historico-saude').innerText()));
+  cobrar('nenhuma exceção no registro sigiloso', errosS.length === 0, errosS[0]);
+  await pgS.close();
+}
+
 await colherPrincipal();
 const semFrase = gravaram.filter((g) => g.fora === 'outro-verbo');
 console.log(`\n${gravaram.length} escritas por botão no percurso; `

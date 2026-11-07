@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 07/11/2026, fase 286
+### Onde estamos — 07/11/2026, fase 287
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -349,8 +349,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 284 | **os atendimentos da equipe técnica** (avaliação de 05/11, módulo 08): *Assistência Social* no lugar de serviço social; interno ou externo, o local e quem atendeu (people/1676); os arquivos à vista no cartão e juntar arquivo depois, só quem registrou; e os atendimentos de um período em Word para técnica e coordenação (`QUEM_BAIXA_ATENDIMENTOS`) |
 | 285 | **o Judiciário em blocos que se abrem** (avaliação de 05/11, módulo 09): como chegou, episódios e ofícios fechados com uma linha do que tem dentro; na área restrita, situação e motivo aberto e medida e processo à parte (`BlocoQueAbre`); sem rota nova |
 | 286 | **a Cozinha em resumo por refeição** (avaliação de 05/11, módulo 13; decidido em 07/11): o plano de hoje no alto (refeições com a hora, quem está em casa, o que não servir, pedidos do dia, a chamada feita) e os números do período em cartões por refeição (`app_plano_da_cozinha`, reports/1677) |
+| 287 | **o sigilo por registro de saúde** (avaliação de 05/11; decidido em 07/11): a consulta e o atendimento sigilosos, o conteúdo só para Enfermagem, técnica e coordenação; marca quem registrou e as três, tira a técnica e a coordenação com o motivo (`health_confidential_change`, nursing/1678) |
 
-**Medido no fim da 277:** 217 migrações, 152 tabelas, 170 suítes, 1467 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 277:** 218 migrações, 153 tabelas, 171 suítes, 1473 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -474,17 +475,23 @@ o item respondido sai do §0.
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
 
+**FEITO — fase 287** (§2): o sigilo por registro de saúde, e com ele **a avaliação de 05/11 está toda feita** (276 a
+287). **Leitura nova de consulta ou atendimento de saúde** esconde o conteúdo do registro sigiloso para quem não está em
+`LEEM_O_SIGILO`: no servidor da Enfermagem pelo `semOConteudo`, e nas consultas de outros módulos pelo
+`app_le_sigilo_de_saude()` no SQL. **Medido na 287:** MEDIDO_287.
+**Próxima: 288**, no protótipo, a setinha ao lado da casa, no alto, para a Coordenação Geral trocar de casa (o item 2 do
+plano de 06/11). Depois, o 1.0 online, só quando a pessoa da Fundação pedir.
+
 **FEITO — fase 286** (§2): a Cozinha em resumo por refeição, com a escolha de 07/11 (os dois: o plano de hoje e os
 cartões do período). **Função que junta tabelas de várias partições mora em quem já declara ler todas** (`reports`):
 a primeira versão ficou em `people` e o `arquitetura.spec` reprovou. **Refeição da casa** é a chamada de alimentação
 da 211; sem chamada definida, o plano diz quem define. **Medido nas 285 e 286, juntas:** a `o-plano-do-dia-da-cozinha` (4 de 4), a suíte inteira (1475 de 1475), o `ensaio:uso` sobre o protótipo da 286 (849 cobranças, sem reprovação, com os blocos do Judiciário e o plano da Cozinha), o do celular (sem achado), o `roteiro` (sem reprovação) e as sondas a 390 px (o Judiciário da Alice e da Lara como técnica e educador; a Cozinha como educador e, a 1366 px, como coordenação; nada andando para o lado, nenhum erro). A sonda da Cozinha achou a janta *feita* com zero (a chamada só aberta) e o café do protótipo contando as crianças do acervo; consertados. **Não rodou** o relógio adiantado.
-**Próxima: 287**, o sigilo por registro no atendimento de saúde (o último módulo da avaliação de 05/11); depois, no
-protótipo, a setinha ao lado da casa para a Coordenação Geral trocar de casa.
+**A 287 veio a seguir** (o sigilo por registro de saúde).
 
 **FEITO — fase 285** (§2): o Judiciário em blocos. **Parte nova de aba que pode esperar o toque** usa o
 `BlocoQueAbre` do `Acolhidos.tsx` (título, uma linha do que tem dentro, triângulo); **aviso que precisa de alguém
 não entra em bloco fechado** (o da reavaliação ficou à vista). **Ensaio que lê o perfil** passa pelo `abrirBlocos`.
-**Medido na 285:** junto da 286, abaixo.
+**Medido na 285:** junto da 286, acima.
 **A 286 veio a seguir** (a Cozinha por refeição).
 
 **FEITO — fase 284** (§2): os atendimentos técnicos do módulo 08. **Campo novo no atendimento** entra no

@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 287, dia: '07/11/2026', aba: 'acolhidos',
+    texto: 'O registro de saúde sigiloso: ao registrar uma consulta, quem levou a criança pode marcar Registro sigiloso, e a Enfermagem, a técnica e a coordenação podem marcar depois um registro que já existe. O conteúdo fica só com essas três; os outros veem no histórico de saúde do perfil que existe um registro sigiloso, o dia e quem registrou. Tirar o sigilo é da técnica e da coordenação, com o motivo, e quem marcou e quem tirou fica escrito no registro.' },
   { fase: 286, dia: '07/11/2026', aba: 'cozinha',
     texto: 'O plano de hoje no alto da Cozinha: as refeições da casa com a hora, quantas crianças estão em casa (as que estão com a família ou internadas não comem aqui), o que não servir a quem está em casa, com a substituição, e os lanches e cestas pedidos para hoje. Quando a chamada da refeição já foi feita, a linha diz como foi. Na aba Refeições, os números do período ficam num cartão por refeição.' },
   { fase: 285, dia: '06/11/2026', aba: 'acolhidos',

@@ -32,6 +32,7 @@ import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
   rotuloDaArea, ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
 } from '../../backend/src/modules/people/atendimento-tecnico.regra';
+import { LEEM_O_SIGILO, MARCAM_O_SIGILO, TIRAM_O_SIGILO } from '../../backend/src/modules/nursing/sigilo-de-saude.regra';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
@@ -2911,7 +2912,15 @@ interface Triagem {
   /** Como ela estava ao chegar e ao sair (fase 140). */
   comportamentoAoChegar?: string | null;
   comportamentoAoSair?: string | null;
+  /** O sigilo por registro (fase 287): a consulta que nasceu junto, e quem registrou. */
+  sigiloso?: boolean; atId?: string; autorId?: string;
 }
+/** Quem marcou e quem tirou o sigilo de um registro de saúde (fase 287). */
+const SIGILO_SAUDE: { atId: string | null; evId: string | null; sigiloso: boolean; motivo: string | null;
+                      por: string; em: string }[] = [
+  { atId: 'at-sig-1', evId: null, sigiloso: true, motivo: 'Pedido da equipe técnica.',
+    por: 'Enfermeira Clara', em: `${diasAtras(12)}T15:00:00-03:00` },
+];
 let TRIAGENS: Triagem[] = [
   { id: 't1', personId: 'p08', tipo: 'Consulta de pediatria', enviadaPor: 'Mário Silva',
     enviadaEm: emHoras(10, 40), assinada: false, assinadaPor: null, complemento: null,
@@ -2950,7 +2959,16 @@ const ATENDIMENTOS: {
   desfecho: string | null; status: string; retornoEm: string | null;
   /** Cumprido por uma consulta registrada depois (1665). */
   retornoFeito?: boolean;
+  /** O sigilo por registro (fase 287) e quem registrou. */
+  sigiloso?: boolean; autor?: string; autorId?: string;
 }[] = [
+  /* Uma consulta sigilosa da Alice (fase 287), marcada pela Enfermagem: quem não lê o
+     sigilo vê só que existe, o dia e quem registrou. */
+  { id: 'at-sig-1', personId: 'p01', tipo: 'consulta', quando: `${diasAtras(12)}T10:00:00-03:00`,
+    local: 'Ambulatório de especialidades', especialidade: 'Psiquiatria da infância',
+    profissional: 'Dra. Helena Duarte (CRM 00000)', motivo: 'Primeira consulta de acompanhamento.',
+    desfecho: 'Acompanhamento mensal combinado com a equipe técnica.',
+    status: 'concluido', retornoEm: null, sigiloso: true, autor: 'Enfermeira Clara' },
   { id: 'at1', personId: 'p08', tipo: 'consulta', quando: `${diasAtras(21)}T09:30:00-03:00`,
     local: 'UBS Centro', especialidade: 'Pediatria',
     profissional: 'Dra. Lívia Prates (CRM 00000)',
@@ -12001,7 +12019,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       especialidade: (b.especialidade as string) || null, profissional: null, motivo: null,
       desfecho: (b.orientacoes as string) || null,
       status: b.prazoRetorno ? 'retorno_pendente' : 'concluido', retornoEm: (b.prazoRetorno as string) || null,
-      retornoFeito: false };
+      retornoFeito: false, sigiloso: b.sigiloso === true, autor: eu.fullName, autorId: eu.id };
     ATENDIMENTOS.unshift(novoAt);
     if (cumpre) { cumpre.status = 'concluido'; cumpre.retornoFeito = true; }
     const TIPO: Record<string, string> = {
@@ -12021,7 +12039,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       receita: (b.receita as string) ?? null,
       orientacoes: (b.orientacoes as string) ?? null,
       assinada: false, assinadaPor: null, complemento: null, pedidoComplemento: null,
+      sigiloso: b.sigiloso === true, atId: novoAt.id, autorId: eu.id,
     }, ...TRIAGENS];
+    if (b.sigiloso === true) {
+      SIGILO_SAUDE.push({ atId: novoAt.id, evId: TRIAGENS[0].id, sigiloso: true, motivo: null,
+                          por: eu.fullName, em: new Date().toISOString() });
+    }
     AVISOS.unshift({ id: uid(), titulo: 'Evolução de Saúde aguardando triagem',
       texto: `Atendimento de ${k?.nome ?? 'acolhido'} registrado por ${eu.fullName}.`,
       prioridade: 'normal', entidade: 'health_evolution', entidadeId: 't0',
@@ -12061,6 +12084,36 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * Existia no servidor desde a fase 4 e nunca teve tela. Os rótulos vêm daqui
    * porque no servidor vêm de lá: a tela não mantém uma lista paralela.
    */
+  /* Marcar ou tirar o sigilo de um registro de saúde (fase 287). */
+  if (seg[0] === 'nursing' && seg[1] === 'health-records' && seg[4] === 'confidential' && metodo === 'POST') {
+    const at = seg[2] === 'consulta' ? ATENDIMENTOS.find((a) => a.id === seg[3]) : undefined;
+    const ev = seg[2] === 'atendimento' ? TRIAGENS.find((t) => t.id === seg[3]) : undefined;
+    if (!at && !ev) return new Recusa(404, 'Registro de saúde não encontrado, ou fora do seu alcance.');
+    const parAt = at ?? ATENDIMENTOS.find((a) => a.id === ev?.atId);
+    const parEv = ev ?? TRIAGENS.find((t) => t.atId === at?.id);
+    const atual = !!(at?.sigiloso ?? ev?.sigiloso);
+    const autorId = at?.autorId ?? ev?.autorId;
+    const motivo = String(b.motivo ?? '').trim();
+    if (b.sigiloso === true) {
+      if (atual) return new Recusa(400, 'Este registro já é sigiloso.');
+      if (!(MARCAM_O_SIGILO.includes(eu.role) || autorId === eu.id)) {
+        return new Recusa(403, 'Marca como sigiloso quem registrou, a Enfermagem, a técnica ou a coordenação.');
+      }
+    } else {
+      if (!atual) return new Recusa(400, 'Este registro não é sigiloso.');
+      if (!TIRAM_O_SIGILO.includes(eu.role)) {
+        return new Recusa(403, 'Quem tira o sigilo é a equipe técnica ou a coordenação, com o motivo.');
+      }
+      if (motivo.length < 5) return new Recusa(400, 'Escreva o motivo de tirar o sigilo.');
+    }
+    if (parAt) parAt.sigiloso = b.sigiloso === true;
+    if (parEv) parEv.sigiloso = b.sigiloso === true;
+    SIGILO_SAUDE.push({ atId: parAt?.id ?? null, evId: parEv?.id ?? null, sigiloso: b.sigiloso === true,
+                        motivo: motivo || null, por: eu.fullName, em: new Date().toISOString() });
+    return { ok: true, aviso: b.sigiloso === true
+      ? 'Registro marcado como sigiloso. O conteúdo fica para a Enfermagem, a técnica e a coordenação.'
+      : 'O sigilo saiu deste registro, com o seu nome e o motivo.' };
+  }
   if (seg[0] === 'nursing' && seg[1] === 'history' && seg.length === 3 && metodo === 'GET') {
     const pid = seg[2];
     const TIPO: Record<string, string> = {
@@ -12084,10 +12137,26 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       suspenso_conforme_orientacao: 'Suspenso conforme orientação',
       acolhido_ausente: 'Acolhido ausente', incidente: 'Incidente registrado',
     };
+    /* O sigilo por registro (fase 287), com a regra do servidor. */
+    const le = LEEM_O_SIGILO.includes(eu.role);
+    const doSigilo = (campo: 'atId' | 'evId', id: string) => le
+      ? SIGILO_SAUDE.filter((m) => m[campo] === id).map(({ sigiloso, motivo, por, em }) => ({ sigiloso, motivo, por, em }))
+      : [];
+    const sigiloDe = (sig: boolean, autorId?: string) => ({
+      sigiloso: sig,
+      podeMarcar: !sig && (MARCAM_O_SIGILO.includes(eu.role) || autorId === eu.id),
+      podeTirar: sig && TIRAM_O_SIGILO.includes(eu.role),
+    });
     const atendimentos = ATENDIMENTOS
       .filter((a) => a.personId === pid)
       .sort((a, x) => (a.quando < x.quando ? 1 : -1))
-      .map((a) => ({
+      .map((a) => a.sigiloso && !le ? {
+        id: a.id, tipo: a.tipo, tipoRotulo: TIPO[a.tipo] ?? a.tipo, quando: a.quando, por: a.autor ?? null,
+        local: null, especialidade: null, profissional: null, motivo: null, desfecho: null,
+        status: null, statusRotulo: null, retornoEm: null, retornoVencido: false,
+        conteudoOculto: true, historicoDoSigilo: [], ...sigiloDe(true, a.autorId),
+      } : ({
+        por: a.autor ?? null, historicoDoSigilo: doSigilo('atId', a.id), ...sigiloDe(!!a.sigiloso, a.autorId),
         id: a.id, tipo: a.tipo, tipoRotulo: TIPO[a.tipo] ?? a.tipo, quando: a.quando,
         local: a.local, especialidade: a.especialidade, profissional: a.profissional,
         motivo: a.motivo, desfecho: a.desfecho,
@@ -12097,7 +12166,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         retornoVencido: a.status === 'retorno_pendente'
           && a.retornoEm != null && a.retornoEm < HOJE,
       }));
-    const evolucoes = TRIAGENS.filter((t) => t.personId === pid).map((t) => ({
+    const evolucoes = TRIAGENS.filter((t) => t.personId === pid).map((t) => t.sigiloso && !le ? {
+      id: t.id, tipoRotulo: t.tipo, quando: t.enviadaEm, acompanhante: t.enviadaPor,
+      estadoRetorno: null, orientacoes: null, quemLevou: null, comportamentoAoChegar: null,
+      comportamentoAoSair: null, status: null, statusRotulo: null, complementoEnfermagem: null,
+      conteudoOculto: true, historicoDoSigilo: [], ...sigiloDe(true, t.autorId),
+    } : ({
+      historicoDoSigilo: doSigilo('evId', t.id), ...sigiloDe(!!t.sigiloso, t.autorId),
       id: t.id, tipoRotulo: t.tipo, quando: t.enviadaEm,
       estadoRetorno: t.resumo, orientacoes: null, acompanhante: t.enviadaPor,
       quemLevou: t.quemLevou ?? null,

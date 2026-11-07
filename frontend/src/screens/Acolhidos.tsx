@@ -2329,18 +2329,33 @@ function DiaADia({ houseId, personId, nome }: { houseId: string; personId: strin
 type ItemDoHistorico = {
   id: string; quando: string; tipo: 'consulta' | 'registro'; titulo: string;
   linhas: string[]; estado: string; tom: string;
+  /* O sigilo por registro (fase 287). */
+  qual: 'consulta' | 'atendimento'; registroId: string; sigiloso: boolean; oculto: boolean;
+  podeMarcar: boolean; podeTirar: boolean;
+  historicoDoSigilo: { sigiloso: boolean; motivo: string | null; por: string | null; em: string }[];
 };
 function HistoricoDeSaude({ personId, nome }: { personId: string; nome: string }) {
   const [itens, setItens] = useState<ItemDoHistorico[] | null>(null);
   const [recusou, setRecusou] = useState(false);
   const [todos, setTodos] = useState(false);
+  const [mexendo, setMexendo] = useState<{ item: ItemDoHistorico; sigiloso: boolean } | null>(null);
+  const [aviso, setAviso] = useState('');
+  const [versao, setVersao] = useState(0);
   useEffect(() => {
     let vivo = true;
     api<{ atendimentos: any[]; evolucoes: any[] }>(`/nursing/history/${personId}`)
       .then((d) => {
         if (!vivo) return;
-        const consultas: ItemDoHistorico[] = (d.atendimentos ?? []).map((a) => ({
-          id: `c-${a.id}`, quando: a.quando, tipo: 'consulta', titulo: a.tipoRotulo,
+        const sigilo = (x: any, qual: 'consulta' | 'atendimento') => ({
+          qual, registroId: x.id as string, sigiloso: !!x.sigiloso, oculto: !!x.conteudoOculto,
+          podeMarcar: !!x.podeMarcar, podeTirar: !!x.podeTirar, historicoDoSigilo: x.historicoDoSigilo ?? [],
+        });
+        const consultas: ItemDoHistorico[] = (d.atendimentos ?? []).map((a) => a.conteudoOculto ? {
+          id: `c-${a.id}`, quando: a.quando, tipo: 'consulta' as const, titulo: 'Registro de saúde sigiloso',
+          linhas: [a.por ? `Registrou: ${a.por}` : ''].filter(Boolean),
+          estado: 'Sigiloso', tom: 'c-info', ...sigilo(a, 'consulta'),
+        } : {
+          id: `c-${a.id}`, quando: a.quando, tipo: 'consulta' as const, titulo: a.tipoRotulo,
           linhas: [
             [a.especialidade, a.local].filter(Boolean).join(' · '),
             a.profissional ? `Atendeu: ${a.profissional}` : '',
@@ -2351,9 +2366,14 @@ function HistoricoDeSaude({ personId, nome }: { personId: string; nome: string }
           estado: a.statusRotulo,
           tom: a.retornoVencido ? 'c-crit' : a.status === 'em_andamento' ? 'c-warn'
             : a.status === 'retorno_pendente' ? 'c-med' : 'c-ok',
-        }));
-        const registros: ItemDoHistorico[] = (d.evolucoes ?? []).map((e) => ({
-          id: `r-${e.id}`, quando: e.quando, tipo: 'registro', titulo: e.tipoRotulo,
+          ...sigilo(a, 'consulta'),
+        });
+        const registros: ItemDoHistorico[] = (d.evolucoes ?? []).map((e) => e.conteudoOculto ? {
+          id: `r-${e.id}`, quando: e.quando, tipo: 'registro' as const, titulo: 'Registro de saúde sigiloso',
+          linhas: [e.acompanhante ? `Registrou: ${e.acompanhante}` : ''].filter(Boolean),
+          estado: 'Sigiloso', tom: 'c-info', ...sigilo(e, 'atendimento'),
+        } : {
+          id: `r-${e.id}`, quando: e.quando, tipo: 'registro' as const, titulo: e.tipoRotulo,
           linhas: [
             e.quemLevou ? `Levou: ${e.quemLevou}${e.acompanhante ? ` · registrou: ${e.acompanhante}` : ''}`
               : e.acompanhante ? `Acompanhou: ${e.acompanhante}` : '',
@@ -2363,16 +2383,18 @@ function HistoricoDeSaude({ personId, nome }: { personId: string; nome: string }
           ].filter(Boolean),
           estado: e.statusRotulo,
           tom: e.status === 'assinada' ? 'c-ok' : e.status === 'complemento_solicitado' ? 'c-warn' : 'c-med',
-        }));
+          ...sigilo(e, 'atendimento'),
+        });
         setItens(maisNovoEmCima([...consultas, ...registros], (x) => x.quando));
       })
       .catch(() => { if (vivo) setRecusou(true); });
     return () => { vivo = false; };
-  }, [personId]);
+  }, [personId, versao]);
   if (recusou) return null;
   const mostrados = todos ? (itens ?? []) : (itens ?? []).slice(0, 8);
   return (
     <Secao titulo="Histórico de saúde, o mais recente em cima" id="perfil-historico-saude">
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
       {!itens && <p className="mutetxt" style={{ margin: 0 }}>Abrindo…</p>}
       {itens && itens.length === 0 && (
         <p className="mutetxt" style={{ margin: 0 }}>
@@ -2382,15 +2404,39 @@ function HistoricoDeSaude({ personId, nome }: { personId: string; nome: string }
       {itens && itens.length > 0 && (
         <ul className="lista historico-saude">
           {mostrados.map((x) => (
-            <li key={x.id}>
+            <li key={x.id} data-sigiloso={x.sigiloso ? '' : undefined}>
               <div className="row">
                 <div className="grow">
                   <b className="ff">{x.titulo}</b>
                   <div className="mutetxt">{diaEHora(x.quando)}</div>
                 </div>
+                {x.sigiloso && !x.oculto && <span className="pill c-info">Sigiloso</span>}
                 <span className={`pill ${x.tom}`}>{x.estado}</span>
               </div>
+              {x.oculto && (
+                <div className="mutetxt">O conteúdo fica com a Enfermagem, a técnica e a coordenação.</div>
+              )}
               {x.linhas.map((l) => <div key={l} className="mutetxt">{l}</div>)}
+              {x.historicoDoSigilo.map((h, i) => (
+                <div key={i} className="mutetxt">
+                  {h.sigiloso ? 'Marcado como sigiloso' : 'Sigilo tirado'} por {h.por ?? 'alguém da equipe'} em {diaEHora(h.em)}
+                  {h.motivo ? `: ${h.motivo}` : ''}
+                </div>
+              ))}
+              {(x.podeMarcar || x.podeTirar) && (
+                <div className="row" style={{ gap: 8, marginTop: 4 }}>
+                  {x.podeMarcar && (
+                    <button type="button" className="btn sm ghost" onClick={() => setMexendo({ item: x, sigiloso: true })}>
+                      Marcar como sigiloso
+                    </button>
+                  )}
+                  {x.podeTirar && (
+                    <button type="button" className="btn sm ghost" onClick={() => setMexendo({ item: x, sigiloso: false })}>
+                      Tirar o sigilo
+                    </button>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -2400,7 +2446,51 @@ function HistoricoDeSaude({ personId, nome }: { personId: string; nome: string }
           {todos ? 'Recolher' : `Ver todo o histórico, ${quantos(itens.length, 'registro', 'registros')}`}
         </button>
       )}
+      {mexendo && (
+        <FolhaDoSigilo item={mexendo.item} sigiloso={mexendo.sigiloso} onFechar={() => setMexendo(null)}
+          onPronto={(msg) => { setMexendo(null); setAviso(msg); setVersao((v) => v + 1); }} />
+      )}
     </Secao>
+  );
+}
+
+/**
+ * MARCAR OU TIRAR O SIGILO (fase 287). Marcar diz quem passa a ler; tirar pede o motivo,
+ * que fica no histórico do registro com o nome e a hora.
+ */
+function FolhaDoSigilo({ item, sigiloso, onFechar, onPronto }: {
+  item: ItemDoHistorico; sigiloso: boolean; onFechar: () => void; onPronto: (aviso: string) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  const pode = sigiloso || motivo.trim().length >= 5;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-sigilo"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-sigilo">{sigiloso ? 'Marcar como sigiloso' : 'Tirar o sigilo'}</h3>
+        <p className="mutetxt">
+          {sigiloso
+            ? 'O conteúdo deste registro passa a ficar só com a Enfermagem, a técnica e a coordenação. Os outros veem que existe, o dia e quem registrou.'
+            : 'O conteúdo volta a ficar para quem lê a saúde da criança. O motivo fica no histórico do registro, com o seu nome.'}
+        </p>
+        <label className="f" htmlFor="sig-mot">{sigiloso ? 'Por quê (se quiser dizer)' : 'Por quê'}</label>
+        <textarea id="sig-mot" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={async () => {
+            setErro('');
+            try {
+              const r = await api<{ aviso: string }>(
+                `/nursing/health-records/${item.qual}/${item.registroId}/confidential`,
+                { method: 'POST', body: JSON.stringify({ sigiloso, motivo: motivo.trim() || null }) });
+              onPronto(r.aviso);
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível mudar o sigilo.'); }
+          }}>{sigiloso ? 'Marcar como sigiloso' : 'Tirar o sigilo'}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2492,6 +2582,8 @@ function FolhaEvolucao({ nome, personId, onFechar, onEnviar }: {
    * Nasce "não", que é o caso comum, e só aparece quando há retorno marcado.
    */
   const [retornoDe, setRetornoDe] = useState('');
+  /* O registro sigiloso já no registro (fase 287): marca quem levou. */
+  const [sigiloso, setSigiloso] = useState(false);
   /* Como a criança estava, na chegada e na saída (1460). */
   const [aoChegar, setAoChegar] = useState('');
   const [aoSair, setAoSair] = useState('');
@@ -2647,6 +2739,16 @@ function FolhaEvolucao({ nome, personId, onFechar, onEnviar }: {
         <input id="evo-prazo" type="date" value={prazoRetorno}
                onChange={(e) => setPrazoRetorno(e.target.value)} />
 
+        <label className="row" style={{ gap: 8, alignItems: 'flex-start', marginTop: 12 }}>
+          <input type="checkbox" checked={sigiloso} onChange={(e) => setSigiloso(e.target.checked)} />
+          <span>
+            <b>Registro sigiloso</b>
+            <span className="mutetxt" style={{ display: 'block' }}>
+              O conteúdo fica só com a Enfermagem, a técnica e a coordenação. Os outros veem que existe, o dia e quem registrou.
+            </span>
+          </span>
+        </label>
+
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode}
@@ -2663,6 +2765,7 @@ function FolhaEvolucao({ nome, personId, onFechar, onEnviar }: {
                     comportamentoAoChegar: aoChegar || undefined,
                     comportamentoAoSair: aoSair || undefined,
                     retornoDe: retornoDe || undefined,
+                    sigiloso: sigiloso || undefined,
                   })}>
             Enviar para a Enfermagem
           </button>
