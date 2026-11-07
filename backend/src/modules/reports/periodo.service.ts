@@ -133,6 +133,21 @@ export class PeriodoService {
     });
   }
 
+  /**
+   * O PLANO DO DIA DA COZINHA (fase 286): as refeições da casa com a hora, quantas
+   * crianças estão em casa, o que não servir a quem está, a chamada já feita de cada
+   * refeição e os pedidos do dia. Casa fora do alcance: 404.
+   */
+  async planoDaCozinha(user: AuthenticatedUser, houseId: string, dia?: string) {
+    const d = dia || hojeNaInstituicao();
+    const plano = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(`SELECT app_plano_da_cozinha($1, $2::date) AS p`, [houseId, d]);
+      return r?.p ?? null;
+    });
+    if (!plano) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
+    return plano;
+  }
+
   async daCasa(user: AuthenticatedUser, houseId: string,
                de?: string, ate?: string): Promise<PeriodoDaCasa> {
     if (!LEEM_O_PERIODO.includes(user.role)) {

@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 286, dia: '07/11/2026', aba: 'cozinha',
+    texto: 'O plano de hoje no alto da Cozinha: as refeições da casa com a hora, quantas crianças estão em casa (as que estão com a família ou internadas não comem aqui), o que não servir a quem está em casa, com a substituição, e os lanches e cestas pedidos para hoje. Quando a chamada da refeição já foi feita, a linha diz como foi. Na aba Refeições, os números do período ficam num cartão por refeição.' },
   { fase: 285, dia: '06/11/2026', aba: 'acolhidos',
     texto: 'A aba Judiciário do perfil em blocos que se abrem: Como ela chegou, Episódios de acolhimento e Comunicações a órgãos externos aparecem fechados, cada um com uma linha do que tem dentro, e o triângulo abre e fecha. Dentro da área restrita, a situação e o motivo vêm abertos, e a medida e o processo ficam num bloco à parte. Nada saiu da aba.' },
   { fase: 284, dia: '06/11/2026', aba: 'acolhidos',

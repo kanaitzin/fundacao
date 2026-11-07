@@ -5495,6 +5495,33 @@ function responderPeriodo(
    * uma tela que ninguém testou (§6.14).
    */
   /* As refeições da CASA (fase 162) — por refeição, nunca por criança. */
+  /* O plano do dia da cozinha (fase 286), com a mesma regra do `app_plano_da_cozinha`. */
+  if (rota.startsWith('/reports/period/kitchen-plan') && metodo === 'GET') {
+    const emCasa = todosKids().filter((k) => !estaComAFamilia(k.id) && !estaInternado(k.id));
+    const fora = todosKids().length - emCasa.length;
+    const refeicoes = CHAMADAS_DA_CASA.filter((m) => !m.encerrado && m.tipo === 'alimentacao')
+      .sort((x, y) => x.hora.localeCompare(y.hora) || x.titulo.localeCompare(y.titulo))
+      .map((m) => {
+        const feitas = CHAMADAS.filter((c) => c.tipo === 'alimentacao'
+          && c.titulo.trim().toLowerCase() === m.titulo.trim().toLowerCase()
+          && String(c.horario).slice(0, 10) === HOJE);
+        const daCasa = new Set(todosKids().map((k) => k.id));
+        const ops = feitas.flatMap((c) => Object.entries(c.resultados).filter(([id]) => daCasa.has(id)).map(([, r]) => r.opcao));
+        const conta = (...cods: string[]) => ops.filter((o) => cods.includes(o)).length;
+        return { titulo: m.titulo, hora: m.hora, pessoasDeCostume: m.pessoas ?? null, cor: m.cor,
+                 chamada: ops.length ? { feita: true, comeram: conta('normal', 'dieta_adaptada', 'parcial'),
+                   parcial: conta('parcial'), recusou: conta('recusou'), ausente: conta('ausente_externa'),
+                   dietaAdaptada: conta('dieta_adaptada') } : null };
+      });
+    const restricoes = emCasa.flatMap((k) => [...(k.restricao ? [k.restricao] : []), ...(k.restricoesExtras ?? [])]
+      .map((r: any) => ({ nome: k.nome, restricao: r.restriction, substituicao: r.substitution ?? null,
+                          orientacao: r.guidance ?? null })))
+      .sort((x, y) => x.nome.localeCompare(y.nome));
+    const pedidos = PEDIDOS_COZINHA.filter((x) => x.em === HOJE && x.status === 'aberto')
+      .map((x) => ({ id: x.id, tipo: x.tipo, paraQuem: x.paraQuem, quantidade: x.quantidade,
+                     finalidade: x.finalidade, entregarA: x.entregarA ?? null }));
+    return { dia: HOJE, emCasa: emCasa.length, fora, refeicoes, restricoes, pedidos };
+  }
   if (rota === '/reports/period/meals' && metodo === 'GET') {
     const porRefeicao = [
       { refeicao: 'Almoço', chamadas: 26, registros: 498, comeram: 471, parcial: 18, recusou: 9, ausente: 18, dietaAdaptada: 26, outros: 0 },

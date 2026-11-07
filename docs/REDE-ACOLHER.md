@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **216 migrações** | `.sql` dentro das partições |
+| **217 migrações** | `.sql` dentro das partições |
 | **152 tabelas** | `CREATE TABLE` nas migrações |
-| **169 suítes** | `backend/test/*.spec.ts` |
-| **1463 testes** | `it(` / `test(` nas suítes |
+| **170 suítes** | `backend/test/*.spec.ts` |
+| **1467 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **13 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈7769 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈7777 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -496,6 +496,7 @@ arqueologia.
 | 283 | **A frequência escolar** (primeira avaliação humana de 05/11, módulo 07: *"não presumir automaticamente falta injustificada: diferenciar ausência informada, presença confirmada e ausência ainda não verificada"*; decidido pela pessoa da Fundação em 06/11: o educador marca no Dia da Casa, e a técnica e a coordenação corrigem com o motivo e o comprovante). No Dia da Casa, o cartão **Foi à aula hoje?** com os vínculos que têm aula no dia (pelos dias da semana do vínculo), e três respostas: *Foi*, *Não foi* com o motivo informado e *Não teve aula* (feriado, recesso, suspensão) com o motivo, e o comprovante se houver. **Sem marca é ainda não verificado, e nunca falta.** O plantão (educador e líderes) marca hoje e ontem, uma vez; a técnica e a coordenação marcam qualquer dia do vínculo e corrigem com o motivo, e a marca anterior continua legível (`education_attendance`, nursing/1675, `app_marcar_frequencia`). No perfil, cada vínculo mostra os dias de aula dos últimos 30 dias com a contagem de cada situação, quem marcou, a correção e o comprovante (aberto com auditoria). Rotas novas: `GET /nursing/education-attendance?houseId=`, `POST /nursing/education-links/:id/attendance` e `POST /nursing/education-attendance/:id/proof`. A `a-frequencia-escolar` cobra o não verificado, a marca única do plantão, o dia antigo, o motivo, o dia sem aula do vínculo, a correção com comprovante, a contagem do perfil, a recusa à cozinha e a auditoria. |
 | 284 | **Os atendimentos da equipe técnica completos** (primeira avaliação humana de 05/11, módulo 08): a área *serviço social* passa a se chamar **Assistência Social** (na regra, em `app_rotulo_da_area_do_atendimento` e no protótipo); cada atendimento diz **se foi interno, na casa, ou externo, fora dela**, o **local** e **quem atendeu**, quando não é quem registrou (`technical_session.setting`, `place`, `professional`, people/1676; opcionais no servidor, para os de antes, e pedidos pela tela); **os arquivos à vista no cartão** (*Ver os arquivos*) e **juntar arquivo depois**, só por quem registrou e até o máximo do atendimento (`POST /people/technical-sessions/:id/attachments`, auditoria `atendimento_tecnico.anexo.juntado`); e **os atendimentos de um período em Word** para a técnica e a coordenação (`QUEM_BAIXA_ATENDIMENTOS`), com este mês, o mês passado, todo o acolhimento ou datas escolhidas, e a finalidade na auditoria (`POST /people/:id/technical-sessions/export`, no `o-que-entra-volta-inteiro`). A rota nova separou o `@RegistroDaRota` da leitura da lista e a Casa 04 passou a receber 200; a guarda voltou ao lugar e a exportação ganhou a sua. Três testes novos na `o-atendimento-da-equipe-tecnica` (10 de 10) |
 | 285 | **O Judiciário em blocos que se abrem** (primeira avaliação humana de 05/11, módulo 09): a aba Judiciário do perfil passa a ter cada parte num bloco com o triângulo dos vínculos educacionais (282) e uma linha do que tem dentro (`BlocoQueAbre` no `Acolhidos.tsx`): *Como ela chegou* (a entrada, quem trouxe e o município), *Episódios de acolhimento* (quantas passagens e se a atual está em curso) e *Comunicações a órgãos externos* (quantos ofícios, o último e os ainda não entregues), fechados; dentro da área restrita, *Situação e motivo* aberto e *Medida e processo* fechado, com a medida e a vara na linha. O aviso da reavaliação e os documentos da área restrita continuam à vista. Sem rota nova. Os ensaios que leem o perfil abrem os blocos como a pessoa abriria (`abrirBlocos` no `ensaio:uso`) |
+| 286 | **A Cozinha em resumo por refeição** (primeira avaliação humana de 05/11, módulo 13; decidido em 07/11: os dois). **O plano de hoje** no alto da Cozinha: as refeições da casa com a hora (as chamadas de alimentação da 211), quantas crianças estão em casa e quantas não comem aqui (internadas ou com a família, pela regra única do `app_ausente_da_casa`), o que não servir a quem está em casa, com a substituição e sem o motivo clínico, os lanches e cestas pedidos para hoje e, quando a chamada da refeição já foi feita, como foi (`app_plano_da_cozinha`, reports/1677, em `reports` porque lê as chamadas e as pessoas, como o `app_refeicoes_da_casa`; `GET /reports/period/kitchen-plan`). Na aba Refeições, **os números do período num cartão por refeição**, com os números grandes no lugar da linha com pontos. Nada por criança além do nome na restrição, como a folha que a cozinha já recebe. Quatro testes na `o-plano-do-dia-da-cozinha` |
 
 ---
 
@@ -543,7 +544,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-216 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+217 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -610,7 +611,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              169 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              170 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -3060,7 +3061,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 216 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 217 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

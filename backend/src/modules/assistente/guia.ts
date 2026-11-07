@@ -221,6 +221,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /reports/period?houseId=  o período da casa
 - /reports/period/options  opções do período
 - /reports/period/meals?houseId=&de=&ate=  refeições no período
+- /reports/period/kitchen-plan?houseId=  o plano do dia da cozinha: refeições, quem está em casa, o que não servir e os pedidos do dia
 - /reports/house-monthly?houseId=&mes=AAAA-MM  o mês da casa
 - /reports/kitchen?houseId=  o relatório da cozinha
 - /reports/metrics?de=&ate=  números das unidades no período

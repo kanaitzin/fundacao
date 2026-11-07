@@ -3322,6 +3322,21 @@ console.log('\n🥪 A cozinha recebe a lista (fase 162)');
 await trocar('educador');
 erros.length = 0;
 cobrar('a Cozinha abre em "Mais"', await doMais('Cozinha'));
+/* O plano de hoje no alto da Cozinha, e os cartões por refeição (fase 286). */
+{
+  await pg.waitForTimeout(700);
+  const plano = (await pg.locator('section.plano-do-dia').innerText().catch(() => '')).replace(/\s+/g, ' ');
+  cobrar('o plano de hoje diz quantas crianças estão em casa e as refeições com a hora (fase 286)',
+    /crianças? em casa/.test(plano) && /\d{2}:\d{2} Café da manhã/.test(plano), plano.slice(0, 300));
+  cobrar('e o que não servir a quem está em casa, com a substituição',
+    /NÃO SERVIR|Não servir/i.test(plano) && /Alice: Amendoim/.test(plano) && /no lugar,/.test(plano));
+  cobrar('e nenhuma refeição diz chamada feita com zero', !/chamada feita: comeram 0\b/.test(plano));
+  await pg.getByRole('tab', { name: 'Refeições' }).click(); await pg.waitForTimeout(900);
+  const cartoes = pg.locator('li.refeicao-cartao');
+  cobrar('na aba Refeições, um cartão por refeição com os números', (await cartoes.count()) > 0
+    && /comeu\s*\d+/.test(await cartoes.first().innerText()));
+  await pg.getByRole('tab', { name: 'Pedidos' }).click(); await pg.waitForTimeout(500);
+}
 cobrar('"Pedir lanche" abre a folha', await clicar(/Pedir lanche/i));
 const folhaLote = pg.locator('.overlay .sheet');
 await folhaLote.getByRole('button', { name: 'Crianças que eu marcar' }).click();
@@ -4821,7 +4836,9 @@ console.log('\n🗂️ Os documentos na área restrita do Judiciário (fase 216)
   await bloco.getByRole('button', { name: /^Abrir Relatório de acolhimento/ }).first().click(); await esp(900);
   cobrar('e abre para conferir', /Conferir|Documento/.test(await pgJ.locator('.overlay').innerText()));
   /* A Lara tem o motivo judicial cadastrado: os blocos de dentro da área restrita (fase 285). */
-  await pgJ.locator('.overlay').getByRole('button', { name: /Fechar|Voltar|Cancelar/ }).first().click().catch(() => {}); await esp(400);
+  for (let k = 0; k < 3 && await pgJ.locator('.overlay').count(); k++) {
+    await pgJ.locator('.overlay').last().click({ position: { x: 4, y: 4 } }).catch(() => {}); await esp(400);
+  }
   await pgJ.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgJ.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(700);
   await pgJ.locator('.pessoa-cartao').filter({ hasText: 'Lara' }).first().click(); await esp(1200);

@@ -5,6 +5,7 @@ import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * COZINHA — uma tela só, e é isso que a torna certa.
@@ -186,6 +187,8 @@ export function Cozinha({ houseId, casaLabel, papel }: {
     <>
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      <PlanoDoDia houseId={houseId} />
 
       <div className="filtros" role="tablist">
         <button role="tab" aria-selected={aba === 'pedidos'}
@@ -700,14 +703,22 @@ function RefeicoesDaCasa({ houseId, casaLabel }: { houseId: string; casaLabel: s
             <p className="mutetxt">Nenhuma chamada de refeição no período. A lista vazia quer dizer que
               ninguém fez a chamada — não que ninguém comeu.</p>
           )}
-          <ul className="stack lista">
+          {/* Um cartão por refeição, com os números grandes (fase 286): o café, o almoço,
+              o lanche e a janta lado a lado, e nunca uma criança. */}
+          <ul className="refeicoes-cartoes">
             {d.porRefeicao.map((r) => (
-              <li key={r.refeicao} className="card">
-                <b className="ff">{r.refeicao}</b>
-                <div className="mutetxt">
-                  {r.chamadas} chamada{r.chamadas === 1 ? '' : 's'} · comeu {r.comeram} · parcial {r.parcial} ·
-                  recusa {r.recusou} · ausente {r.ausente}{r.dietaAdaptada ? ` · dieta adaptada ${r.dietaAdaptada}` : ''}
+              <li key={r.refeicao} className="card refeicao-cartao">
+                <div className="refeicao-cabeca">
+                  <b className="ff">{r.refeicao}</b>
+                  <span className="mutetxt">{quantos(r.chamadas, 'chamada', 'chamadas')}</span>
                 </div>
+                <dl className="refeicao-numeros">
+                  <div><dt>comeu</dt><dd>{r.comeram}</dd></div>
+                  <div><dt>parcial</dt><dd>{r.parcial}</dd></div>
+                  <div><dt>recusa</dt><dd>{r.recusou}</dd></div>
+                  <div><dt>ausente</dt><dd>{r.ausente}</dd></div>
+                  {r.dietaAdaptada > 0 && <div><dt>dieta adaptada</dt><dd>{r.dietaAdaptada}</dd></div>}
+                </dl>
               </li>
             ))}
           </ul>
@@ -715,5 +726,99 @@ function RefeicoesDaCasa({ houseId, casaLabel }: { houseId: string; casaLabel: s
         </>
       )}
     </>
+  );
+}
+
+/**
+ * O PLANO DO DIA (fase 286, avaliação de 05/11, módulo 13; decidido em 06/11). No alto da
+ * Cozinha, para quem vai cozinhar: as refeições de hoje com a hora, quantas crianças estão
+ * em casa, o que não servir a quem está (sem o motivo), os lanches e cestas pedidos para
+ * hoje e, quando a chamada da refeição já foi feita, como foi.
+ */
+interface Plano {
+  dia: string; emCasa: number; fora: number;
+  refeicoes: { titulo: string; hora: string; pessoasDeCostume: number | null;
+               chamada: { comeram: number; parcial: number; recusou: number; ausente: number; dietaAdaptada: number } | null }[];
+  restricoes: { nome: string; restricao: string; substituicao: string | null; orientacao: string | null }[];
+  pedidos: { id: string; tipo: string; paraQuem: string; quantidade: number; finalidade: string; entregarA: string | null }[];
+}
+
+function PlanoDoDia({ houseId }: { houseId: string }) {
+  const [p, setP] = useState<Plano | null>(null);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    let vivo = true;
+    setP(null); setErro('');
+    api<Plano>(`/reports/period/kitchen-plan?houseId=${houseId}`)
+      .then((d) => { if (vivo) setP(d); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : 'Não foi possível abrir o plano do dia.'); });
+    return () => { vivo = false; };
+  }, [houseId]);
+  if (erro) return <div className="notice c-crit" role="alert">{erro}</div>;
+  if (!p) return null;
+  const lanches = p.pedidos.filter((x) => x.tipo === 'lanche');
+  const cestas = p.pedidos.filter((x) => x.tipo !== 'lanche');
+  return (
+    <section className="card raise stack plano-do-dia" aria-labelledby="t-plano">
+      <div className="row" style={{ alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <h3 id="t-plano" className="grow" style={{ fontSize: 17, margin: 0 }}>O plano de hoje · {dia(p.dia)}</h3>
+        <span className="pill c-info">{quantos(p.emCasa, 'criança em casa', 'crianças em casa')}</span>
+      </div>
+      {p.fora > 0 && (
+        <div className="mutetxt">
+          {quantos(p.fora, 'criança não come em casa hoje', 'crianças não comem em casa hoje')}: com a família ou internada.
+        </div>
+      )}
+      {p.refeicoes.length === 0 ? (
+        <p className="mutetxt" style={{ margin: 0 }}>
+          A casa ainda não definiu as refeições do dia. A coordenação, a técnica ou o Líder Diurno definem em
+          Chamada, nas chamadas da casa.
+        </p>
+      ) : (
+        <ol className="plano-refeicoes">
+          {p.refeicoes.map((r) => (
+            <li key={`${r.hora}-${r.titulo}`} className={r.chamada ? 'feita' : ''}>
+              <span className="plano-hora">{r.hora}</span>
+              <span className="grow">
+                <b>{r.titulo}</b>
+                <span className="mutetxt">
+                  {r.chamada
+                    ? ` · chamada feita: comeram ${r.chamada.comeram}${r.chamada.recusou ? `, recusa ${r.chamada.recusou}` : ''}${r.chamada.dietaAdaptada ? `, dieta adaptada ${r.chamada.dietaAdaptada}` : ''}`
+                    : r.pessoasDeCostume ? ` · costuma servir ${r.pessoasDeCostume}` : ''}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <div>
+        <div className="eyebrow">Não servir, hoje</div>
+        {p.restricoes.length === 0
+          ? <div className="mutetxt">Nenhuma restrição de quem está em casa.</div>
+          : (
+            <ul className="plano-restricoes">
+              {p.restricoes.map((x, i) => (
+                <li key={`${x.nome}-${i}`}>
+                  <b>{x.nome}</b>: {x.restricao}
+                  {x.substituicao ? <span className="mutetxt"> · no lugar, {x.substituicao}</span> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+      </div>
+      {(lanches.length > 0 || cestas.length > 0) && (
+        <div>
+          <div className="eyebrow">Pedidos para hoje</div>
+          <ul className="plano-restricoes">
+            {p.pedidos.map((x) => (
+              <li key={x.id}>
+                <b>{x.tipo === 'lanche' ? 'Lanche' : 'Cesta básica'}</b> · {x.paraQuem} · {x.quantidade}
+                <span className="mutetxt"> · {x.finalidade}{x.entregarA ? `, entregar a ${x.entregarA}` : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
