@@ -13,6 +13,20 @@
 > da Casa 03 agora são as respostas abaixo, documentos de papel e pessoas. O resto deste
 > arquivo é o histórico das perguntas; esta seção é a que se leva para a mesa.
 
+> **Conferido em 08/11 (análise geral, `docs/historico/analise-geral-08-11.md`): duas respostas
+> deste documento se contradizem, e precisam virar uma só antes da mesa.**
+> - **Onde o sistema roda.** O item 1 abaixo diz *servidor próprio do Pão, decidido em 14/10*; o
+>   plano combinado em 06/11 (CLAUDE.md) diz *servidor alugado e domínio próprio* para o 1.0.
+> - **Qual IA.** O A8 e o C3 abaixo falam da chave da Anthropic; o item 29 do bloco F diz *só o
+>   computador do Pão, decidido em 23/10*; o plano de 06/11 diz *o 1.0 em modo guia, sem modelo, e
+>   no 2.0 o Claude com chave ou o computador do Pão*.
+>
+> **E três assuntos para o DPO** que a análise acrescentou: o ditado também nas caixas restritas
+> (área restrita do Judiciário, relato, ocorrência, atendimento técnico, saúde sigilosa), que hoje
+> manda o áudio ao Google no Chrome (C4); **o prazo de guarda** do CPF e do RG de visitante, das
+> tentativas de entrada com o IP e das sessões, que hoje ficam para sempre (C1); e um plano de
+> incidente (quem é avisado, em quanto tempo, o que se comunica).
+
 ### Se só der tempo para cinco
 
 1. **Onde o sistema roda.** O servidor próprio do Pão está decidido (14/10). Falta saber

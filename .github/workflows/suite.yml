@@ -1,0 +1,74 @@
+# A SUÍTE A CADA PUSH (análise geral de 08/11).
+#
+# Até aqui os 1.481 testes só rodavam quando uma sessão do Claude lembrava de rodar. Este
+# workflow roda a mesma coisa que o CLAUDE.md manda rodar antes de entregar: os dois `tsc` e a
+# suíte inteira, em série (`npm test` já é `jest --runInBand`), contra um PostgreSQL 16 de
+# verdade, com o fuso de Porto Alegre, como na máquina de desenvolvimento.
+#
+# O que ele NÃO roda, e por quê:
+#   - o relógio adiantado (`scripts/relogio-adiantado.sh`): precisa do `faketime` e de reiniciar o
+#     PostgreSQL sob ele; fica para um segundo workflow, noturno, quando este estiver estável;
+#   - os ensaios de navegador e a simulação: levam de dez minutos a horas e pedem o Chromium.
+#
+# Nada aqui publica coisa alguma, nada usa dado real, e as senhas são as de desenvolvimento,
+# as mesmas do `scripts/preparar-ambiente.sh` (o banco nasce e morre com a rodada).
+name: A suíte
+
+on:
+  push:
+    branches: [claude/work-system-code-ready-0e3hh2, master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: suite-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rede_admin
+          POSTGRES_PASSWORD: dev-only-change-me
+          POSTGRES_DB: rede_acolher
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U rede_admin -d rede_acolher"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    env:
+      DATABASE_URL: postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher
+      DATABASE_APP_URL: postgres://rede_app:dev-only-change-me-app@127.0.0.1:5432/rede_acolher
+      ARQUIVOS_DIR: /tmp/arquivos
+      TZ: America/Sao_Paulo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Na raiz: é um workspace (instalar dentro de backend/ ou frontend/ atrapalha).
+      - name: Dependências
+        run: npm ci --no-audit --no-fund
+
+      - name: O servidor compila
+        run: npx tsc --noEmit -p tsconfig.json
+        working-directory: backend
+
+      - name: A tela compila
+        run: npx tsc --noEmit
+        working-directory: frontend
+
+      # O `reset-db.ts` cria o papel rede_app se faltar e recria o schema a cada rodada.
+      - name: A suíte inteira, em série
+        run: |
+          mkdir -p "$ARQUIVOS_DIR"
+          npm test

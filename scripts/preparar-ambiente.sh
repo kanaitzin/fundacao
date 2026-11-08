@@ -138,7 +138,7 @@ Ou, de uma vez:
   eval "\$(bash scripts/preparar-ambiente.sh --exportar)"
 
 Depois:
-  cd backend  && npx tsc --noEmit -p tsconfig.json && npx jest
+  cd backend  && npx tsc --noEmit -p tsconfig.json && npm test
   cd frontend && npx tsc --noEmit && npm run prototipo && npm run ensaio
 FIM
 fi

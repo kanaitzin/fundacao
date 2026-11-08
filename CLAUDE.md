@@ -111,6 +111,25 @@ Chromium e Playwright; percorra a tela e ponha-a no percurso do `npm run ensaio`
 e do `ensaio:acessibilidade`. Cor nova passa pelo de acessibilidade antes de
 entrar.
 
+## Os subagentes (desde 08/11)
+
+Moram em `.claude/agents/`, valem para qualquer conta, e nenhum faz commit nem push. Eles **gastam
+mais** limite, não menos: o ganho é a conversa principal não se encher de log e de catálogo. Use:
+
+| Quando | Chame |
+|---|---|
+| mudou migração, função SQL, política, gatilho ou SQL no TypeScript | `banco-de-dados` (o DBA, com memória em `.claude/agent-memory/`) |
+| terminou uma mudança, antes de commitar | `guardiao-das-regras` (o diff contra o §5 e o §6) |
+| mudou tela, texto de tela, folha, anexo, ditado ou cor | `ensaios-de-tela` (escolhe e roda o ensaio certo) |
+| vai fechar fase | `verificador` (os `tsc`, a suíte nas duas condições, as varreduras), depois `fechador-de-fase` |
+| tela ou funcionalidade nova para a Fundação | `revisor-de-cuidado` (a coordenadora e o psicólogo) |
+| login, senha, cargo, anexo, IA, dado sensível, ou antes de uma versão | `auditor-seguranca-lgpd` |
+| fim de bloco de fases, antes de reunião com a Fundação | `auditor-docs-vs-codigo` |
+| colocar no ar, preparar a máquina, mexer no servidor | `implantacao` (passo a passo; nunca faz o deploy) |
+
+O hook `.claude/hooks/jest-em-serie.sh` recusa o `jest` sem `--runInBand`, e o
+`.github/workflows/suite.yml` roda os `tsc` e a suíte a cada push.
+
 ## O que NUNCA se faz
 
 Está inteiro no **§5** e no **§6** do documento. O essencial, para não depender
@@ -198,6 +217,42 @@ e qual é o caminho certo.
 > **Esta seção é o estado da corda.** Ela é reescrita ao fim de cada fase — feito,
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
+
+### PRIMEIRO: a análise geral de 08/11 (sem fase), e o que ela pede antes de tudo
+
+Feita numa conta nova, a pedido do dono do projeto, a partir do código e do catálogo do banco: o
+relato inteiro, com arquivo e linha, está em **`docs/historico/analise-geral-08-11.md`**. Leia as
+seções 4 e 7 dele antes de propor qualquer trabalho. **Medido em 08/11:** os dois `tsc` sem erro e a
+suíte inteira verde nas DUAS condições de relógio (1481 de 1481 nas duas; as fases 281 a 287
+tinham fechado sem o relógio adiantado).
+
+**Decisões do dono, que a sessão pergunta e não toma** (uma de cada vez, no começo da conversa):
+1. **Tornar o repositório privado** (A1: ele mostra a instituição, o mapa de acesso e o gerador
+   de senha). Só o dono faz, em *Settings*; o protótipo sai do GitHub Pages gratuito e precisa de
+   outro lugar.
+2. **Enxugar este arquivo** para umas 200 linhas, com o resto em `docs/historico/` (P1: hoje são
+   uns 56 mil tokens em toda sessão). Só com o de acordo dele.
+3. **Levar este branch para `main`**, tornar `main` o padrão e exigir a suíte verde (P3); apagar o
+   branch `fase-127-quem-a-chamada-cobra` depois de conferir que a 1480 o superou.
+4. **Congelar funcionalidade até o piloto** (P5): entram consertos, os achados abaixo e o 1.0.
+
+**Os consertos antes do primeiro dado real** (cada um com o `banco-de-dados` e o
+`auditor-seguranca-lgpd` revisando, e com teste que reprova sem o conserto):
+- **A2** o `rede_app` escreve `role` e `todas_as_casas` na própria linha de `app_user` (provado:
+  educador vira Coordenação Geral das oito casas no banco) e lê `password_hash`;
+- **A3** o backup lógico volta sem GRANT (provado: *permission denied* como `rede_app`) e o ensaio
+  confere como dono;
+- **A4** senha gerada com `Math.random` em 63 mil combinações, mínimo de 6, troca do primeiro
+  acesso só sugerida pela tela, trava só por e-mail;
+- **M2** EXIF e GPS das fotos; **M3** o Node em todas as interfaces e a tela sem CSP e HSTS no
+  Caddy; **M4** o sigilo de saúde sem segunda camada no banco; **M5** dezoito políticas de escrita
+  que não conferem a casa (candidatas).
+- **Para a pauta** (já anotado no PARA-A-REUNIAO §0): os documentos discordam sobre onde o sistema
+  roda e sobre qual IA (M7); o ditado nas caixas restritas (M1) e o prazo de guarda (M6) são do DPO.
+
+**A ordem proposta** (seção 7 da análise): as decisões acima; os consertos A2, A3, A4, M2 a M5,
+uma fase cada; a pauta arrumada para o Marcelo; e só então a 288 e o 1.0, com o `implantacao`.
+**Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
 ### Onde estamos — 07/11/2026, fase 287
 
