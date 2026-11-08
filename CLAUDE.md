@@ -229,12 +229,15 @@ tinham fechado sem o relógio adiantado).
 **As quatro decisões do dono, respondidas em 08/11** (não pergunte de novo):
 1. **O repositório fica público até o 1.0** (A1). Volta à pauta antes do primeiro dado real.
 2. **Este arquivo fica como está** (P1): nada de enxugar.
-3. **O tronco é o `main`** (P3), criado em 08/11 a partir deste branch. O dono troca o padrão
-   em *Settings → General → Default branch* e confere, em *Settings → Environments →
-   github-pages*, que o `main` pode publicar. **Até ele confirmar, empurre para os dois:**
-   `git push origin HEAD:main HEAD:claude/work-system-code-ready-0e3hh2`. O `master` está inteiro
-   dentro do `main`; o branch `fase-127-quem-a-chamada-cobra` estava superado (a 127 fechou em
-   21/09 com uma versão mais nova da 1350) e saiu, guardado na tag `arquivo/fase-127-comecada`.
+3. **O tronco passa a ser o `main`** (P3). **A sessão do Claude não consegue criá-lo**: o proxy
+   desta sessão só deixa empurrar para branches `claude/...` (o push do `main` e da tag voltou
+   403, negação por política; não se contorna). **Quem faz é o dono, no GitHub:** criar o `main` a
+   partir deste branch (página *Branches → New branch*), torná-lo o padrão (*Settings → General →
+   Default branch*), conferir em *Settings → Environments → github-pages* que o `main` pode
+   publicar, e apagar o `fase-127-quem-a-chamada-cobra`, que está superado (a 127 fechou em 21/09,
+   commit `24eed49`, com uma versão mais nova da 1350; o commit solto é o `5b099f3`). O `master`
+   está inteiro dentro deste branch e pode sair também. **Até lá, o trabalho segue neste branch**;
+   o `suite.yml` e o `prototipo-no-ar.yml` já olham o `main` e este.
 4. **Não congelar** (P5): pedido novo continua entrando como fase.
 
 **Os consertos antes do primeiro dado real** (cada um com o `banco-de-dados` e o
@@ -1653,12 +1656,12 @@ novo.
 
 ### O que é do Marcelo, e não é código
 
-- **O tronco é o `main`** desde 08/11 (decisão do dono). Tornar o `main` o padrão é um
-  clique em *Settings → General → Default branch*, e não há ferramenta nesta sessão que o
-  faça; até lá, e até o ambiente github-pages aceitar o `main`, empurre para os dois
-  (`git push origin HEAD:main HEAD:claude/work-system-code-ready-0e3hh2`).
-- **O `master` ficou para trás** na fase 149 e está inteiro dentro do `main`: apagá-lo não
-  perde nada, e fica para quando o `main` for o padrão.
+- **O tronco passa a ser o `main`** (decisão do dono, 08/11), e quem o cria é o dono, no
+  GitHub: a sessão do Claude só empurra para branches `claude/...`. Os passos estão no item 3
+  das decisões, no alto do *O que fazer agora*. Depois de criado, empurre para os dois
+  (`git push origin HEAD:main HEAD:claude/work-system-code-ready-0e3hh2`), se o proxy deixar.
+- **O `master` ficou para trás** na fase 149 e está inteiro dentro do branch atual: apagá-lo
+  não perde nada.
 - **Para abrir o sistema:** o protótipo é um arquivo só,
   `prototipo/rede-acolher-prototipo.html`. Baixar do GitHub em *Download raw file*
   e dar dois cliques; não instala nada, não precisa de banco, dados fictícios. O
@@ -1679,5 +1682,5 @@ novo.
 - **Para dar corda por outra conta do Claude:** nada mora na conta — está tudo no
   repositório, inclusive o `.claude/hooks/session-start.sh`. Na outra conta,
   conecte o GitHub, instale o app do Claude no `kanaitzin/fundacao`, abra a sessão
-  no `main` e escreva *"leia o `docs/REDE-ACOLHER.md` e siga o §9"*. **Empurre
+  no branch padrão e escreva *"leia o `docs/REDE-ACOLHER.md` e siga o §9"*. **Empurre
   antes de trocar:** o contêiner é descartado com a sessão.
