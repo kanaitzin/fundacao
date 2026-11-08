@@ -22,6 +22,7 @@ ROLLBACK`, como o papel da aplicação. A suíte rodou inteira nas duas condiç�
 | 08/11, 00h13 a 00h51 | **Uma parte da conversa que não ficou no histórico guardado** (provavelmente um ramo depois de uma mensagem editada). Ela deixou arquivos no disco, sem commit: oito subagentes em `.claude/agents/`, a memória do subagente de banco com dez achados (`.claude/agent-memory/banco-de-dados/MEMORY.md`) e o hook `jest-em-serie.sh`. Nesta análise eles foram tratados como trabalho a revisar, não como verdade. |
 | 08/11, 03h39 | Pedido de refazer tudo, sem poupar, com um subagente de banco de dados. Este documento. |
 | 08/11, 04h37 | Pedido de deixar tudo pronto para seguir no Claude Code. O CLAUDE.md ganhou, no alto do *O que fazer agora*, o bloco desta análise (as decisões do dono e os consertos antes do ar) e a seção *Os subagentes*; o PARA-A-REUNIAO §0 ganhou as duas contradições e os três assuntos novos do DPO; e tudo foi para o repositório. |
+| 08/11, 11h27 | As quatro decisões do dono: o repositório fica público até o 1.0 (A1); o CLAUDE.md fica como está (P1); o tronco passa a ser o `main`, e o branch da 127, superado, sai guardado numa tag (P3); e não se congela funcionalidade (P5). |
 
 ---
 

@@ -11,11 +11,15 @@
 # Para ligar, uma vez, quem é dono do repositório: Settings, Pages, e em
 # "Build and deployment", Source: GitHub Actions. Depois, Actions, este
 # workflow, "Run workflow" (ou o próximo protótipo publica sozinho).
+#
+# Desde 08/11 o tronco é o `main` (decisão do dono). Os dois branches publicam
+# enquanto o ambiente github-pages não for conferido: em Settings, Environments,
+# github-pages, a lista de branches que podem publicar tem de incluir o `main`.
 name: O protótipo no ar
 
 on:
   push:
-    branches: [claude/work-system-code-ready-0e3hh2]
+    branches: [main, claude/work-system-code-ready-0e3hh2]
     paths:
       - prototipo/rede-acolher-prototipo.html
       - .github/workflows/prototipo-no-ar.yml

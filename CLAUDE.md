@@ -226,15 +226,16 @@ seções 4 e 7 dele antes de propor qualquer trabalho. **Medido em 08/11:** os d
 suíte inteira verde nas DUAS condições de relógio (1481 de 1481 nas duas; as fases 281 a 287
 tinham fechado sem o relógio adiantado).
 
-**Decisões do dono, que a sessão pergunta e não toma** (uma de cada vez, no começo da conversa):
-1. **Tornar o repositório privado** (A1: ele mostra a instituição, o mapa de acesso e o gerador
-   de senha). Só o dono faz, em *Settings*; o protótipo sai do GitHub Pages gratuito e precisa de
-   outro lugar.
-2. **Enxugar este arquivo** para umas 200 linhas, com o resto em `docs/historico/` (P1: hoje são
-   uns 56 mil tokens em toda sessão). Só com o de acordo dele.
-3. **Levar este branch para `main`**, tornar `main` o padrão e exigir a suíte verde (P3); apagar o
-   branch `fase-127-quem-a-chamada-cobra` depois de conferir que a 1480 o superou.
-4. **Congelar funcionalidade até o piloto** (P5): entram consertos, os achados abaixo e o 1.0.
+**As quatro decisões do dono, respondidas em 08/11** (não pergunte de novo):
+1. **O repositório fica público até o 1.0** (A1). Volta à pauta antes do primeiro dado real.
+2. **Este arquivo fica como está** (P1): nada de enxugar.
+3. **O tronco é o `main`** (P3), criado em 08/11 a partir deste branch. O dono troca o padrão
+   em *Settings → General → Default branch* e confere, em *Settings → Environments →
+   github-pages*, que o `main` pode publicar. **Até ele confirmar, empurre para os dois:**
+   `git push origin HEAD:main HEAD:claude/work-system-code-ready-0e3hh2`. O `master` está inteiro
+   dentro do `main`; o branch `fase-127-quem-a-chamada-cobra` estava superado (a 127 fechou em
+   21/09 com uma versão mais nova da 1350) e saiu, guardado na tag `arquivo/fase-127-comecada`.
+4. **Não congelar** (P5): pedido novo continua entrando como fase.
 
 **Os consertos antes do primeiro dado real** (cada um com o `banco-de-dados` e o
 `auditor-seguranca-lgpd` revisando, e com teste que reprova sem o conserto):
@@ -250,8 +251,8 @@ tinham fechado sem o relógio adiantado).
 - **Para a pauta** (já anotado no PARA-A-REUNIAO §0): os documentos discordam sobre onde o sistema
   roda e sobre qual IA (M7); o ditado nas caixas restritas (M1) e o prazo de guarda (M6) são do DPO.
 
-**A ordem proposta** (seção 7 da análise): as decisões acima; os consertos A2, A3, A4, M2 a M5,
-uma fase cada; a pauta arrumada para o Marcelo; e só então a 288 e o 1.0, com o `implantacao`.
+**A ordem proposta** (seção 7 da análise): os consertos A2, A3, A4, M2 a M5, uma fase cada; a
+pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
 ### Onde estamos — 07/11/2026, fase 287
@@ -1652,11 +1653,12 @@ novo.
 
 ### O que é do Marcelo, e não é código
 
-- **O branch padrão do repositório** ainda é o `claude/work-system-code-ready-0e3hh2`.
-  Trocar é um clique em *Settings → General → Default branch*, e não há ferramenta
-  nesta sessão que o faça.
-- **O `master` está atrás** desde a fase 149 — eu não empurro para outro
-  branch sem ele pedir.
+- **O tronco é o `main`** desde 08/11 (decisão do dono). Tornar o `main` o padrão é um
+  clique em *Settings → General → Default branch*, e não há ferramenta nesta sessão que o
+  faça; até lá, e até o ambiente github-pages aceitar o `main`, empurre para os dois
+  (`git push origin HEAD:main HEAD:claude/work-system-code-ready-0e3hh2`).
+- **O `master` ficou para trás** na fase 149 e está inteiro dentro do `main`: apagá-lo não
+  perde nada, e fica para quando o `main` for o padrão.
 - **Para abrir o sistema:** o protótipo é um arquivo só,
   `prototipo/rede-acolher-prototipo.html`. Baixar do GitHub em *Download raw file*
   e dar dois cliques; não instala nada, não precisa de banco, dados fictícios. O
@@ -1677,5 +1679,5 @@ novo.
 - **Para dar corda por outra conta do Claude:** nada mora na conta — está tudo no
   repositório, inclusive o `.claude/hooks/session-start.sh`. Na outra conta,
   conecte o GitHub, instale o app do Claude no `kanaitzin/fundacao`, abra a sessão
-  no branch acima e escreva *"leia o `docs/REDE-ACOLHER.md` e siga o §9"*. **Empurre
+  no `main` e escreva *"leia o `docs/REDE-ACOLHER.md` e siga o §9"*. **Empurre
   antes de trocar:** o contêiner é descartado com a sessão.
