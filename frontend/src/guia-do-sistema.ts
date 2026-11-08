@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 290, dia: '08/11/2026',
+    texto: 'Sem mudança nas telas: a cópia de segurança do banco passa a voltar com as permissões de cada setor. Até aqui, um banco restaurado da cópia não abria para ninguém. O ensaio da restauração, que a TI roda todo mês, agora confere também que o sistema restaurado abre e que cada setor continua vendo só o que via.' },
   { fase: 289, dia: '08/11/2026', aba: 'equipe',
     texto: 'Na Equipe, cadastrar uma pessoa na Enfermagem, ou passar alguém para a Enfermagem, ficou com o Gestor Geral e a Coordenação Geral, porque essa conta alcança as oito casas. Quem passa alguém da casa para a Enfermagem ou para a coordenação, ou marca a Coordenação Geral, recebe uma senha nova para entregar à pessoa, e a senha de antes deixa de valer. A coordenação e a equipe técnica de cada casa seguem cadastrando a equipe da casa, e a lista de cargos para cadastrar mostra só o que cada um pode fazer.' },
   { fase: 288, dia: '08/11/2026',

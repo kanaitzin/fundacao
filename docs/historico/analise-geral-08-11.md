@@ -494,18 +494,18 @@ nem memória, nem rascunho que importe.
   criado);
 - escreva *continue*.
 
-**3. O que a sessão nova lê.** O `CLAUDE.md` diz onde estamos. A próxima fase é a **290, o A3**.
+**3. O que a sessão nova lê.** O `CLAUDE.md` diz onde estamos. A próxima fase é a **291, o A4** (a 290, o A3, foi feita aqui na mesma noite).
 
 **4. Se a sessão nova não conseguir empurrar para este branch.** O proxy de cada sessão só deixa
 empurrar para branches `claude/...`, e talvez só para o da própria sessão. Nesse caso ela empurra para
 o branch dela, e o dono junta no `main`.
 
-**5. Antes de mexer no A3, leia o aviso do `banco-de-dados`.** O conserto do backup NÃO pode reaplicar
+**5. O aviso do `banco-de-dados` para o A3, seguido na 290.** O conserto do backup NÃO pode reaplicar
 as permissões com um `GRANT ... ON ALL TABLES` depois de restaurar: isso desfaz a 1679 e a 1680 sem
 aviso. O caminho é tirar o `--no-privileges` do backup. E o ensaio da restauração precisa conferir como
 `rede_app`, não como dono.
 
-**O mapa da 290, já levantado em 08/11 (sem código mudado):**
+**O mapa da 290, levantado em 08/11 antes do código.** *(A 290 foi feita na mesma noite, nesta conta, a pedido do dono, e foi além deste mapa: o `--no-privileges` saiu dos três lugares; o que protege o banco virou uma lista (`scripts/o-que-protege-o-banco.sql`) que o backup grava e as duas restaurações comparam; e o papel da aplicação é conferido. O relato está no §2 do documento, linha 290. O que vem agora é o A4, a 291.)*
 - **Onde as permissões se perdem:** o `scripts/backup.sh`, na linha 58, faz o dump com `--no-privileges`.
   O `scripts/restaurar.sh` restaura com `--no-owner --no-privileges` em dois lugares: no `--ensaio`
   (linha 72) e na restauração de verdade (linha 146). Com isso somem todos os GRANT ao `rede_app`,

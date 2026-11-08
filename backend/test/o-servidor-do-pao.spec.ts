@@ -67,6 +67,29 @@ describe('Os arquivos do servidor do Pão', () => {
     expect(r.stdout).toMatch(/Nada foi mudado/);
   });
 
+  /* O backup volta com as permissões (fase 290). Até a 289 o dump e a restauração
+     iam com --no-privileges: o banco restaurado não dava ao rede_app nem a leitura das
+     casas, e o ensaio passava porque contava as linhas como dono. A prova de verdade é
+     o `npm run ensaio:restauracao`, que compara as permissões uma a uma; aqui fica a
+     guarda contra a opção voltar. */
+  it('o backup e a restauração levam as permissões, e o ensaio as confere como rede_app', () => {
+    const comandos = (p: string) => ler(p).split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    for (const p of ['scripts/backup.sh', 'scripts/restaurar.sh']) {
+      expect([p, comandos(p).includes('--no-privileges')]).toEqual([p, false]);
+    }
+    const restaurar = ler('scripts/restaurar.sh');
+    expect(restaurar).toMatch(/permissoes "\$ORIGEM"/);
+    expect(restaurar).toMatch(/permissoes "\$DESTINO"/);
+    expect(restaurar).toMatch(/SET ROLE rede_app; SELECT set_config\('app\.user_id'/);
+    expect(restaurar).toMatch(/rolname = 'rede_app'" "\$DESTINO"/);
+    // O backup guarda o que protege a origem, e a restauração de verdade compara o destino com ela.
+    expect(ler('scripts/backup.sh')).toMatch(/o-que-protege-o-banco\.sql.*\n\s*> "\$PASTA\/PERMISSOES\.txt"/);
+    expect(restaurar).toMatch(/compara_protecao "\$\(cat "\$PASTA\/PERMISSOES\.txt"\)"/);
+    expect(ler('scripts/o-que-protege-o-banco.sql')).toMatch(/aclexplode[\s\S]*relrowsecurity[\s\S]*pg_policies[\s\S]*prosecdef/);
+    // E a senha do banco não vai para a tela nem para o log.
+    expect(restaurar).not.toMatch(/echo "[^"]*\$(ORIGEM|DESTINO)\b/);
+  });
+
   it('o .env.example não tem comentário na linha do valor (o systemd o leria como valor)', () => {
     const linhas = ler('.env.example').split('\n')
       .filter((l) => /^[A-Z_]+=[^#]*\S\s+#/.test(l));

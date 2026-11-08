@@ -52,10 +52,21 @@ trap 'anotar false' ERR
 
 mkdir -p "$PASTA"
 echo "→ banco…"
-# --no-owner e --no-privileges: a restauração recria os papéis pelo `.env` do
-# destino. Amarrar o dump aos donos do servidor de origem faz a restauração
-# falhar exatamente quando ela é necessária: em OUTRA máquina.
-"$DUMP" --format=custom --no-owner --no-privileges --file="$PASTA/banco.dump" "$BANCO"
+# --no-owner: os objetos ficam com o dono do destino. Amarrar o dump aos donos do
+# servidor de origem faz a restauração falhar exatamente quando ela é necessária:
+# em OUTRA máquina.
+# As PERMISSÕES vêm junto (fase 290). Até a 289 o dump ia com --no-privileges, e
+# a cópia voltava sem nenhum GRANT ao rede_app: o sistema restaurado não lia nem a
+# tabela das casas (provado em 08/11, permission denied). E elas são parte da
+# segurança: o GRANT por coluna da 1679 e o que a 1680 tirou só existem nelas.
+# Reaplicar à mão depois de restaurar (GRANT ... ON ALL TABLES) desfaria as duas
+# sem aviso. O destino precisa do papel rede_app, que a instalação cria.
+"$DUMP" --format=custom --no-owner --file="$PASTA/banco.dump" "$BANCO"
+# E o que protege o banco de origem, ao lado do dump: a restauração de verdade compara
+# o destino com esta lista (scripts/o-que-protege-o-banco.sql). Só nomes de tabela,
+# coluna, função e papel; nenhum dado.
+"$PSQL" -X -tA -v ON_ERROR_STOP=1 -f "$(dirname "${BASH_SOURCE[0]}")/o-que-protege-o-banco.sql" "$BANCO" \
+  > "$PASTA/PERMISSOES.txt"
 
 for par in "dossie:$DOSSIE" "acervo:$ACERVO"; do
   nome="${par%%:*}"; caminho="${par#*:}"
@@ -80,6 +91,8 @@ Conteúdo:
   banco.dump      o banco inteiro (pg_restore --format=custom)
   dossie.tar.gz   objetos do dossiê do acolhido
   acervo.tar.gz   cópias documentais arquivadas
+  PERMISSOES.txt  o que protege o banco (permissões, RLS, políticas, donos), para
+                  a restauração conferir que o destino ficou igual
   SOMAS.txt       sha256 de cada arquivo acima
 
 O QUE NÃO ESTÁ AQUI, E SEM O QUE ESTE BACKUP NÃO SE RESTAURA INTEIRO:
