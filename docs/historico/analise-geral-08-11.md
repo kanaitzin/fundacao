@@ -175,8 +175,8 @@ A pauta é o que vai para a mesa com o Marcelo: precisa dizer uma coisa só.
 
 **M8. Nenhum teste rodava no GitHub.** Os 1.481 testes só rodavam quando uma sessão lembrava.
 *Feito nesta análise:* `.github/workflows/suite.yml` (os dois `tsc` e `npm test` contra um
-PostgreSQL 16, no fuso de Porto Alegre, a cada push). **Ainda não rodou no GitHub**: roda no
-primeiro push.
+PostgreSQL 16, no fuso de Porto Alegre, a cada push). **Rodou no GitHub no primeiro push
+(commit `4aeb4af`) e passou inteiro**, em uns 4 minutos.
 
 ### O jeito de trabalhar: o que mais pesa no longo prazo
 
@@ -333,8 +333,6 @@ revisando):**
   trabalho do `auditor-docs-vs-codigo`); conferi só as decisões que os documentos contradizem.
 - Os ensaios de navegador e a simulação contra o servidor: rodaram até a fase 287 segundo o
   documento, e não rodaram aqui.
-- O workflow novo no GitHub: escrito e coerente com a máquina onde a suíte passou, mas só roda no
-  primeiro push.
 - As dezoito políticas do M5 uma a uma: listadas, cinco lidas por inteiro (com o `USING`).
 - Se alguma rota chega ao A2 por caminho indireto: procurei UPDATE em `app_user` com coluna vinda
   do corpo e não achei, mas não li as 440 rotas.
