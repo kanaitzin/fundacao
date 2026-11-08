@@ -333,7 +333,8 @@ como ferramentas da Acolhe+AI. Repensar quando o 2.0 tiver o modelo decidido.
 
 ## 7. O que eu faria, em ordem
 
-**Semana 0, a casa em ordem (uma sessão):**
+**Semana 0, a casa em ordem (uma sessão):** *(respondido pelo dono em 08/11: o repositório fica
+público até o 1.0, o CLAUDE.md fica como está, nada de congelar; o `main` quem cria é o dono, seção 9.5)*
 1. Tornar o repositório privado e decidir para onde vai o protótipo (A1).
 2. Commitar o que esta análise deixou (subagentes, hook, workflow, este documento), levar o branch
    para `main`, tornar `main` o padrão e exigir a suíte verde (P3, M8).
@@ -342,14 +343,16 @@ como ferramentas da Acolhe+AI. Repensar quando o 2.0 tiver o modelo decidido.
 
 **Antes do ar (duas ou três fases, cada uma com o `banco-de-dados` e o `auditor-seguranca-lgpd`
 revisando):**
-5. A2 (as colunas de `app_user`) e M4/M5 (a segunda camada que falta).
+5. A2 (as colunas de `app_user`) e M4/M5 (a segunda camada que falta). *(O A2 está feito nas fases 288
+   e 289, seção 9.)*
 6. A4 (senha gerada, mínimo, troca cobrada, limite por IP).
 7. A3 (backup que volta com as permissões, ensaio como `rede_app`).
 8. M2 e M3 (EXIF; o Node só no `127.0.0.1`, cabeçalhos da tela no Caddy).
 9. Arrumar a pauta (M7) e levar ao Marcelo: onde roda, e-mail, DPO (M1, M6), a folha de remédio.
 
 **O ar (com o `implantacao`, um passo por vez, e só quando você pedir):**
-10. A fase 288 (a setinha de trocar de casa) e o 1.0 com a Casa 03, como no plano de 06/11.
+10. A setinha de trocar de casa e o 1.0 com a Casa 03, como no plano de 06/11. *(A setinha deixou de
+    ser a 288: a 288 e a 289 foram o A2.)*
 
 **O piloto:**
 11. O roteiro com uma pessoa de cada cargo e o teste cronometrado. Daqui para a frente, o que
@@ -367,3 +370,147 @@ revisando):**
 - Se alguma rota chega ao A2 por caminho indireto: procurei UPDATE em `app_user` com coluna vinda
   do corpo e não achei, mas não li as 440 rotas.
 - O teste de intrusão de verdade, de fora, com o sistema instalado.
+
+---
+
+## 9. O que se fez e se revisou na mesma tarde (fases 288 e 289)
+
+Depois desta análise, o dono escreveu *continue*, e a sessão seguiu a ordem da seção 7: o A2 primeiro.
+Ele virou duas fases, porque cada revisão achou o caminho seguinte. Tudo está commitado e enviado ao
+branch `claude/work-system-code-ready-0e3hh2` (commits `ef7aea5` e `ee39ff4`). O relato curto de cada
+uma está na tabela do §2 do `docs/REDE-ACOLHER.md`, e o estado no *O que fazer agora* do `CLAUDE.md`.
+
+### 9.1 Fase 288: a conta não muda o próprio cargo (identity/1679 a 1682)
+
+**O defeito da análise, provado no banco:** pelo papel da aplicação, uma sessão de educadora escrevia
+`role` e `todas_as_casas` na própria linha de `app_user` e virava Coordenação Geral das oito casas.
+
+**O que as revisões acharam ao lado, cada uma provada em `BEGIN` e `ROLLBACK`:**
+- **o `banco-de-dados`:** a política `uha_insert` deixava a coordenação da Casa 03 pôr no vínculo da
+  casa dela a educadora da Casa 04, que passava a ler as crianças da Casa 03, sem auditoria;
+- **o `auditor-seguranca-lgpd`:** a técnica virava Enfermagem pedindo a mudança na própria conta pela
+  Equipe (`app_update_staff` não recusava a própria conta); e a coordenação de qualquer casa redefinia a
+  senha da Enfermagem e recebia a senha nova (a conferência da casa da 1570 não olhava nada quando a
+  conta nunca teve casa);
+- **o `banco-de-dados`, sobre o conserto:** a coordenação da Casa 04 ainda vinculava a Enfermagem à
+  casa dela e trocava o nome dela, e a lista da Equipe oferecia os botões que o servidor recusava.
+
+**Os consertos:**
+- 1679: a aplicação escreve em `app_user` só a troca da própria senha;
+- 1680: a aplicação não escreve vínculo de casa nem casa (a `uha_insert` saiu);
+- 1681: um gatilho em `app_user` diz quem administra cada conta. Ninguém muda o próprio acesso, e a
+  conta de quem atende todas as casas só é alterada por quem também alcança todas;
+- 1682: o mesmo gatilho no vínculo, o nome na metade que protege, e o `editavel` da lista com a mesma
+  pergunta.
+
+**O teste:** a suíte `a-conta-nao-muda-o-proprio-cargo` pergunta ao catálogo pelo que vale de fato
+(`has_column_privilege`) e nega por padrão.
+
+### 9.2 Fase 289: só o Gestor Geral e a Coordenação Geral criam conta que alcança as oito casas (identity/1683)
+
+**A decisão:** a 288 deixou uma pergunta aberta, e o dono respondeu em 08/11: **só o Gestor Geral e a
+Coordenação Geral**. Antes, a técnica de uma casa cadastrava uma Enfermagem com o e-mail e a senha que
+escolhia e chegava às oito casas.
+
+**O que a primeira versão fez:** o gatilho da 1681 passou a olhar a criação e o cargo de depois, e a
+lista de cargos da Equipe tirou a Enfermagem de quem não alcança todas.
+
+**O que as revisões acharam na primeira versão, e foi consertado:**
+- **`guardiao-das-regras`:**
+  - a lista de cargos copiada no comentário da migração;
+  - a Coordenação Geral fora da recusa do protótipo;
+  - a instituição vazia contando como *alcança todas*.
+- **`banco-de-dados`:**
+  - ***alcança todas* era perguntado pelo alcance.** Por isso respondia sim à Enfermagem, ao Líder
+    Noturno Geral, a quem não tem identidade e à instituição nula. Hoje a pergunta é pela própria
+    conta: Gestor Geral ou Coordenação Geral, ativa, da instituição.
+  - **a promoção não trocava a senha.** Provado assim: a técnica emitiu convite para uma educadora,
+    o Gestor Geral a passou para Enfermagem, e o convite da técnica ainda entrava na conta.
+- **`auditor-seguranca-lgpd`:**
+  - **o mesmo pela coordenação.** A técnica sabe a senha de uma educadora, o Gestor Geral a passa
+    para coordenação e depois a marca como Coordenação Geral, e a senha da técnica passa a administrar
+    as oito casas.
+  - **o vínculo de casa ficava aberto** depois da promoção.
+
+**Como ficou:**
+- **A senha de antes deixa de valer.** Quando a mudança tira a conta das mãos de algum cargo que a
+  administrava, o gatilho encerra a senha, as sessões abertas e os convites pendentes. A função
+  `app_estreita_quem_administra` decide quando isso acontece:
+  - da casa para todas as casas, inclusive pela marca da Coordenação Geral;
+  - de um cargo da casa para a coordenação, que só o Gestor Geral cadastra.
+- **A senha nova vai só a quem fez a mudança.** O servidor a redefine na mesma transação e a devolve
+  com um aviso; a tela da Equipe já mostrava senha e aviso.
+- **Entre cargos que a casa também administra, a senha continua.**
+- **Quem passa a atender todas as casas deixa o vínculo da casa.**
+- **As duas listas de cargos não podem divergir.** Um teste confere, cargo por cargo, que a lista do
+  gatilho é a do alcance (`app_house_in_scope` escreve a lista por extenso); ele reprova quando se tira
+  um cargo de uma delas.
+- **O protótipo faz as mesmas perguntas** em criar, editar, desativar, reativar, redefinir a senha e
+  marcar a Coordenação Geral.
+- **Na prática, para o Marcelo:** ao marcar alguém como Coordenação Geral, o Gestor Geral recebe uma
+  senha nova para entregar à pessoa.
+
+### 9.3 O que ficou aberto, e para onde foi
+
+**Para o A4** (está no `CLAUDE.md`, no bloco dos consertos):
+- **O e-mail herdado.** O e-mail que a casa digitou continua o da conta promovida, e o esqueci minha
+  senha e o convite vão a ele. O conserto pede decisão: o Gestor Geral confirmar ou trocar o e-mail na
+  promoção, e o esqueci recusado até lá.
+- **A troca de casa.** A conta que muda de casa leva a senha que a casa de antes sabia.
+- **O vínculo pela rota.** O `app_update_staff` ainda abre vínculo de casa para conta de todas as casas
+  quando a rota recebe a casa.
+- **O de antes:** a senha gerada por `Math.random` em 63 mil combinações; a troca do primeiro acesso
+  que a tela só sugere; a `auth_find_user` que devolve o hash de qualquer e-mail; a guarda
+  `<> 'gestor_geral'` da 1634, que deixa passar cargo nulo.
+
+**Para a pauta:** nada novo. A pergunta da Enfermagem foi respondida e saiu do §0 do PARA-A-REUNIAO.
+
+**Anotado, sem conserto:** o teste de ordenação da `trabalho-da-equipe` (*a ordem é por NOME, nunca
+por total*) pode reprovar quando roda junto só da `equipe`. Com duas pessoas no recorte, a ordem dos
+nomes coincidiu com a dos totais. Na suíte inteira ele passa, e só prova algo com três ou mais pessoas.
+
+### 9.4 Medido no fim da 289
+
+- **Os dois `tsc`:** sem erro.
+- **A suíte inteira, nas DUAS condições de relógio:** 1501 de 1501 no relógio real e às 22h30 de
+  Porto Alegre.
+- **Os números do código:** 223 migrações, 153 tabelas, 172 suítes, 1493 linhas de teste contadas pelo
+  `numeros-da-documentacao`.
+- **Os testes novos reprovam sem o conserto:** sem a 1683 e com a versão que só olhava o cargo.
+- **As sondas no protótipo a 390 px:** a técnica e a coordenação da Casa 03 sem a Enfermagem na lista
+  de cargos, o gestor com ela, e a senha nova mostrada na promoção; nenhum erro de página.
+- **Não rodou:** os ensaios grandes de navegador (`ensaio:uso`, celular, acessibilidade) e a simulação
+  contra o servidor. Só a lista de cargos e o aviso da Equipe mudaram na tela.
+
+### 9.5 Para a outra conta continuar
+
+**1. O que fica no repositório.** Tudo o que esta conta fez está no repositório. Na conta, nada fica:
+nem memória, nem rascunho que importe.
+
+**2. Os passos para começar:**
+- conecte o GitHub;
+- instale o app do Claude no `kanaitzin/fundacao`;
+- abra a sessão no branch `claude/work-system-code-ready-0e3hh2` (ou no `main`, se o dono já o tiver
+  criado);
+- escreva *continue*.
+
+**3. O que a sessão nova lê.** O `CLAUDE.md` diz onde estamos. A próxima fase é a **290, o A3**.
+
+**4. Se a sessão nova não conseguir empurrar para este branch.** O proxy de cada sessão só deixa
+empurrar para branches `claude/...`, e talvez só para o da própria sessão. Nesse caso ela empurra para
+o branch dela, e o dono junta no `main`.
+
+**5. Antes de mexer no A3, leia o aviso do `banco-de-dados`.** O conserto do backup NÃO pode reaplicar
+as permissões com um `GRANT ... ON ALL TABLES` depois de restaurar: isso desfaz a 1679 e a 1680 sem
+aviso. O caminho é tirar o `--no-privileges` do backup. E o ensaio da restauração precisa conferir como
+`rede_app`, não como dono.
+
+**6. Os passos que só o dono faz, no GitHub:**
+- criar o `main` a partir deste branch;
+- torná-lo o padrão;
+- conferir em *Settings → Environments → github-pages* que o `main` pode publicar;
+- apagar o `fase-127-quem-a-chamada-cobra` (e, se quiser, o `master`).
+
+**7. A memória do `banco-de-dados`.** Está em `.claude/agent-memory/banco-de-dados/MEMORY.md` e vai
+junto com o repositório. Duas notas de 08/11 descrevem defeitos da primeira versão da 1683, que já
+foram consertados na versão commitada.
