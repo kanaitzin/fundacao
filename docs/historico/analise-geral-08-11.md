@@ -505,6 +505,29 @@ as permissões com um `GRANT ... ON ALL TABLES` depois de restaurar: isso desfaz
 aviso. O caminho é tirar o `--no-privileges` do backup. E o ensaio da restauração precisa conferir como
 `rede_app`, não como dono.
 
+**O mapa da 290, já levantado em 08/11 (sem código mudado):**
+- **Onde as permissões se perdem:** o `scripts/backup.sh`, na linha 58, faz o dump com `--no-privileges`.
+  O `scripts/restaurar.sh` restaura com `--no-owner --no-privileges` em dois lugares: no `--ensaio`
+  (linha 72) e na restauração de verdade (linha 146). Com isso somem todos os GRANT ao `rede_app`,
+  inclusive o GRANT por coluna da 1679, e a aplicação recebe *permission denied*.
+- **O conserto provável:** tirar o `--no-privileges` dos três lugares e manter o `--no-owner`. Os
+  GRANT citam o `rede_app` pelo nome, e o destino sempre tem esse papel. Antes de confiar nisso,
+  conferir num destino sem o papel: o `pg_restore` avisa e segue.
+- **O ensaio de hoje é cego para o defeito:** a conferência conta as linhas como dono (a função
+  `conta` sobre `$DESTINO`, linhas 77 a 90), e o dono enxerga tudo. A 290 precisa conferir no
+  destino:
+  - que o `rede_app` lê (`SET ROLE rede_app` e uma identidade de gestor);
+  - que `has_column_privilege('rede_app','app_user','role','UPDATE')` continua falso;
+  - que `password_hash` continua com UPDATE;
+  - que o `rede_app` continua sem escrita em `user_house_assignment` (a 1680).
+- **O teste que reprova sem o conserto:** um teste na suíte, ou no `npm run` que já chama o
+  `restaurar.sh --ensaio` (o `package.json` e o `a-saude-da-implantacao.e2e.spec.ts` citam os scripts).
+- **Fica como está:** o `restaurar-ponto-no-tempo.sh`. Ele é cópia física do banco e leva as
+  permissões junto.
+- **Revisão:** o `banco-de-dados` e o `auditor-seguranca-lgpd`, como em toda fase do bloco.
+- **A situação no GitHub em 08/11, às 18h55:** a suíte do GitHub passou nos três commits da tarde, e
+  a do último commit ainda rodava.
+
 **6. Os passos que só o dono faz, no GitHub:**
 - criar o `main` a partir deste branch;
 - torná-lo o padrão;
