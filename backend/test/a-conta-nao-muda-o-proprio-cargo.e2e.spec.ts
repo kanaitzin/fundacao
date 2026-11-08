@@ -15,6 +15,10 @@
  * pedindo a mudança na própria conta, e a coordenação de qualquer casa redefinia a senha
  * da Enfermagem, que não tem casa, e recebia a senha nova. As duas recusas são provadas
  * pela rota e conferidas no banco.
+ *
+ * E a decisão de 08/11 (1683): criar conta que alcança as oito casas, ou passar alguém
+ * para um desses cargos, é só do Gestor Geral e da Coordenação Geral. Antes, a técnica
+ * da Casa 03 cadastrava uma Enfermagem com a senha que escolhia e chegava às oito.
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -215,8 +219,191 @@ describe('A conta não muda o próprio cargo, nem a casa', () => {
       const { rows: [r] } = await admin.query(
         `SELECT * FROM app_reset_staff_password($1, 'hash-da-suite')`, [enfermagem]);
       expect(r.out_ok).toBe(true);
+      // E cria conta de Enfermagem (1683).
+      const { rows: [nova] } = await admin.query(
+        `SELECT * FROM app_create_staff('enf.pela.cg@paodospobres.dev', 'Enfermeira Pela Coordenação Geral',
+                                        'enfermagem', NULL, 'hash-da-suite')`);
+      expect(nova.out_id).toBeTruthy();
     } finally {
       await admin.query('ROLLBACK');
     }
+  });
+
+  it('a técnica não cadastra conta de Enfermagem nem passa alguém da casa para Enfermagem', async () => {
+    const cria = await request(http).post('/api/v1/staff').set(auth(tokens.tecnica))
+      .send({ nome: 'Tentativa Da Técnica', email: 'tentativa.enf.tecnica@paodospobres.dev',
+              cargo: 'enfermagem' });
+    expect(cria.status).toBe(403);
+    expect(cria.body.message).toMatch(/todas as casas/);
+    expect(cria.body.senhaInicial).toBeUndefined();
+    const { rows: [{ n }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM app_user WHERE email = 'tentativa.enf.tecnica@paodospobres.dev'`);
+    expect(n).toBe(0);
+
+    const passa = await request(http).patch(`/api/v1/staff/${educador}`)
+      .set(auth(tokens.tecnica)).send({ cargo: 'enfermagem' });
+    expect(passa.status).toBe(403);
+    const { rows: [u] } = await admin.query(`SELECT role FROM app_user WHERE id = $1`, [educador]);
+    expect(u.role).toBe('educador');
+  });
+
+  /* A lista de cargos do gatilho (`app_cargo_de_toda_a_instituicao`) e a do alcance
+     (`app_house_in_scope`, escrita por extenso) não podem divergir: cargo que o alcance
+     levasse às oito sem o gatilho saber teria a conta criada por qualquer coordenação.
+     Cargo por cargo, numa conta sem vínculo de casa, as duas respostas são a mesma. */
+  it('o cargo que o gatilho chama de toda a instituição é o que o alcance leva a todas as casas', async () => {
+    const { rows: cargos } = await admin.query(`SELECT unnest(enum_range(NULL::role_code))::text AS r`);
+    expect(cargos.length).toBeGreaterThan(8);
+    const diferentes: string[] = [];
+    await admin.query('BEGIN');
+    try {
+      const { rows: [g] } = await admin.query(
+        `SELECT institution_id FROM app_user WHERE role = 'gestor_geral' LIMIT 1`);
+      for (const [r, todas] of [...cargos.map((c) => [c.r, false]), ['coordenador', true]] as [string, boolean][]) {
+        const { rows: [u] } = await admin.query(
+          `INSERT INTO app_user (institution_id, email, full_name, password_hash, role, todas_as_casas)
+           VALUES ($1, $2, 'Conta Da Conferência', 'hash-da-suite', $3::role_code, $4) RETURNING id`,
+          [g.institution_id, `conferencia.${r}.${todas}@paodospobres.dev`, r, todas]);
+        await admin.query(`SELECT set_config('app.user_id', $1, true)`, [u.id]);
+        const { rows: [x] } = await admin.query(
+          `SELECT NOT EXISTS (SELECT 1 FROM house h WHERE h.institution_id = $3
+                                AND NOT app_house_in_scope(h.id)) AS alcance,
+                  app_cargo_de_toda_a_instituicao($1::role_code, $2) AS gatilho`,
+          [r, todas, g.institution_id]);
+        if (x.alcance !== x.gatilho) diferentes.push(`${r}${todas ? ' com todas as casas' : ''}: alcance ${x.alcance}, gatilho ${x.gatilho}`);
+        await admin.query(`SELECT set_config('app.user_id', '', true)`);
+      }
+    } finally {
+      await admin.query('ROLLBACK');
+    }
+    expect(diferentes).toEqual([]);
+  });
+
+  /* Administrar as contas da instituição é do Gestor Geral e da Coordenação Geral, e a
+     pergunta é pela própria conta: a Enfermagem alcança as oito casas e não administra. */
+  it('quem administra as contas de toda a instituição é o Gestor Geral e a Coordenação Geral', async () => {
+    const pergunta = async (quem: string | null, inst = 'minha') => {
+      await admin.query('BEGIN');
+      try {
+        await admin.query(`SELECT set_config('app.user_id', $1, true)`, [quem ?? '']);
+        const { rows: [x] } = await admin.query(inst === 'minha'
+          ? `SELECT app_eu_alcanco_toda_a_instituicao() AS r`
+          : `SELECT app_alcanca_toda_a_instituicao(NULL) AS r`);
+        return x.r;
+      } finally {
+        await admin.query('ROLLBACK');
+      }
+    };
+    expect(await pergunta(gestor)).toBe(true);
+    expect(await pergunta(enfermagem)).toBe(false);
+    expect(await pergunta(tecnica)).toBe(false);
+    expect(await pergunta(coordAi3)).toBe(false);
+    expect(await pergunta(null)).toBe(false);
+    expect(await pergunta(gestor, 'nula')).toBe(false);
+  });
+
+  /* A senha de uma conta da casa pode ser sabida por quem a cadastrou. Quem passa a
+     atender todas as casas recebe senha nova pela mão de quem fez a mudança, e o
+     convite e a sessão de antes deixam de entrar (revisão do banco sobre a 1683). */
+  it('quem passa para a Enfermagem não leva a senha, a sessão nem o convite de antes', async () => {
+    const criada = await request(http).post('/api/v1/staff').set(auth(tokens.tecnica))
+      .send({ nome: 'Educadora Que Vai Para A Enfermagem', email: 'vai.para.enfermagem@paodospobres.dev',
+              cargo: 'educador', casaId: casaAi3 });
+    expect(criada.status).toBe(201);
+    const senhaDaTecnica = criada.body.senhaInicial;
+    const sessaoDeAntes = (await request(http).post('/api/v1/auth/login')
+      .send({ email: 'vai.para.enfermagem@paodospobres.dev', password: senhaDaTecnica })).body.token;
+    expect(sessaoDeAntes).toBeTruthy();
+    const convite = await request(http).post(`/api/v1/staff/${criada.body.id}/convite`).set(auth(tokens.tecnica));
+    expect(convite.status).toBe(201);
+
+    const passa = await request(http).patch(`/api/v1/staff/${criada.body.id}`).set(auth(tokens.gestor))
+      .send({ cargo: 'enfermagem' });
+    expect(passa.status).toBe(200);
+    expect(passa.body.senhaInicial).toBeTruthy();
+    expect(passa.body.senhaInicial).not.toBe(senhaDaTecnica);
+
+    const comAAntiga = await request(http).post('/api/v1/auth/login')
+      .send({ email: 'vai.para.enfermagem@paodospobres.dev', password: senhaDaTecnica });
+    expect(comAAntiga.status).toBe(401);
+    const { rows: [sessao] } = await admin.query(
+      `SELECT count(*)::int AS abertas FROM user_session WHERE user_id = $1 AND revoked_at IS NULL`, [criada.body.id]);
+    expect(sessao.abertas).toBe(0);
+    const { rows: [conv] } = await admin.query(
+      `SELECT count(*)::int AS pendentes FROM user_invite
+        WHERE user_id = $1 AND used_at IS NULL AND revoked_at IS NULL`, [criada.body.id]);
+    expect(conv.pendentes).toBe(0);
+    // E a conta de todas as casas deixa o vínculo da casa, como quem é cadastrado assim.
+    const { rows: [vinc] } = await admin.query(
+      `SELECT count(*)::int AS abertos FROM user_house_assignment WHERE user_id = $1 AND valid_to IS NULL`,
+      [criada.body.id]);
+    expect(vinc.abertos).toBe(0);
+    const comANova = await request(http).post('/api/v1/auth/login')
+      .send({ email: 'vai.para.enfermagem@paodospobres.dev', password: passa.body.senhaInicial });
+    expect(comANova.status).toBe(201);
+
+    // Entre cargos de todas as casas, ou corrigindo o nome, a senha continua.
+    const corrige = await request(http).patch(`/api/v1/staff/${criada.body.id}`).set(auth(tokens.gestor))
+      .send({ nome: 'Enfermeira Que Veio Da Casa', cargo: 'enfermagem' });
+    expect(corrige.status).toBe(200);
+    expect(corrige.body.senhaInicial).toBeUndefined();
+    const aindaEntra = await request(http).post('/api/v1/auth/login')
+      .send({ email: 'vai.para.enfermagem@paodospobres.dev', password: passa.body.senhaInicial });
+    expect(aindaEntra.status).toBe(201);
+
+    // A conta da suíte sai do caminho das outras: uma Enfermagem a mais receberia avisos.
+    const sai = await request(http).post(`/api/v1/staff/${criada.body.id}/deactivate`).set(auth(tokens.gestor))
+      .send({ motivo: 'Conta criada pela suíte da conta para conferir a mudança de cargo.' });
+    expect(sai.status).toBe(201);
+  });
+
+  /* O mesmo pela coordenação (revisão de segurança da 289): a técnica sabe a senha de uma
+     educadora, o Gestor Geral a passa para coordenação e a marca como Coordenação Geral.
+     Em cada passo a senha de antes deixa de valer, e a nova vai só para o Gestor Geral. */
+  it('quem passa para a coordenação, e dela para as oito casas, recebe senha nova a cada passo', async () => {
+    const email = 'vai.para.coordenacao@paodospobres.dev';
+    const entra = async (password: string) =>
+      (await request(http).post('/api/v1/auth/login').send({ email, password })).status;
+    const criada = await request(http).post('/api/v1/staff').set(auth(tokens.tecnica))
+      .send({ nome: 'Educadora Que Vai Para A Coordenação', email, cargo: 'educador', casaId: casaAi3 });
+    expect(criada.status).toBe(201);
+    const daTecnica = criada.body.senhaInicial;
+
+    const coord = await request(http).patch(`/api/v1/staff/${criada.body.id}`).set(auth(tokens.gestor))
+      .send({ cargo: 'coordenador', casaId: casaAi3 });
+    expect(coord.status).toBe(200);
+    expect(coord.body.senhaInicial).toBeTruthy();
+    expect(await entra(daTecnica)).toBe(401);
+    expect(await entra(coord.body.senhaInicial)).toBe(201);
+
+    const geral = await request(http).post(`/api/v1/staff/${criada.body.id}/coordenacao-geral`)
+      .set(auth(tokens.gestor)).send({ todas: true });
+    expect(geral.status).toBe(201);
+    expect(geral.body.senhaInicial).toBeTruthy();
+    expect(await entra(coord.body.senhaInicial)).toBe(401);
+    expect(await entra(geral.body.senhaInicial)).toBe(201);
+
+    // Entre cargos que a casa também administra, a senha continua.
+    const { rows: [m] } = await admin.query(
+      `SELECT app_estreita_quem_administra('educador', false, 'lider_diurno', false) AS lider,
+              app_estreita_quem_administra('enfermagem', false, 'lider_noturno_geral', false) AS entre_todas,
+              app_estreita_quem_administra('coordenador', true, 'coordenador', false) AS desmarca`);
+    expect(m).toEqual({ lider: false, entre_todas: false, desmarca: false });
+
+    const desmarca = await request(http).post(`/api/v1/staff/${criada.body.id}/coordenacao-geral`)
+      .set(auth(tokens.gestor)).send({ todas: false });
+    expect(desmarca.status).toBe(201);
+    expect(desmarca.body.senhaInicial).toBeUndefined();
+    const sai = await request(http).post(`/api/v1/staff/${criada.body.id}/deactivate`).set(auth(tokens.gestor))
+      .send({ motivo: 'Conta criada pela suíte da conta para conferir a mudança de cargo.' });
+    expect(sai.status).toBe(201);
+  });
+
+  it('a lista de cargos para cadastrar só oferece a Enfermagem a quem alcança todas as casas', async () => {
+    const daTecnica = await request(http).get('/api/v1/staff/sectors').set(auth(tokens.tecnica));
+    expect(daTecnica.status).toBe(200);
+    expect(daTecnica.body.map((s: any) => s.code)).not.toContain('enfermagem');
+    const doGestor = await request(http).get('/api/v1/staff/sectors').set(auth(tokens.gestor));
+    expect(doGestor.body.map((s: any) => s.code)).toContain('enfermagem');
   });
 });

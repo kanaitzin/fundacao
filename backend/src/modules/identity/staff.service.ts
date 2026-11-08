@@ -60,13 +60,16 @@ export class StaffService {
 
   /** Setores que ESTE usuário pode cadastrar — a tela não oferece o que ele não pode. */
   async setores(user: AuthenticatedUser) {
-    const permitidos = await this.db.asUser(user.id, async (c) => {
+    const { permitidos, todas } = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT grantable_role FROM staff_role_grant WHERE creator_role = app_current_role()`);
-      return new Set(rows.map((r) => r.grantable_role as string));
+      const { rows: [eu] } = await c.query(`SELECT app_eu_alcanco_toda_a_instituicao() AS todas`);
+      return { permitidos: new Set(rows.map((r) => r.grantable_role as string)), todas: !!eu?.todas };
     });
+    /* Cargo que alcança todas as casas só é oferecido a quem também alcança todas: o Gestor
+       Geral e a Coordenação Geral (decisão de 08/11, identity/1683). */
     return SETORES
-      .filter((s) => permitidos.has(s.code))
+      .filter((s) => permitidos.has(s.code) && (!s.transversal || todas))
       .map((s) => ({ ...s, exigeCasa: !s.transversal }));
   }
 
@@ -127,9 +130,43 @@ export class StaffService {
   async update(user: AuthenticatedUser, id: string, input: {
     nome?: string; cargo?: RoleCode; casaId?: string;
   }) {
-    await this.comando(user, 'app_update_staff($1,$2,$3::role_code,$4)',
-      [id, input.nome ?? null, input.cargo ?? null, input.casaId ?? null]);
-    return { ok: true };
+    /*
+     * A SENHA DE ANTES NÃO ACOMPANHA A CONTA para um cargo que quem a sabia não
+     * administra (1683): da casa para todas as casas, ou de educador para coordenação.
+     * O banco encerra a senha, as sessões e os convites na mudança; aqui, na mesma
+     * transação, a senha nova é redefinida por quem fez a mudança e volta só para ela.
+     */
+    const senha = await this.naConta(user, async (c) => {
+      const { rows: [antes] } = await c.query(
+        `SELECT role, todas_as_casas FROM app_staff_list() WHERE id = $1`, [id]);
+      await c.query(`SELECT * FROM app_update_staff($1,$2,$3::role_code,$4)`,
+        [id, input.nome ?? null, input.cargo ?? null, input.casaId ?? null]);
+      /* Conta que a lista de quem pede não traz: o banco recusa o que não for dela, e o
+         que passar não ganha senha nova daqui (se o banco encerrou a de antes, quem pediu
+         usa o Redefinir senha). */
+      if (!antes) return null;
+      return this.senhaNovaSeEstreitou(c, id, antes, input.cargo ?? antes.role, !!antes.todas_as_casas);
+    });
+    if (!senha) return { ok: true };
+    return {
+      ok: true,
+      senhaInicial: senha,
+      aviso: 'Cargo alterado. A senha de antes deixou de valer e as sessões abertas foram '
+           + 'encerradas, porque quem a conhecia não administra o cargo novo. Entregue esta '
+           + 'senha nova à pessoa; ela é mostrada uma única vez.',
+    };
+  }
+
+  /** Se a mudança tirou a conta do alcance de quem a administrava, redefine a senha. */
+  private async senhaNovaSeEstreitou(c: any, id: string, antes: { role: string; todas_as_casas: boolean },
+                                     cargo: string, todas: boolean): Promise<string | null> {
+    const { rows: [m] } = await c.query(
+      `SELECT app_estreita_quem_administra($1::role_code, $2, $3::role_code, $4) AS estreitou`,
+      [antes.role, !!antes.todas_as_casas, cargo, todas]);
+    if (!m?.estreitou) return null;
+    const senha = senhaInicial();
+    await c.query(`SELECT * FROM app_reset_staff_password($1,$2)`, [id, await hashPassword(senha)]);
+    return senha;
   }
 
   /**
@@ -138,9 +175,15 @@ export class StaffService {
    */
   async marcarCoordenacaoGeral(user: AuthenticatedUser, id: string, todas: boolean) {
     const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [antes] } = await c.query(
+        `SELECT role, todas_as_casas FROM app_staff_list() WHERE id = $1`, [id]);
       const { rows: [row] } = await c.query(
         `SELECT * FROM app_marcar_coordenacao_geral($1, $2)`, [id, !!todas]);
-      return row;
+      /* A senha de antes não acompanha a conta para as oito casas (1683). */
+      const senha = antes
+        ? await this.senhaNovaSeEstreitou(c, id, antes, antes.role, !!todas)
+        : null;
+      return { ...row, senha };
     }).catch((e: any) => {
       const m = String(e?.message ?? '');
       if (m.includes('so_o_gestor_marca_coordenacao_geral')) {
@@ -158,8 +201,10 @@ export class StaffService {
     });
     return {
       ok: true, todasAsCasas: !!todas,
+      ...(r.senha ? { senhaInicial: r.senha } : {}),
       aviso: todas
         ? `${r.out_nome} passa a coordenar as oito casas. O vínculo com a casa em que estava foi encerrado, e o histórico continua.`
+          + (r.senha ? ' A senha de antes deixou de valer e as sessões abertas foram encerradas. Entregue esta senha nova à pessoa; ela é mostrada uma única vez.' : '')
         : `${r.out_nome} deixa de coordenar as oito casas. Para voltar a uma casa, lance o vínculo na equipe dela.`,
     };
   }
@@ -191,11 +236,16 @@ export class StaffService {
   // ------------------------------------------------------------------
 
   private async comando(user: AuthenticatedUser, sql: string, params: unknown[]): Promise<any> {
+    return this.naConta(user, async (c) => {
+      const { rows: [row] } = await c.query(`SELECT * FROM ${sql}`, params);
+      return row;
+    });
+  }
+
+  /** Roda na conta de quem pede e traduz as recusas do banco. */
+  private async naConta<T>(user: AuthenticatedUser, fn: (c: any) => Promise<T>): Promise<T> {
     try {
-      return await this.db.asUser(user.id, async (c) => {
-        const { rows: [row] } = await c.query(`SELECT * FROM ${sql}`, params);
-        return row;
-      });
+      return await this.db.asUser(user.id, fn);
     } catch (e: any) {
       const m: string = e?.message ?? '';
       if (e?.code === '23505' || /app_user_email_key/.test(m)) {
@@ -230,7 +280,7 @@ export class StaffService {
       }
       if (m.includes('conta_de_toda_a_instituicao')) {
         throw new ForbiddenException(
-          'A conta de quem atende todas as casas é alterada pelo Gestor Geral ou pela Coordenação Geral.');
+          'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
       }
       if (m.includes('fora_de_escopo')) {
         throw new ForbiddenException('Esta casa não está no seu alcance.');

@@ -992,6 +992,22 @@ const TIPOS_SETOR = [
     descricao: 'Escopo institucional; abre uma casa por vez, com auditoria' },
 ];
 
+/* Quem alcança todas as casas, e quem pode criar ou alterar conta que alcança todas: o
+   Gestor Geral e a Coordenação Geral (identity/1681 a 1683, decisão de 08/11). */
+function cargoDeTodasAsCasas(cargo?: string | null): boolean {
+  return !!cargo && (TIPOS_SETOR.find((t) => t.code === cargo)?.transversal ?? false);
+}
+function alcancoTodasAsCasas(eu: { id: string; role: string }): boolean {
+  return eu.role === 'gestor_geral' || TODAS_AS_CASAS.has(eu.id);
+}
+/* A conta já atende todas as casas: pelo cargo, ou pela marca da Coordenação Geral, que é
+   coordenador (o `app_conta_de_toda_a_instituicao` do banco faz as duas perguntas). */
+function contaDeTodasAsCasas(id: string): boolean {
+  if (TODAS_AS_CASAS.has(id)) return true;
+  const membro = EQUIPE_CASA.find((m) => m.id === id);
+  return cargoDeTodasAsCasas(membro?.cargo ?? Object.values(USUARIOS).find((u) => u.id === id)?.role);
+}
+
 // ---------------------------------------------------------------- estado vivo
 
 interface Ev {
@@ -6907,6 +6923,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'A Coordenação Geral é uma coordenação sem casa: escolha o cargo '
         + 'Coordenação e deixe a casa em branco.');
     }
+    if (cargoDeTodasAsCasas(b.cargo) && !alcancoTodasAsCasas(eu)) {
+      return new Recusa(403, 'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
+    }
     const senha = `inicial-${uid()}`;
     return { id: uid(), senhaInicial: senha,
       aviso: 'Entregue esta senha à pessoa — ela é mostrada uma única vez. No primeiro acesso '
@@ -6923,10 +6942,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'A Coordenação Geral é do cargo Coordenação. Troque o cargo antes.');
     }
     const todas = b.todas !== false;
+    /* A senha de antes não acompanha a conta para as oito casas (identity/1683). */
+    const senhaNova = todas && !TODAS_AS_CASAS.has(alvo.id) ? `inicial-${uid()}` : null;
     if (todas) TODAS_AS_CASAS.add(alvo.id); else TODAS_AS_CASAS.delete(alvo.id);
-    return { ok: true, todasAsCasas: todas,
+    return { ok: true, todasAsCasas: todas, ...(senhaNova ? { senhaInicial: senhaNova } : {}),
       aviso: todas
         ? `${alvo.fullName} passa a coordenar as oito casas. O vínculo com a casa em que estava foi encerrado, e o histórico continua.`
+          + (senhaNova ? ' A senha de antes deixou de valer e as sessões abertas foram encerradas. Entregue esta senha nova à pessoa; ela é mostrada uma única vez.' : '')
         : `${alvo.fullName} deixa de coordenar as oito casas. Para voltar a uma casa, lance o vínculo na equipe dela.` };
   }
   if (rota === '/staff') {
@@ -7091,16 +7113,17 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   /**
    * `GET /staff/sectors` — os setores que ESTE cargo pode cadastrar, no
-   * formato do servidor (`code`, não `cod`). A coordenação monta a equipe da
-   * casa e cadastra a Enfermagem; conta de alcance institucional é do Gestor
-   * Geral (§5.13) — se a coordenação pudesse criar Gestor Geral, bastaria
-   * cadastrar alguém para enxergar as oito casas.
+   * formato do servidor (`code`, não `cod`). A coordenação e a técnica montam a
+   * equipe da casa; conta que alcança as oito casas (a Enfermagem, o Líder
+   * Noturno Geral, o Gestor Geral) é criada só por quem também alcança as oito:
+   * o Gestor Geral e a Coordenação Geral (decisão de 08/11, identity/1683).
    */
   if (rota === '/staff/sectors') {
     const podeCadastrar: Record<string, string[]> = {
-      coordenador: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'portaria', 'enfermagem'],
+      coordenador: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'portaria',
+        ...(TODAS_AS_CASAS.has(eu.id) ? ['enfermagem'] : [])],
       gestor_geral: TIPOS_SETOR.map((t) => t.code),
-      equipe_tecnica: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'portaria', 'enfermagem'],
+      equipe_tecnica: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'portaria'],
     };
     const meus = podeCadastrar[eu.role] ?? [];
     return TIPOS_SETOR.filter((t) => meus.includes(t.code))
@@ -7120,12 +7143,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(403, 'Administrar a equipe é da coordenação, da gestão ou da '
         + 'equipe técnica.');
     }
+    if (contaDeTodasAsCasas(seg[1]) && !alcancoTodasAsCasas(eu)) return new Recusa(403, 'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
     DESATIVADOS.add(seg[1]);
     return { ok: true, ativo: false,
       aviso: 'Desativado, e as sessões abertas foram encerradas. O histórico e a autoria '
         + 'de tudo o que registrou permanecem — o sistema não apaga pessoas.' };
   }
   if (seg[0] === 'staff' && seg[2] === 'reactivate' && metodo === 'POST') {
+    if (contaDeTodasAsCasas(seg[1]) && !alcancoTodasAsCasas(eu)) return new Recusa(403, 'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
     DESATIVADOS.delete(seg[1]);
     return { ok: true, ativo: true, aviso: 'Reativado. O histórico dele nunca deixou de existir.' };
   }
@@ -7134,6 +7159,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(403, 'Redefinir senha é da coordenação, da gestão ou da '
         + 'equipe técnica.');
     }
+    if (contaDeTodasAsCasas(seg[1]) && !alcancoTodasAsCasas(eu)) return new Recusa(403, 'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
     const senha = String(b.senha ?? '').trim() || `inicial-${uid()}`;
     if (senha.length < 6) return new Recusa(400, 'A senha precisa de pelo menos 6 caracteres.');
     return { senhaInicial: senha,
@@ -7142,6 +7168,22 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'pela mão de quem convida.' };
   }
   if (seg[0] === 'staff' && seg.length === 2 && metodo === 'PATCH') {
+    if (seg[1] === eu.id) return new Recusa(403, 'A sua própria conta é alterada por quem administra a equipe.');
+    if ((cargoDeTodasAsCasas(b.cargo) || contaDeTodasAsCasas(seg[1])) && !alcancoTodasAsCasas(eu)) {
+      return new Recusa(403, 'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
+    }
+    /* A senha de antes não acompanha a conta para um cargo que quem a sabia não
+       administra (identity/1683): de uma casa para todas, ou para a coordenação, que só o
+       Gestor Geral cadastra. */
+    const membro = EQUIPE_CASA.find((m) => m.id === seg[1]);
+    const estreita = membro && b.cargo && b.cargo !== membro.cargo && !contaDeTodasAsCasas(seg[1])
+      && (cargoDeTodasAsCasas(b.cargo) || b.cargo === 'coordenador');
+    if (estreita) {
+      return { ok: true, senhaInicial: `inicial-${uid()}`,
+        aviso: 'Cargo alterado. A senha de antes deixou de valer e as sessões abertas foram '
+          + 'encerradas, porque quem a conhecia não administra o cargo novo. Entregue esta '
+          + 'senha nova à pessoa; ela é mostrada uma única vez.' };
+    }
     return { ok: true, aviso: 'Cadastro atualizado. No protótipo a alteração vale só nesta tela.' };
   }
 

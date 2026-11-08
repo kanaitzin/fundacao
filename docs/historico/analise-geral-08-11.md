@@ -85,7 +85,9 @@ GitHub Pages gratuito não publica de repositório privado; o protótipo passa p
 identity/1679; a revisão do banco achou o mesmo defeito no vínculo de casa, a `uha_insert`, consertado na
 1680; e o auditor de segurança achou a mesma escalada pelas funções da Equipe, a própria conta e a conta de
 quem atende todas as casas, consertada na 1681 e na 1682; criar conta de Enfermagem pela coordenação ou pela
-técnica de uma casa ficou para a decisão da Fundação.)* O papel da
+técnica de uma casa foi decidido pelo dono em 08/11, só o Gestor Geral e a Coordenação Geral, e feito na
+fase 289, identity/1683, com a senha de antes encerrada quando a mudança tira a conta do alcance de quem a
+administrava; o e-mail herdado e a troca de casa ficaram para o A4.)* O papel da
 aplicação (`rede_app`) tem UPDATE em **todas** as colunas de `app_user`, inclusive `role` e
 `todas_as_casas`, e a política `user_update_self` (`identity/migrations/0010_fundacao.sql:217`)
 só confere que a linha é da própria pessoa. Provado em `BEGIN … ROLLBACK`: como a educadora,

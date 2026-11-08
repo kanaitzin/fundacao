@@ -76,9 +76,11 @@ describe('Equipe — cadastro por setor e aparelho institucional', () => {
     const daCoord = await request(http).get('/api/v1/staff/sectors').set(auth(tokens.coord3));
     expect(daCoord.status).toBe(200);
     const cargos = daCoord.body.map((s: any) => s.code);
-    // A coordenação monta a equipe da casa e cadastra a Enfermagem.
+    // A coordenação monta a equipe da casa. A Enfermagem, que atende as oito, é
+    // cadastrada pelo Gestor Geral ou pela Coordenação Geral (decisão de 08/11, 1683).
     expect(cargos).toEqual(expect.arrayContaining(
-      ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'enfermagem']));
+      ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha']));
+    expect(cargos).not.toContain('enfermagem');
     // E não oferece o que criaria alcance institucional.
     expect(cargos).not.toContain('gestor_geral');
     // A administração técnica foi APOSENTADA em 01/09/2026 (migração 0770): o
@@ -88,12 +90,12 @@ describe('Equipe — cadastro por setor e aparelho institucional', () => {
     expect(cargos).not.toContain('coordenador');
 
     // Cada setor diz o que a pessoa vai poder fazer — a tela não inventa texto.
-    const enf = daCoord.body.find((s: any) => s.code === 'enfermagem');
+    const doGestor = await request(http).get('/api/v1/staff/sectors').set(auth(tokens.gestor));
+    const enf = doGestor.body.find((s: any) => s.code === 'enfermagem');
     expect(enf.transversal).toBe(true);
     expect(enf.exigeCasa).toBe(false);
     expect(enf.descricao).toMatch(/oito casas/i);
 
-    const doGestor = await request(http).get('/api/v1/staff/sectors').set(auth(tokens.gestor));
     const doGestorCargos = doGestor.body.map((s: any) => s.code);
     expect(doGestorCargos).toEqual(expect.arrayContaining(
       ['coordenador', 'lider_noturno_geral']));
@@ -130,8 +132,15 @@ describe('Equipe — cadastro por setor e aparelho institucional', () => {
     expect(linha.senhaInicialPendente).toBe(true);
   });
 
-  it('cargo transversal entra sem casa: a Enfermagem cobre as oito', async () => {
-    const res = await request(http).post('/api/v1/staff').set(auth(tokens.coord3))
+  it('cargo transversal entra sem casa, pelo Gestor Geral: a Enfermagem cobre as oito', async () => {
+    // A coordenação de uma casa não cria conta que alcança as oito (decisão de 08/11, 1683).
+    const daCasa = await request(http).post('/api/v1/staff').set(auth(tokens.coord3))
+      .send({ nome: 'Nova Enfermeira Teste (fictícia)', email: 'nova.enf@paodospobres.dev',
+              cargo: 'enfermagem', casaId: AI3 });
+    expect(daCasa.status).toBe(403);
+    expect(daCasa.body.message).toMatch(/todas as casas/);
+
+    const res = await request(http).post('/api/v1/staff').set(auth(tokens.gestor))
       .send({ nome: 'Nova Enfermeira Teste (fictícia)', email: 'nova.enf@paodospobres.dev',
               cargo: 'enfermagem', casaId: AI3 });   // a casa enviada é ignorada
     expect(res.status).toBe(201);

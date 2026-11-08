@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 289, dia: '08/11/2026', aba: 'equipe',
+    texto: 'Na Equipe, cadastrar uma pessoa na Enfermagem, ou passar alguém para a Enfermagem, ficou com o Gestor Geral e a Coordenação Geral, porque essa conta alcança as oito casas. Quem passa alguém da casa para a Enfermagem ou para a coordenação, ou marca a Coordenação Geral, recebe uma senha nova para entregar à pessoa, e a senha de antes deixa de valer. A coordenação e a equipe técnica de cada casa seguem cadastrando a equipe da casa, e a lista de cargos para cadastrar mostra só o que cada um pode fazer.' },
   { fase: 288, dia: '08/11/2026',
     texto: 'Sem mudança nas telas: a conta de cada pessoa ficou mais protegida. Ninguém consegue mudar o próprio cargo, as casas que alcança nem o próprio e-mail, e a coordenação não consegue pôr uma pessoa de outra casa na sua, nem por fora das telas. A conta de quem atende todas as casas, como a da Enfermagem, só é alterada pelo Gestor Geral ou pela Coordenação Geral. A troca da própria senha segue igual.' },
   { fase: 287, dia: '07/11/2026', aba: 'acolhidos',

@@ -166,7 +166,13 @@ describe('A Coordenação Geral', () => {
     const marcar = await post(t.gestor, `/staff/${ids.promovida}/coordenacao-geral`, { todas: true });
     expect(marcar.status).toBe(201);
     expect(marcar.body.aviso).toMatch(/oito casas/);
-    tk = await login(email, 'senha-coord-1');
+    /* A senha de antes não acompanha a conta para as oito casas (1683): a nova vai só
+       ao Gestor Geral, e a de antes deixa de entrar. */
+    expect(marcar.body.senhaInicial).toBeTruthy();
+    const antiga = await request(http).post('/api/v1/auth/login').send({ email, password: 'senha-coord-1' });
+    expect(antiga.status).toBe(401);
+    const senhaDaGeral = marcar.body.senhaInicial as string;
+    tk = await login(email, senhaDaGeral);
     expect(await casasDe(tk)).toHaveLength(8);
     const { rows: vinculos } = await admin.query(
       `SELECT valid_to FROM user_house_assignment WHERE user_id = $1`, [ids.promovida]);
@@ -175,7 +181,8 @@ describe('A Coordenação Geral', () => {
 
     const tirar = await post(t.gestor, `/staff/${ids.promovida}/coordenacao-geral`, { todas: false });
     expect(tirar.status).toBe(201);
-    tk = await login(email, 'senha-coord-1');
+    expect(tirar.body.senhaInicial).toBeUndefined();
+    tk = await login(email, senhaDaGeral);
     expect(await casasDe(tk)).toEqual([]);
   });
 

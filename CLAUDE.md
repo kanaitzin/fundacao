@@ -245,7 +245,8 @@ tinham fechado sem o relógio adiantado).
 - ~~**A2** o `rede_app` escreve `role` e `todas_as_casas` na própria linha de `app_user`~~ ✅ **288**
   (identity/1679), o vínculo de casa, que a revisão do banco achou com o mesmo defeito (1680), e as funções da
   Equipe, que o auditor achou abertas para a própria conta e para a conta de quem atende todas as casas (1681 e
-  1682, com o vínculo, o nome e o `editavel` da lista).
+  1682, com o vínculo, o nome e o `editavel` da lista); e a criação, decidida pelo dono em 08/11: conta que
+  alcança as oito casas só nasce pelo Gestor Geral ou pela Coordenação Geral ✅ **289** (1683).
   Sobra dele, para o A4: o `rede_app` ainda LÊ o `password_hash` (a entrada
   confere a senha pelo servidor; tirar a leitura pede a conferência numa função do banco);
 - **A3** o backup lógico volta sem GRANT (provado: *permission denied* como `rede_app`) e o ensaio
@@ -254,17 +255,21 @@ tinham fechado sem o relógio adiantado).
   acesso só sugerida pela tela, trava só por e-mail; **e o que a revisão de segurança da 288 acrescentou**
   (a análise, no fim do A4): a `auth_find_user` devolve o hash de qualquer e-mail, a `auth_criar_sessao` aceita
   qualquer usuário, o scrypt não se confere no banco, o e-mail com conta se descobre pelo primeiro acesso;
+  **e o que a da 289 acrescentou:** o e-mail que a casa digitou continua o da conta promovida para as oito
+  casas, e o esqueci minha senha e o convite vão a ele (o Gestor Geral confirmar o e-mail na promoção, e o
+  esqueci recusado até lá, pede decisão); a conta que muda de casa leva a senha que a casa de antes sabia; e o
+  `app_update_staff` ainda abre vínculo de casa para conta de todas as casas quando a rota recebe a casa;
 - **M2** EXIF e GPS das fotos; **M3** o Node em todas as interfaces e a tela sem CSP e HSTS no
   Caddy; **M4** o sigilo de saúde sem segunda camada no banco; **M5** dezoito políticas de escrita
   que não conferem a casa (candidatas).
 - **Para a pauta** (já anotado no PARA-A-REUNIAO §0): os documentos discordam sobre onde o sistema
   roda e sobre qual IA (M7); o ditado nas caixas restritas (M1) e o prazo de guarda (M6) são do DPO.
 
-**A ordem proposta** (seção 7 da análise): os consertos A2 (feito, 288), A3, A4, M2 a M5, uma fase cada; a
+**A ordem proposta** (seção 7 da análise): os consertos A2 (feito, 288 e 289), A3, A4, M2 a M5, uma fase cada; a
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 08/11/2026, fase 288
+### Onde estamos — 08/11/2026, fase 289
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -416,8 +421,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 286 | **a Cozinha em resumo por refeição** (avaliação de 05/11, módulo 13; decidido em 07/11): o plano de hoje no alto (refeições com a hora, quem está em casa, o que não servir, pedidos do dia, a chamada feita) e os números do período em cartões por refeição (`app_plano_da_cozinha`, reports/1677) |
 | 287 | **o sigilo por registro de saúde** (avaliação de 05/11; decidido em 07/11): a consulta e o atendimento sigilosos, o conteúdo só para Enfermagem, técnica e coordenação; marca quem registrou e as três, tira a técnica e a coordenação com o motivo (`health_confidential_change`, nursing/1678) |
 | 288 | **a conta não muda o próprio cargo** (A2 da análise de 08/11): pelo papel da aplicação, **a educadora virava Coordenação Geral das oito casas** escrevendo `role` e `todas_as_casas` na própria linha de `app_user`, **a coordenação vinculava conta de outra casa à dela** (`uha_insert`), **a técnica virava Enfermagem pela Equipe** e **a coordenação de qualquer casa redefinia a senha da Enfermagem**; a aplicação escreve em `app_user` só a troca da própria senha (identity/1679), não escreve vínculo de casa (1680), e um gatilho diz quem administra cada conta e o vínculo de casa dela (1681 e 1682) |
+| 289 | **só quem alcança todas as casas cria conta que alcança todas** (decisão do dono em 08/11): a coordenação e a técnica de uma casa cadastravam Enfermagem com a senha que escolhiam, ou passavam um educador para Enfermagem, e chegavam às oito; o gatilho da 1681 passa a olhar a criação e o cargo de depois (identity/1683), a lista de cargos da Equipe só oferece a Enfermagem a quem alcança todas, um teste obriga a lista do gatilho a ser a do alcance, e quem passa para a Enfermagem, para a coordenação ou para a Coordenação Geral não leva a senha, a sessão nem o convite de antes |
 
-**Medido no fim da 288:** 222 migrações, 153 tabelas, 172 suítes, 1487 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 289:** 223 migrações, 153 tabelas, 172 suítes, 1493 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -541,6 +547,9 @@ o item respondido sai do §0.
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
 
+**FEITO — fase 289** (§2, PARA-A-REUNIAO §0): só quem alcança todas as casas cria conta que alcança todas, a decisão do dono de 08/11 sobre a pergunta que a 288 deixou na pauta. **Cargo novo que alcance as oito casas** entra no `app_house_in_scope` e no `app_casas_no_alcance` (que escrevem a lista por extenso) e no `app_cargo_de_toda_a_instituicao` (1683), e o teste *o cargo que o gatilho chama de toda a instituição é o que o alcance leva a todas as casas* reprova se as duas divergirem (provado tirando o Líder Noturno Geral da lista do gatilho). **A lista de cargos para cadastrar** (`/staff/sectors`) tira o cargo transversal de quem não alcança todas (`app_eu_alcanco_toda_a_instituicao`), e o protótipo faz a mesma pergunta em todas as rotas da Equipe (criar, editar, desativar, reativar e redefinir a senha), contando a Coordenação Geral, que é coordenador com a marca. **Quem administra as contas da instituição se pergunta pela própria conta** (`app_alcanca_toda_a_instituicao`: Gestor Geral ou Coordenação Geral, ativa, da instituição), e não pelo alcance, que dizia sim à Enfermagem e à instituição nula. **Mudança que tira a conta do alcance de quem a administrava encerra a senha, as sessões e os convites de antes** no gatilho (`app_estreita_quem_administra`: da casa para todas as casas, inclusive pela marca da Coordenação Geral, ou para coordenação), e o `update` e o `marcarCoordenacaoGeral` do `staff.service.ts` redefinem a senha na mesma transação (`senhaNovaSeEstreitou`) e a devolvem a quem mudou: função nova que mude cargo herda o encerramento, e quem quiser a senha nova na mesma mudança a escreve no mesmo `UPDATE`. **Quem passa a atender todas as casas deixa o vínculo da casa** no mesmo gatilho. **Suíte que marca a Coordenação Geral entra depois com a senha que a marca devolve** (o `a-coordenacao-geral` mudou por isso). **Recusa do protótipo vai escrita por extenso** no `new Recusa(...)`, e não numa constante: o `as-recusas-falam-como-colega` só lê o texto que está ali. **Medido na 289:** a suíte da conta (20 de 20; sem a 1683, os testes novos reprovam; com a versão que só olhava o cargo, os da Enfermagem e da coordenação reprovam), a `equipe` e a `a-coordenacao-geral` (o gestor cria a Enfermagem; a marca devolve a senha nova), a suíte inteira nas DUAS condições de relógio (1501 de 1501 no relógio real e às 22h30 de Porto Alegre), as sondas no protótipo a 390 px (a técnica e a coordenação da Casa 03 sem a Enfermagem na lista de cargos, o gestor com ela, e a senha nova mostrada na promoção, nenhum erro de página) e três revisões: o `guardiao-das-regras` (nada que fira regra), o `banco-de-dados` (achou o *alcança todas* respondendo sim à Enfermagem e ao nulo, e a promoção que não trocava a senha, provado com o convite da técnica) e o `auditor-seguranca-lgpd` (achou o mesmo pela coordenação e pela marca da Coordenação Geral, e o vínculo de casa que ficava aberto); consertados, e o que sobrou foi para o A4. **Anotado:** a `trabalho-da-equipe`, rodada junto só da `equipe`, reprovou uma vez em *a ordem é por NOME, nunca por total*: com duas pessoas no recorte, a ordem dos nomes coincidiu com a dos totais; na suíte inteira passa, e o teste só prova algo com três ou mais pessoas.
+**Próxima: 290**, o conserto A3 (o backup lógico que volta sem as permissões do papel da aplicação, e o ensaio da restauração que confere como dono), com o `banco-de-dados` e o `auditor-seguranca-lgpd`. Depois A4, M2 a M5, a pauta, a setinha e o 1.0, este só quando a pessoa da Fundação pedir.
+
 **FEITO — fase 288** (§2): a conta não muda o próprio cargo, o A2 da análise geral de 08/11. **Coluna de `app_user`
 que a aplicação passa a escrever** entra no GRANT por coluna de uma migração nova e na lista
 `COLUNAS_QUE_A_APLICACAO_ESCREVE` do `a-conta-nao-muda-o-proprio-cargo`, com o motivo; cargo, casas, conta ativa e
@@ -556,17 +565,14 @@ o `numeros-da-documentacao` conta linha que abre `it(`. **Medido na 288:** a su�
 reprovam, sem a 1680, os dois do vínculo, sem a 1681, os dois pela Equipe, com 200 e 201, e sem a 1682, os dois do
 vínculo e da lista), a suíte inteira nas DUAS condições de relógio (1495 de 1495 no relógio real e às 22h30 de
 Porto Alegre), e as revisões do `banco-de-dados`, do `guardiao-das-regras` e do `auditor-seguranca-lgpd` (que
-reprovou a primeira versão e achou o caminho pela Equipe). **Para a pauta, e é segurança:** a coordenação ou a técnica de
-uma casa criar conta de Enfermagem, ou passar alguém para Enfermagem, continua aberto (PARA-A-REUNIAO §0, logo
-depois da pergunta 15), e a revisão do banco provou que é por ali que a técnica ainda chega às oito casas.
+reprovou a primeira versão e achou o caminho pela Equipe). ~~**Para a pauta, e é segurança:** a coordenação ou a técnica de
+uma casa criar conta de Enfermagem, ou passar alguém para Enfermagem~~: decidido pelo dono em 08/11 e feito na 289.
 **Anotado, de antes da 288:** em `1634_a_coordenacao_geral.sql` (linhas 38 e 74), a guarda
 `app_current_role() <> 'gestor_geral'` deixa passar cargo nulo; o certo é `IS DISTINCT FROM` (cai depois em
 `usuario_inexistente` por acaso; não confirmado), para o A4.
-**Para a 289 (A3), do `banco-de-dados`:** o conserto do backup NÃO pode reaplicar as permissões com um `GRANT ... ON
+**Para o A3, do `banco-de-dados`:** o conserto do backup NÃO pode reaplicar as permissões com um `GRANT ... ON
 ALL TABLES` depois de restaurar, que desfaz a 1679 e a 1680 sem aviso; o caminho é tirar o `--no-privileges`.
-**Próxima: 289**, o conserto A3 (o backup lógico que volta sem as permissões do papel da aplicação, e o ensaio da
-restauração que confere como dono), com o `banco-de-dados` e o `auditor-seguranca-lgpd`. Depois A4, M2 a M5, a pauta,
-a setinha e o 1.0, este só quando a pessoa da Fundação pedir.
+**A 289 veio a seguir** (a criação da conta que alcança todas as casas, decidida pelo dono).
 
 **FEITO — fase 287** (§2): o sigilo por registro de saúde, e com ele **a avaliação de 05/11 está toda feita** (276 a
 287). **Leitura nova de consulta ou atendimento de saúde** esconde o conteúdo do registro sigiloso para quem não está em

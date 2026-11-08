@@ -61,8 +61,9 @@ const TOM: Record<string, string> = {
  *    transformaria em "usuário desconhecido" toda passagem assinada, toda ATA
  *    fechada e toda dose confirmada por aquela pessoa;
  *  * só oferece os setores que ESTE cargo pode cadastrar. A coordenação monta
- *    a equipe da casa e cadastra a Enfermagem; criar conta de alcance
- *    institucional é do Gestor Geral.
+ *    a equipe da casa; conta que alcança as oito casas (a Enfermagem, o Líder
+ *    Noturno Geral, o Gestor Geral) é criada pelo Gestor Geral e pela
+ *    Coordenação Geral (decisão de 08/11).
  */
 /**
  * Os oito tons da paleta, com NOME.
