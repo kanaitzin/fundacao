@@ -242,23 +242,29 @@ tinham fechado sem o relógio adiantado).
 
 **Os consertos antes do primeiro dado real** (cada um com o `banco-de-dados` e o
 `auditor-seguranca-lgpd` revisando, e com teste que reprova sem o conserto):
-- **A2** o `rede_app` escreve `role` e `todas_as_casas` na própria linha de `app_user` (provado:
-  educador vira Coordenação Geral das oito casas no banco) e lê `password_hash`;
+- ~~**A2** o `rede_app` escreve `role` e `todas_as_casas` na própria linha de `app_user`~~ ✅ **288**
+  (identity/1679), o vínculo de casa, que a revisão do banco achou com o mesmo defeito (1680), e as funções da
+  Equipe, que o auditor achou abertas para a própria conta e para a conta de quem atende todas as casas (1681 e
+  1682, com o vínculo, o nome e o `editavel` da lista).
+  Sobra dele, para o A4: o `rede_app` ainda LÊ o `password_hash` (a entrada
+  confere a senha pelo servidor; tirar a leitura pede a conferência numa função do banco);
 - **A3** o backup lógico volta sem GRANT (provado: *permission denied* como `rede_app`) e o ensaio
   confere como dono;
 - **A4** senha gerada com `Math.random` em 63 mil combinações, mínimo de 6, troca do primeiro
-  acesso só sugerida pela tela, trava só por e-mail;
+  acesso só sugerida pela tela, trava só por e-mail; **e o que a revisão de segurança da 288 acrescentou**
+  (a análise, no fim do A4): a `auth_find_user` devolve o hash de qualquer e-mail, a `auth_criar_sessao` aceita
+  qualquer usuário, o scrypt não se confere no banco, o e-mail com conta se descobre pelo primeiro acesso;
 - **M2** EXIF e GPS das fotos; **M3** o Node em todas as interfaces e a tela sem CSP e HSTS no
   Caddy; **M4** o sigilo de saúde sem segunda camada no banco; **M5** dezoito políticas de escrita
   que não conferem a casa (candidatas).
 - **Para a pauta** (já anotado no PARA-A-REUNIAO §0): os documentos discordam sobre onde o sistema
   roda e sobre qual IA (M7); o ditado nas caixas restritas (M1) e o prazo de guarda (M6) são do DPO.
 
-**A ordem proposta** (seção 7 da análise): os consertos A2, A3, A4, M2 a M5, uma fase cada; a
+**A ordem proposta** (seção 7 da análise): os consertos A2 (feito, 288), A3, A4, M2 a M5, uma fase cada; a
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 07/11/2026, fase 287
+### Onde estamos — 08/11/2026, fase 288
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -409,8 +415,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 285 | **o Judiciário em blocos que se abrem** (avaliação de 05/11, módulo 09): como chegou, episódios e ofícios fechados com uma linha do que tem dentro; na área restrita, situação e motivo aberto e medida e processo à parte (`BlocoQueAbre`); sem rota nova |
 | 286 | **a Cozinha em resumo por refeição** (avaliação de 05/11, módulo 13; decidido em 07/11): o plano de hoje no alto (refeições com a hora, quem está em casa, o que não servir, pedidos do dia, a chamada feita) e os números do período em cartões por refeição (`app_plano_da_cozinha`, reports/1677) |
 | 287 | **o sigilo por registro de saúde** (avaliação de 05/11; decidido em 07/11): a consulta e o atendimento sigilosos, o conteúdo só para Enfermagem, técnica e coordenação; marca quem registrou e as três, tira a técnica e a coordenação com o motivo (`health_confidential_change`, nursing/1678) |
+| 288 | **a conta não muda o próprio cargo** (A2 da análise de 08/11): pelo papel da aplicação, **a educadora virava Coordenação Geral das oito casas** escrevendo `role` e `todas_as_casas` na própria linha de `app_user`, **a coordenação vinculava conta de outra casa à dela** (`uha_insert`), **a técnica virava Enfermagem pela Equipe** e **a coordenação de qualquer casa redefinia a senha da Enfermagem**; a aplicação escreve em `app_user` só a troca da própria senha (identity/1679), não escreve vínculo de casa (1680), e um gatilho diz quem administra cada conta e o vínculo de casa dela (1681 e 1682) |
 
-**Medido no fim da 277:** 218 migrações, 153 tabelas, 171 suítes, 1473 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 288:** 222 migrações, 153 tabelas, 172 suítes, 1487 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -534,12 +541,39 @@ o item respondido sai do §0.
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
 
+**FEITO — fase 288** (§2): a conta não muda o próprio cargo, o A2 da análise geral de 08/11. **Coluna de `app_user`
+que a aplicação passa a escrever** entra no GRANT por coluna de uma migração nova e na lista
+`COLUNAS_QUE_A_APLICACAO_ESCREVE` do `a-conta-nao-muda-o-proprio-cargo`, com o motivo; cargo, casas, conta ativa e
+e-mail só mudam por função `SECURITY DEFINER`, e o vínculo de casa também (a 1680 tirou a `uha_insert`, que deixava a
+coordenação vincular conta de outra casa à dela). **Quem administra cada conta mora no gatilho
+`app_quem_administra_a_conta`** (1681) e o do vínculo no `app_quem_muda_o_vinculo` (1682), com a pergunta em
+`app_conta_de_toda_a_instituicao` e `app_alcanca_a_instituicao_de`, e não em cada função da Equipe: função nova que
+mexe em `app_user` ou no vínculo já nasce com a regra. **O `editavel` da Equipe repete a regra no protótipo** (`mock-casa.ts`, na
+rota `/staff`): quem mudar quem administra a conta muda os dois. **O primeiro acesso pelo convite roda sem identidade de
+propósito** (`invite.service.ts`): com identidade, o gatilho recusaria o da Enfermagem. **Permissão se pergunta ao catálogo pelo que vale de fato**
+(`has_column_privilege`), e não pela lista de concessões, que não soma o que veio a PUBLIC. **Teste de várias colunas vai em `it(` um por um**, e não em `it.each`:
+o `numeros-da-documentacao` conta linha que abre `it(`. **Medido na 288:** a suíte nova (14 de 14; sem a 1679, cinco
+reprovam, sem a 1680, os dois do vínculo, sem a 1681, os dois pela Equipe, com 200 e 201, e sem a 1682, os dois do
+vínculo e da lista), a suíte inteira nas DUAS condições de relógio (1495 de 1495 no relógio real e às 22h30 de
+Porto Alegre), e as revisões do `banco-de-dados`, do `guardiao-das-regras` e do `auditor-seguranca-lgpd` (que
+reprovou a primeira versão e achou o caminho pela Equipe). **Para a pauta, e é segurança:** a coordenação ou a técnica de
+uma casa criar conta de Enfermagem, ou passar alguém para Enfermagem, continua aberto (PARA-A-REUNIAO §0, logo
+depois da pergunta 15), e a revisão do banco provou que é por ali que a técnica ainda chega às oito casas.
+**Anotado, de antes da 288:** em `1634_a_coordenacao_geral.sql` (linhas 38 e 74), a guarda
+`app_current_role() <> 'gestor_geral'` deixa passar cargo nulo; o certo é `IS DISTINCT FROM` (cai depois em
+`usuario_inexistente` por acaso; não confirmado), para o A4.
+**Para a 289 (A3), do `banco-de-dados`:** o conserto do backup NÃO pode reaplicar as permissões com um `GRANT ... ON
+ALL TABLES` depois de restaurar, que desfaz a 1679 e a 1680 sem aviso; o caminho é tirar o `--no-privileges`.
+**Próxima: 289**, o conserto A3 (o backup lógico que volta sem as permissões do papel da aplicação, e o ensaio da
+restauração que confere como dono), com o `banco-de-dados` e o `auditor-seguranca-lgpd`. Depois A4, M2 a M5, a pauta,
+a setinha e o 1.0, este só quando a pessoa da Fundação pedir.
+
 **FEITO — fase 287** (§2): o sigilo por registro de saúde, e com ele **a avaliação de 05/11 está toda feita** (276 a
 287). **Leitura nova de consulta ou atendimento de saúde** esconde o conteúdo do registro sigiloso para quem não está em
 `LEEM_O_SIGILO`: no servidor da Enfermagem pelo `semOConteudo`, e nas consultas de outros módulos pelo
 `app_le_sigilo_de_saude()` no SQL. **Medido na 287:** a `o-sigilo-por-registro-de-saude` (6 de 6), a suíte inteira (1480 de 1481; a única reprovação era a sondagem de escrita, que não conhecia o parâmetro `:qual` da rota: ele foi para o corpo, e a rota ficou `POST /nursing/health-records/:id/confidential`; as quatro suítes que a rota toca, 23 de 23), o `ensaio:uso` (854 cobranças, sem reprovação, com o bloco do registro sigiloso), o do celular (sem achado) e a sonda a 390 px depois da troca da rota (o educador vê só que existe; a técnica lê e tira o sigilo com o motivo; nenhum erro). **Não rodou** o relógio adiantado.
-**Próxima: 288**, no protótipo, a setinha ao lado da casa, no alto, para a Coordenação Geral trocar de casa (o item 2 do
-plano de 06/11). Depois, o 1.0 online, só quando a pessoa da Fundação pedir.
+**A 288 veio a seguir**, e não foi a setinha: a análise geral de 08/11 pôs os consertos antes do primeiro dado real
+na frente (o bloco PRIMEIRO, no alto desta seção).
 
 **FEITO — fase 286** (§2): a Cozinha em resumo por refeição, com a escolha de 07/11 (os dois: o plano de hoje e os
 cartões do período). **Função que junta tabelas de várias partições mora em quem já declara ler todas** (`reports`):

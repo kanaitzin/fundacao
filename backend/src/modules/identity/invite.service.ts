@@ -70,6 +70,14 @@ export class InviteService {
       if (m.includes('cargo_nao_pode_editar')) {
         throw new ForbiddenException('Você não gerencia contas deste cargo.');
       }
+      // As recusas do gatilho de quem administra a conta (identity/1681 e 1682).
+      if (m.includes('nao_administra_a_si_mesmo')) {
+        throw new ForbiddenException('A sua própria conta é alterada por quem administra a equipe.');
+      }
+      if (m.includes('conta_de_toda_a_instituicao')) {
+        throw new ForbiddenException(
+          'A conta de quem atende todas as casas é alterada pelo Gestor Geral ou pela Coordenação Geral.');
+      }
       /* A casa da pessoa, conferida no banco desde a 1570 (fase 156): antes a
          coordenação de outra casa embaralhava a senha de quem não é da equipe dela. */
       if (m.includes('fora_de_escopo')) {
@@ -173,6 +181,10 @@ export class InviteService {
     }
 
     const hash = await hashPassword(senha);
+    /* SEM identidade na sessão, de propósito (`db.query`, e não `asUser`): o gatilho de
+       quem administra a conta (identity/1681) não confere nada sem identidade. Com a
+       identidade de outra pessoa, gastar o convite de quem atende todas as casas seria
+       recusado, e o primeiro acesso da Enfermagem quebraria. */
     const r = await this.db.query(
       `SELECT * FROM app_consume_invite($1,$2,$3)`,
       [hashToken(token.trim()), hash, ip ?? null],

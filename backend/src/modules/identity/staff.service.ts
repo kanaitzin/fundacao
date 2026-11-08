@@ -224,6 +224,14 @@ export class StaffService {
       if (m.includes('aparelho_institucional_e_do_gestor')) {
         throw new ForbiddenException('O aparelho institucional é registrado pelo Gestor Geral.');
       }
+      // As recusas do gatilho de quem administra a conta (identity/1681 e 1682).
+      if (m.includes('nao_administra_a_si_mesmo')) {
+        throw new ForbiddenException('A sua própria conta é alterada por quem administra a equipe.');
+      }
+      if (m.includes('conta_de_toda_a_instituicao')) {
+        throw new ForbiddenException(
+          'A conta de quem atende todas as casas é alterada pelo Gestor Geral ou pela Coordenação Geral.');
+      }
       if (m.includes('fora_de_escopo')) {
         throw new ForbiddenException('Esta casa não está no seu alcance.');
       }

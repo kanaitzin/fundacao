@@ -6953,7 +6953,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       ativo: !DESATIVADOS.has(m.id),
       ultimoAcesso: null,
       senhaInicialPendente: false,
-      editavel: podeEditar,
+      /* A conta de quem atende todas as casas só é alterada por quem também alcança
+         todas (identity/1681 e 1682): o Gestor Geral e a Coordenação Geral. */
+      editavel: podeEditar && (!(TIPOS_SETOR.find((t) => t.code === m.cargo)?.transversal ?? false)
+        || eu.role === 'gestor_geral' || TODAS_AS_CASAS.has(eu.id)),
       proprio: m.id === eu.id,
       corDaLinha: CORES_DA_LINHA.get(m.id) ?? null,
       todasAsCasas: false,

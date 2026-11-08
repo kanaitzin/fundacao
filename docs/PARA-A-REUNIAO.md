@@ -139,6 +139,17 @@ vale hoje.
 14. O educador vê os compromissos da casa na agenda? (§3, pergunta 7)
 15. A Acolhe+AI abre algum dos formulários que ficaram de fora (remédio, relato da própria pessoa, decisão sobre a criança, contenção)? (não; §1)
 
+**E uma de segurança, que a fase 288 deixou em aberto de propósito:** a coordenação e a técnica de uma casa
+continuam podendo **criar** uma conta de Enfermagem, ou passar alguém da casa para Enfermagem, e recebem a
+senha inicial. Essa conta alcança as oito casas. Hoje fica registrado na auditoria quem fez. A 288 fechou
+tomar a conta de quem já atende todas as casas (só o Gestor Geral e a Coordenação Geral redefinem a senha,
+desativam, mudam o cargo, a casa ou o nome delas), mas criar continua aberto, e a revisão do banco provou o
+efeito: a técnica de uma casa cadastra uma conta de Enfermagem com o e-mail e a senha que escolhe e passa a
+alcançar as oito casas; ou redefine a senha de um educador da casa e o passa para Enfermagem. A própria
+recusa do servidor já diz que contas de escopo institucional são criadas pelo Gestor Geral. Fica assim, ou
+criar e passar alguém para cargo que alcança todas as casas passa a ser só do Gestor Geral e da
+Coordenação Geral?
+
 **Do perfil da criança:**
 
 16. As ocorrências da criança no perfil, só para técnica e coordenação? (fora do perfil; §4.18)
@@ -215,8 +226,8 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **271 fases.** 171 suítes e 1473 testes; a suíte inteira, verde em duas condições de
-  relógio na fase 271, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **288 fases.** 172 suítes e 1487 testes; a suíte inteira, verde em duas condições de
+  relógio na fase 288, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
   tela bloqueada aparece só *Rede Acolher: há um aviso para você na Casa 03*; o

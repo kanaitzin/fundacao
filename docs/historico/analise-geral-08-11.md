@@ -81,7 +81,11 @@ quiser estudar.
 GitHub Pages gratuito não publica de repositório privado; o protótipo passa para outro lugar
 (Netlify ou Cloudflare Pages, com senha) ou para o plano pago. **Decisão do dono.**
 
-**A2. No banco, uma sessão de educador vira Coordenação Geral das oito casas.** O papel da
+**A2. No banco, uma sessão de educador vira Coordenação Geral das oito casas.** *(Consertado na fase 288,
+identity/1679; a revisão do banco achou o mesmo defeito no vínculo de casa, a `uha_insert`, consertado na
+1680; e o auditor de segurança achou a mesma escalada pelas funções da Equipe, a própria conta e a conta de
+quem atende todas as casas, consertada na 1681 e na 1682; criar conta de Enfermagem pela coordenação ou pela
+técnica de uma casa ficou para a decisão da Fundação.)* O papel da
 aplicação (`rede_app`) tem UPDATE em **todas** as colunas de `app_user`, inclusive `role` e
 `todas_as_casas`, e a política `user_update_self` (`identity/migrations/0010_fundacao.sql:217`)
 só confere que a linha é da própria pessoa. Provado em `BEGIN … ROLLBACK`: como a educadora,
@@ -121,6 +125,25 @@ mínimo de 10 com lista de senhas comuns; troca obrigatória cobrada no servidor
 responde 403 até trocar) e senha inicial que vence em 72 horas; limite por IP no Caddy ou no
 servidor. A trava por conta continua, com aviso à coordenação quando disparar.
 
+*Acrescentado pela revisão de segurança da fase 288 (`auditor-seguranca-lgpd`), para o conserto do A4:*
+- **o que sobrou do A2:** o `rede_app` lê o `password_hash` (a `user_select` deixa a gestão, a coordenação e a
+  técnica lerem o da equipe), e a `auth_find_user` (0010), `SECURITY DEFINER`, devolve o hash de QUALQUER e-mail.
+  Revogar só a coluna não fecha. O hash é scrypt e o pgcrypto não o confere: os caminhos são um papel próprio da
+  entrada (`rede_auth`, só para o `AuthService`, o único que lê o hash e executa `auth_criar_sessao`), trocar para
+  o bcrypt do pgcrypto, ou aceitar e escrever. A pessoa ainda pode apagar o próprio `must_change_password` sem
+  trocar a senha: uma função que troca a própria senha conferindo a atual fecha os dois;
+- **a segunda camada só segura erro de rota, não SQL arbitrário:** a identidade no banco é um parâmetro de sessão,
+  e a `auth_criar_sessao` (1190) aceita qualquer usuário. Escrever esse limite no §12;
+- **a troca do primeiro acesso cobrada no servidor** pede uma guarda que responda 403 até a troca (deixando a
+  troca, o sair e o `users/me`), e a senha inicial que vence pede uma coluna `password_set_at` (o `updated_at`
+  muda por outras funções);
+- **dá para saber se um e-mail tem conta:** pedir o esqueci e depois chamar `/auth/primeiro-acesso` faz o
+  `app_account_has_password` (0700) responder diferente para conta que existe; e o scrypt só roda quando a conta
+  existe (o tempo também diz);
+- **sem trava** na senha atual da troca (`auth.service.ts`) nem na reautenticação;
+- **trocar o cargo não derruba as sessões** nem zera a reautenticação (gravidade baixa: o cargo é relido a cada
+  pedido).
+
 ### Médio: resolver antes do ar ou decidir com o DPO
 
 **M1. O ditado aparece em toda caixa de texto longo, inclusive nas restritas.** `ditado.tsx:204`
@@ -155,9 +178,13 @@ política de leitura de `health_encounter` e `health_evolution` deixa qualquer p
 `work_schedule.ws_write` (coordenação de uma casa grava horário para qualquer casa),
 `health_evolution.evo_update` (Enfermagem e Gestor Geral alteram evolução de qualquer casa, sem
 conferir o alcance nem na linha de antes; a Fundação já tirou o gestor do cadastro de remédio na
-245, e vale perguntar se ele deve alterar evolução), `notification.notif_insert` e `audit_event.audit_insert`
-com `true` (a aplicação pode forjar aviso e linha de auditoria para qualquer pessoa),
-`medication_administration.adm_update` (confere a linha de antes, não a de depois). A suíte das
+245, e vale perguntar se ele deve alterar evolução),
+`medication_administration.adm_update` (confere a linha de antes, não a de depois). *Corrigido na fase 288:* a primeira
+versão desta lista punha aqui o `notification.notif_insert` e o `audit_event.audit_insert`, com `true`; os dois são
+exceções escritas de propósito no `CHECK_ABERTO` do `o-banco-com-as-duas-travas` (a auditoria se escreve também sem
+identidade, na entrada e na recusa de senha, e o aviso é escrito para outra pessoa, com a leitura conferida no
+`notif_select`). Continuam sendo onde uma aplicação comprometida forjaria aviso ou auditoria; se a Fundação quiser
+fechar, o caminho é escrever os dois por função do banco, e não fechar a política. E o resto: a suíte das
 duas travas só reprova o `true` literal. São 32 tabelas com UPDATE de todas as colunas e sem
 gatilho de guarda.
 

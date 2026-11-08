@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 288, dia: '08/11/2026',
+    texto: 'Sem mudança nas telas: a conta de cada pessoa ficou mais protegida. Ninguém consegue mudar o próprio cargo, as casas que alcança nem o próprio e-mail, e a coordenação não consegue pôr uma pessoa de outra casa na sua, nem por fora das telas. A conta de quem atende todas as casas, como a da Enfermagem, só é alterada pelo Gestor Geral ou pela Coordenação Geral. A troca da própria senha segue igual.' },
   { fase: 287, dia: '07/11/2026', aba: 'acolhidos',
     texto: 'O registro de saúde sigiloso: ao registrar uma consulta, quem levou a criança pode marcar Registro sigiloso, e a Enfermagem, a técnica e a coordenação podem marcar depois um registro que já existe. O conteúdo fica só com essas três; os outros veem no histórico de saúde do perfil que existe um registro sigiloso, o dia e quem registrou. Tirar o sigilo é da técnica e da coordenação, com o motivo, e quem marcou e quem tirou fica escrito no registro.' },
   { fase: 286, dia: '07/11/2026', aba: 'cozinha',

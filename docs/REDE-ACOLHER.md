@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **218 migrações** | `.sql` dentro das partições |
+| **222 migrações** | `.sql` dentro das partições |
 | **153 tabelas** | `CREATE TABLE` nas migrações |
-| **171 suítes** | `backend/test/*.spec.ts` |
-| **1473 testes** | `it(` / `test(` nas suítes |
+| **172 suítes** | `backend/test/*.spec.ts` |
+| **1487 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **13 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -498,6 +498,7 @@ arqueologia.
 | 285 | **O Judiciário em blocos que se abrem** (primeira avaliação humana de 05/11, módulo 09): a aba Judiciário do perfil passa a ter cada parte num bloco com o triângulo dos vínculos educacionais (282) e uma linha do que tem dentro (`BlocoQueAbre` no `Acolhidos.tsx`): *Como ela chegou* (a entrada, quem trouxe e o município), *Episódios de acolhimento* (quantas passagens e se a atual está em curso) e *Comunicações a órgãos externos* (quantos ofícios, o último e os ainda não entregues), fechados; dentro da área restrita, *Situação e motivo* aberto e *Medida e processo* fechado, com a medida e a vara na linha. O aviso da reavaliação e os documentos da área restrita continuam à vista. Sem rota nova. Os ensaios que leem o perfil abrem os blocos como a pessoa abriria (`abrirBlocos` no `ensaio:uso`) |
 | 286 | **A Cozinha em resumo por refeição** (primeira avaliação humana de 05/11, módulo 13; decidido em 07/11: os dois). **O plano de hoje** no alto da Cozinha: as refeições da casa com a hora (as chamadas de alimentação da 211), quantas crianças estão em casa e quantas não comem aqui (internadas ou com a família, pela regra única do `app_ausente_da_casa`), o que não servir a quem está em casa, com a substituição e sem o motivo clínico, os lanches e cestas pedidos para hoje e, quando a chamada da refeição já foi feita, como foi (`app_plano_da_cozinha`, reports/1677, em `reports` porque lê as chamadas e as pessoas, como o `app_refeicoes_da_casa`; `GET /reports/period/kitchen-plan`). Na aba Refeições, **os números do período num cartão por refeição**, com os números grandes no lugar da linha com pontos. Nada por criança além do nome na restrição, como a folha que a cozinha já recebe. Quatro testes na `o-plano-do-dia-da-cozinha` |
 | 287 | **O sigilo por registro de saúde** (primeira avaliação humana de 05/11, o último módulo; decidido em 07/11). A consulta (`health_encounter.confidential`) e o atendimento escrito por quem levou (`health_evolution.confidential`), que nascem juntos, se marcam juntos como **sigilosos**: o conteúdo fica para a **Enfermagem, a equipe técnica e a coordenação** (`app_le_sigilo_de_saude`, `LEEM_O_SIGILO` em `nursing/sigilo-de-saude.regra.ts`, lida pelo servidor, pela tela e pelo protótipo), e os outros, o Gestor Geral incluído, veem no histórico de saúde do perfil *Registro de saúde sigiloso*, o dia e quem registrou. **Marca** quem registrou (a caixa *Registro sigiloso* na folha da consulta), a Enfermagem, a técnica e a coordenação; **tira** só a técnica e a coordenação, com o motivo (`app_marcar_sigilo_de_saude`, `POST /nursing/health-records/:id/confidential`, com consulta ou atendimento no corpo); quem marcou e quem tirou fica em `health_confidential_change` (nursing/1678), lido no histórico do registro por quem lê o sigilo. O conteúdo sai escondido também do resumo de saúde, dos relatórios do período, das fontes do acompanhamento, da fila de triagem e do rótulo do retorno marcado. Seis testes na `o-sigilo-por-registro-de-saude` |
+| 288 | **A conta não muda o próprio cargo** (achado A2 da análise geral de 08/11, `docs/historico/analise-geral-08-11.md`; primeiro dos consertos antes do primeiro dado real). A política `user_update_self` deixa cada um escrever na própria linha de `app_user`, e a 0010 tinha dado ao papel da aplicação UPDATE em todas as colunas: **uma sessão de educador, pelo `rede_app`, mudava o próprio `role` para coordenador e ligava o `todas_as_casas`**, e virava Coordenação Geral das oito casas no banco (provado em 08/11). O único UPDATE da aplicação em `app_user` é a troca da própria senha (`auth.service.ts`); criar conta, mudar cargo, casas, conta ativa e e-mail já eram funções `SECURITY DEFINER`. A identity/1679 tira do `rede_app` o INSERT e o UPDATE na tabela e devolve só o UPDATE de `password_hash`, `must_change_password` e `updated_at`. **A revisão do banco achou o mesmo defeito ao lado:** a política `uha_insert` deixava a coordenação inserir em `user_house_assignment` o vínculo de QUALQUER conta com a casa dela (provado: a educadora da Casa 04 passava a alcançar as crianças da Casa 03, sem auditoria e com a autoria escrita à mão); a identity/1680 tira da aplicação a escrita no vínculo e em `house` e apaga a política, e o vínculo segue só pelas funções da Equipe. **E o auditor de segurança achou o mesmo pelas funções da Equipe** (provado em BEGIN e ROLLBACK): `app_update_staff` não recusava a própria conta, e a técnica virava Enfermagem pedindo a mudança na conta dela (de uma casa para as oito); e a conferência da casa da conta (1570) não olhava nada quando a conta nunca teve casa, e a coordenação de QUALQUER casa redefinia a senha da Enfermagem e recebia a senha nova. A identity/1681 põe a regra num gatilho de `app_user` (`app_quem_administra_a_conta`), que vale para as funções de hoje e as que vierem: ninguém muda o próprio cargo, casas, conta ativa, instituição ou e-mail, e a conta de quem alcança todas as casas (Gestor Geral, Enfermagem, Líder Noturno Geral, Coordenação Geral) só é alterada por quem também alcança todas. A revisão do banco sobre a 1681 achou o que o gatilho não via: a coordenação da Casa 04 vinculava a Enfermagem à casa dela e trocava o nome dela (o vínculo mora em `user_house_assignment`), e a lista da Equipe oferecia à coordenação de uma casa os botões que o servidor passou a recusar; a identity/1682 dá o mesmo gatilho ao vínculo (`app_quem_muda_o_vinculo`), põe o nome na metade que protege quem atende todas as casas e faz o `editavel` da `app_staff_list` (e do protótipo) fazer a mesma pergunta. Criar conta de Enfermagem, ou passar alguém da casa para Enfermagem, pela coordenação ou pela técnica de uma casa continua como estava e foi para a pauta (PARA-A-REUNIAO §0): a revisão provou que com isso a técnica ainda chega às oito casas numa conta que ela cria. A suíte `a-conta-nao-muda-o-proprio-cargo` pergunta ao catálogo pelo que vale de fato (`has_column_privilege`, que soma o que veio a PUBLIC), nega por padrão (coluna nova que a aplicação puder escrever reprova até entrar na lista com o motivo) e prova as duas recusas como a educadora e como a coordenação; sem a 1679, cinco dos seis testes de `app_user` reprovam, sem a 1680, os dois do vínculo, sem a 1681, os dois pela Equipe (200 e 201), e sem a 1682, os dois do vínculo e da lista. Fica para o A4: a aplicação ainda lê o `password_hash` e a pessoa ainda pode apagar o próprio pedido de trocar a senha. Nenhuma tela mudou |
 
 ---
 
@@ -545,7 +546,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-218 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+222 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -612,7 +613,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              171 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              172 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -3062,7 +3063,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 218 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 222 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
