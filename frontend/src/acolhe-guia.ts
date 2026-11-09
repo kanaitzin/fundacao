@@ -344,7 +344,7 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
       + 'Se piorar ou parecer urgência, ligue para o SAMU, no 192.'
       + (link(telas, 'saude', 'Abrir a Saúde') || link(telas, 'dia', 'Ver as doses no Dia'));
   }
-  if (OBRIGADO.test(t)) return 'De nada! Estou por aqui quando precisar.';
+  if (OBRIGADO.test(t)) return 'De nada! Bom plantão, e estou por aqui quando precisar.';
   if (SENHA.test(t) && !/\b(cofre|acesso|credencia)/.test(t)) {
     return 'A sua senha se troca no botão da senha, no alto da tela; no celular, ele fica em Minha conta. '
       + 'Ela precisa de pelo menos 8 caracteres, com uma letra maiúscula e um símbolo. '
@@ -384,7 +384,7 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   if (texto.trim().length <= 160) {
     const cuidado = primeiroOCuidado(t, telas);
     if (cuidado) return { texto: `${aviso}${cuidado}`, cuidado: true };
-    if (OI.test(t) && !primeira) return { texto: 'Oi! Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.' };
+    if (OI.test(t) && !primeira) return { texto: 'Oi! Que bom te ver por aqui. Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.' };
   }
 
   /* "Marcar visita da mãe do Bruno no sábado" levava à Portaria, que não marca nada:
@@ -461,15 +461,25 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     return { texto: `${aviso}${explica}\n\n${link}` };
   }
 
-  if (QUER_ESCREVER.test(t)) {
+  /* "Quero fazer um relatório" sem dizer o quê nem para onde: ela pede o relato (fase 300). */
+  if (QUER_ESCREVER.test(t) || (QUER_RELATORIO.test(t) && !texto.includes(':'))) {
     return { texto: `${aviso}Me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone. Eu monto um rascunho para você conferir, e depois você escolhe onde ele fica: na ATA, numa ocorrência ou num acompanhamento. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
+  }
+
+  /* Ensinar uma palavra (fase 300): o botão fica no alto da conversa. */
+  if (/\bensin\w*\b.{0,30}\b(palavra|girias?|expressao|jeito de falar)\b/.test(t)) {
+    return { texto: `${aviso}Adoro aprender! Toque em Ensinar uma palavra, no alto desta conversa, escreva a palavra ou o jeito de dizer e o que ele quer dizer. A coordenação confere, e quando aprovar eu passo a entender, e para todo mundo da casa.` };
+  }
+  /* A tabela que vira planilha (fase 300): no modo guia ela faz a conta, e a tabela pede o modelo. */
+  if (/\b(tabela|planilha)\b/.test(t) && !/\b(periodo|relatorio)\b/.test(t)) {
+    return { texto: `${aviso}Monto sim. Me passe os dados em linhas, por exemplo: Arroz 5 kg 23,90; Feijão 2 kg 15,80. Com a Acolhe+AI ligada, eu devolvo a tabela com a soma e o botão Baixar como planilha. Aqui no modo guia eu faço a conta; as planilhas prontas da casa saem do Período da casa.` };
   }
 
   if (QUER_SABER.test(t) || primeira) {
     const naoAchei = QUER_SABER.test(t) || OI.test(t) ? '' : 'Esse pedido eu não reconheci. ';
     const algumas = telas.slice(0, 6).map((x) => `[${x.titulo}](tela:${x.chave})`).join('  ');
     return {
-      texto: `${aviso}${naoAchei}Eu sou a Acolhe+AI, da equipe do Rede Acolher. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), abrir o formulário ("quero marcar um compromisso"), fazer contas ("quanto é 12,50 + 7,90"), ler esta tela em voz alta e anotar sugestões para o sistema melhorar.\n\nAlgumas telas suas: ${algumas}`,
+      texto: `${aviso}${naoAchei}Eu sou a Acolhe+AI, a colega de plantão que mora aqui no sistema, e vejo só o que você vê. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), abrir o formulário ("quero marcar um compromisso"), fazer contas ("quanto é 12,50 + 7,90"), montar o rascunho de um relatório com o que você me contar, ler a resposta em voz alta e conversar por voz quando as mãos estão ocupadas. Quem confere e salva é sempre você.\n\nAlgumas telas suas: ${algumas}`,
     };
   }
   return {

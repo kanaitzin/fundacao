@@ -163,6 +163,10 @@ const DESENHOS: Record<string, string[]> = {
   microfone: ['M12 3.5a2.5 2.5 0 0 1 2.5 2.5v5.5a2.5 2.5 0 0 1-5 0V6A2.5 2.5 0 0 1 12 3.5z',
               'M6.5 11a5.5 5.5 0 0 0 11 0', 'M12 16.5v4', 'M9 20.5h6'],
   ouvir:    ['M4 9.5h3l4.5-4v13l-4.5-4H4z', 'M15 9a4 4 0 0 1 0 6', 'M17.5 6.5a7.5 7.5 0 0 1 0 11'],
+  /* A conversa por voz (fase 300): ondas de som, como quem fala. */
+  onda:     ['M4 10v4', 'M8 7v10', 'M12 4v16', 'M16 7v10', 'M20 10v4'],
+  copiar:   ['M9 9h10v11H9z', 'M5 15V4h10'],
+  parar:    ['M7 7h10v10H7z'],
   lampada:  ['M9 17.5h6', 'M10 20.5h4',
              'M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z'],
   fechar:   ['M6 6l12 12', 'M18 6L6 18'],

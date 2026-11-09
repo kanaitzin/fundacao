@@ -11,6 +11,7 @@ import { palavrasEnsinadas } from '../../backend/src/modules/assistente/palavras
 import type { PalavraDaCasa } from '../../backend/src/modules/assistente/palavras-da-casa';
 import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, apertarEste, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
+import { APRESENTACAO, COMO_CONVERSAR, DOCUMENTOS_QUE_EU_FACO, FRASES_PRONTAS, boasVindas, frasesDoCargo } from './acolhe-boas-vindas';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
 
 /**
@@ -106,15 +107,19 @@ const MAX_VOLTAS = 12;
 const LIMITE_RESULTADO = 30_000;
 
 /** Lê em voz alta, em português, com a voz que o aparelho tiver. */
-function falar(texto: string) {
-  if (!('speechSynthesis' in window)) return;
+function falar(texto: string, aoTerminar?: () => void) {
+  if (!('speechSynthesis' in window)) { aoTerminar?.(); return; }
   window.speechSynthesis.cancel();
   const fala = new SpeechSynthesisUtterance(texto.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').slice(0, 4000));
   fala.lang = 'pt-BR';
   const voz = window.speechSynthesis.getVoices().find((v) => v.lang?.toLowerCase().startsWith('pt'));
   if (voz) fala.voice = voz;
+  if (aoTerminar) { fala.onend = aoTerminar; fala.onerror = aoTerminar; }
   window.speechSynthesis.speak(fala);
 }
+
+/** O texto da resposta sem os links da conversa, para copiar e ouvir. */
+const textoLimpo = (t: string) => t.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*/g, '');
 
 const DESCRICAO: Record<Proposta['tipo'], string> = {
   propor_linha_na_ata: 'Escrever esta linha na ATA do plantão',
@@ -126,8 +131,10 @@ const sem = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').to
 /** No perfil, o verbo e as palavras de ligação não escolhem botão: o que escolhe é o assunto. */
 const GENERICAS = /^(quero|preciso|gostaria|registrar|registra|escrever|escreve|acrescentar|acrescenta|atualizar|atualiza|lancar|lanca|anotar|anota|cadastrar|incluir|abrir|abre|abra|perfil|ficha|dela|dele|sobre|para|crianca|fazer|nova|novo|uma|pode|leva|mostra|mostrar)$/;
 
-export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
+export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }: {
   casa: { id: string; nome: string } | null;
+  /** O nome de quem conversa, para as boas-vindas (fase 300). */
+  nome?: string;
   telaAtual: string;
   telas: TelaDoGuia[];
   navegar: (tela: string) => void;
@@ -148,7 +155,13 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
      entra na conversa quando ela termina. */
   const [escrevendo, setEscrevendo] = useState('');
   const [voz, setVoz] = useState(VOZES[0]);
-  const [lerRespostas, setLerRespostas] = useState(false);
+  /* OUVIR E COPIAR (fase 300): cada resposta tem os dois, embaixo, como nos
+     aplicativos de IA. A leitura de uma resposta se para tocando de novo. */
+  const [falandoId, setFalandoId] = useState<number | null>(null);
+  const [copiadoId, setCopiadoId] = useState<number | null>(null);
+  /* A CONVERSA POR VOZ (fase 300) é a das mãos ocupadas da 242, com tela própria:
+     ela fala a resposta e o microfone volta. `falandoAgora` acende o círculo. */
+  const [falandoAgora, setFalandoAgora] = useState(false);
   /* MÃOS OCUPADAS (fase 242): a pessoa fala, a pergunta vai sozinha depois de
      um silêncio, a resposta é lida em voz alta e o microfone volta a ouvir
      quando a leitura acaba (antes disso ele ouviria a própria Acolhe+AI). */
@@ -182,6 +195,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const pendenteParaOModelo = useRef<string[]>([]);
   /** As crianças da casa aberta, para o guia achar o nome no pedido (fase 196). */
   const criancas = useRef<{ casa: string; lista: CriancaDaCasa[] } | null>(null);
+  /** As frases prontas só oferecem o que a pessoa alcança. */
+  const alcanca = (tela: string) => telas.some((x) => x.chave === tela);
 
   useEffect(() => {
     if (!aberta || ligada !== null) return;
@@ -214,7 +229,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     acrescentar({ quem: 'acolhe', texto: h });
     setFaixa(h.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').split('\n')[0].slice(0, 160));
     /* Com as mãos ocupadas, lê sempre: a escolha acabou de mudar e este trecho ainda veria o valor de antes. */
-    if (lerRespostas || maosRef.current) falar(h);
+    if (maosRef.current) falar(h);
   }
 
   /** A licença para mexer na tela: uma vez por conversa, e a resposta fica na auditoria. */
@@ -921,7 +936,6 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     setMaos(sim);
     if (sim) {
       if (!avisoDaVozAceito()) { setAvisoVoz(true); return; }
-      setLerRespostas(true);
       ouvirSozinho();
     } else {
       if (silencio.current) { clearTimeout(silencio.current); silencio.current = null; }
@@ -952,6 +966,34 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     } catch (e) {
       dizer(e instanceof Error ? e.message : 'Não consegui guardar a palavra agora.');
     }
+  }
+
+  function ouvirResposta(l: Linha) {
+    if (falandoId === l.id) {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      setFalandoId(null);
+      return;
+    }
+    setFalandoId(l.id);
+    falar(textoLimpo(l.texto), () => setFalandoId((x) => (x === l.id ? null : x)));
+  }
+  function copiarResposta(l: Linha) {
+    const ok = () => { setCopiadoId(l.id); setTimeout(() => setCopiadoId((x) => (x === l.id ? null : x)), 1600); };
+    try {
+      void navigator.clipboard.writeText(textoLimpo(l.texto)).then(ok, () => undefined);
+    } catch { /* o navegador não deixou copiar */ }
+  }
+  /* Na conversa por voz, o círculo sabe quando ela está falando. */
+  useEffect(() => {
+    if (!maos) { setFalandoAgora(false); return; }
+    const vez = setInterval(() => {
+      setFalandoAgora('speechSynthesis' in window && (window.speechSynthesis.speaking || window.speechSynthesis.pending));
+    }, 250);
+    return () => clearInterval(vez);
+  }, [maos]);
+  function interromperFala() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setFalandoAgora(false);
   }
 
   function lerTela() {
@@ -1204,14 +1246,6 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
             {VOZES.map((v) => <option key={v}>{v}</option>)}
           </select>
         </label>
-        <label className="acolhe-ler">
-          <input type="checkbox" checked={lerRespostas} onChange={(e) => setLerRespostas(e.target.checked)} />
-          <span>Ler as respostas em voz alta</span>
-        </label>
-        <label className="acolhe-ler">
-          <input type="checkbox" checked={maos} onChange={(e) => ligarMaos(e.target.checked)} />
-          <span>Mãos ocupadas: falo, ela responde em voz alta e volta a ouvir</span>
-        </label>
         <button type="button" className="btn sm ghost" aria-expanded={ensinando} onClick={() => setEnsinando((x) => !x)}>
           Ensinar uma palavra
         </button>
@@ -1238,10 +1272,32 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       )}
       <div className="acolhe-conversa" aria-live="polite">
         {linhas.length === 0 && (
-          <p className="mutetxt">
-            Oi! Pergunte o que quiser sobre o sistema, peça para ir a uma tela, faça uma conta ou anexe um
-            documento. Se você deixar, eu preencho a tela com você; quem salva é sempre você.
-          </p>
+          <div className="acolhe-boas-vindas">
+            <div className="acolhe-ola">
+              <SimboloDaAcolhe tamanho={44} />
+              <strong>{boasVindas(nome)}</strong>
+            </div>
+            {APRESENTACAO.map((p) => <p key={p}>{p}</p>)}
+            <div className="eyebrow">Para começar</div>
+            <div className="acolhe-frases" role="group" aria-label="Frases prontas para começar">
+              {frasesDoCargo(FRASES_PRONTAS, alcanca).map((f) => (
+                <button key={f.rotulo} type="button" className="acolhe-frase"
+                        onClick={() => void enviar(f.pedido.replace('{tela}', telaAtual))}>
+                  {f.rotulo}
+                </button>
+              ))}
+            </div>
+            <div className="eyebrow">Documentos que eu monto com você</div>
+            <div className="acolhe-frases" role="group" aria-label="Documentos que a Acolhe+AI monta">
+              {frasesDoCargo(DOCUMENTOS_QUE_EU_FACO, alcanca).map((f) => (
+                <button key={f.rotulo} type="button" className="acolhe-frase doc"
+                        onClick={() => void enviar(f.pedido)}>
+                  <Icone nome="documento" tamanho={16} /> {f.rotulo}
+                </button>
+              ))}
+            </div>
+            <p className="mutetxt acolhe-como">{COMO_CONVERSAR}</p>
+          </div>
         )}
         {linhas.map((l) => (
           <div key={l.id} className={`acolhe-linha ${l.quem}`}>
@@ -1254,10 +1310,21 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
               : l.conta ? <Conta c={l.conta} />
                 : l.tabela ? <TabelaDaConversa t={l.tabela} />
                   : l.proposta ? <Cartao l={l} /> : <Texto t={l.texto} />}
-            {l.quem === 'acolhe' && !l.proposta && !l.licenca && !l.tabela && !l.rascunho && (
-              <button className="acolhe-ouvir" aria-label="Ouvir esta resposta" onClick={() => falar(l.texto)}>
-                <Icone nome="ouvir" tamanho={14} /> Ouvir
-              </button>
+            {l.quem === 'acolhe' && !l.proposta && !l.licenca && !l.tabela && !l.rascunho && l.texto.trim() && (
+              <div className="acolhe-resposta-acoes">
+                <button type="button" className={`acolhe-acao${falandoId === l.id ? ' ativo' : ''}`}
+                        aria-pressed={falandoId === l.id}
+                        aria-label={falandoId === l.id ? 'Parar a leitura' : 'Ouvir esta resposta'}
+                        title={falandoId === l.id ? 'Parar' : 'Ouvir'} onClick={() => ouvirResposta(l)}>
+                  <Icone nome={falandoId === l.id ? 'parar' : 'ouvir'} tamanho={16} />
+                  <span>{falandoId === l.id ? 'Parar' : 'Ouvir'}</span>
+                </button>
+                <button type="button" className="acolhe-acao" aria-label="Copiar esta resposta"
+                        title="Copiar" onClick={() => copiarResposta(l)}>
+                  <Icone nome={copiadoId === l.id ? 'certo' : 'copiar'} tamanho={16} />
+                  <span>{copiadoId === l.id ? 'Copiado' : 'Copiar'}</span>
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -1274,12 +1341,48 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         )}
         <div ref={fim} />
       </div>
+      {maos && !avisoVoz && (() => {
+        const estado = falandoAgora ? 'falando' : ocupada ? 'pensando' : ouvindo ? 'ouvindo' : 'esperando';
+        const ultimaDela = [...linhas].reverse().find((l) => l.quem === 'acolhe' && l.texto.trim());
+        const frase = {
+          falando: 'Falando. Toque em Interromper para falar por cima.',
+          pensando: 'Pensando no que você disse',
+          ouvindo: 'Pode falar, estou ouvindo',
+          esperando: 'Um instante, já volto a ouvir',
+        }[estado];
+        return (
+          <div className="acolhe-voz-modo" role="dialog" aria-modal="false" aria-labelledby="t-voz-modo" data-estado={estado}>
+            <h3 id="t-voz-modo" className="so-leitor">Conversa por voz</h3>
+            <div className="acolhe-voz-circulo" aria-hidden="true">
+              <span className="anel a1" /><span className="anel a2" /><span className="anel a3" />
+              <span className="miolo"><SimboloDaAcolhe tamanho={64} /></span>
+            </div>
+            <p className="acolhe-voz-estado" role="status" aria-live="polite">{frase}</p>
+            <p className="acolhe-voz-fala">
+              {ouvindo && (falaProvisoria || texto)
+                ? <><small>Você</small>{falaProvisoria || texto}</>
+                : ultimaDela ? <><small>Acolhe+AI</small>{textoLimpo(ultimaDela.texto).slice(0, 280)}</> : null}
+            </p>
+            <div className="acolhe-voz-botoes">
+              {falandoAgora && (
+                <button type="button" className="btn sec" onClick={interromperFala}>
+                  <Icone nome="parar" tamanho={16} /> Interromper
+                </button>
+              )}
+              <button type="button" className="btn" onClick={() => { interromperFala(); ligarMaos(false); }}>
+                <Icone nome="fechar" tamanho={16} /> Encerrar a conversa por voz
+              </button>
+            </div>
+            <p className="mutetxt acolhe-voz-dica">A conversa fica escrita embaixo, para você conferir depois.</p>
+          </div>
+        );
+      })()}
       {avisoVoz && (
         <div className="acolhe-aviso" role="alertdialog" aria-labelledby="t-aviso-voz">
           <strong id="t-aviso-voz">Antes de usar o microfone</strong>
           <p>O que você falar é transformado em texto pelo serviço do navegador (no Chrome, o do Google). Evite dizer nome completo e dados de criança em voz alta; escreva quando puder.</p>
           <div className="row" style={{ gap: 8 }}>
-            <button className="btn sm" onClick={() => { aceitarAvisoDaVoz(); setAvisoVoz(false); if (maosRef.current) { setLerRespostas(true); ouvirSozinho(); } else ouvir(); }}>
+            <button className="btn sm" onClick={() => { aceitarAvisoDaVoz(); setAvisoVoz(false); if (maosRef.current) ouvirSozinho(); else ouvir(); }}>
               Entendi, usar o microfone
             </button>
             <button className="btn sm sec" onClick={() => { setAvisoVoz(false); if (maosRef.current) ligarMaos(false); }}>Agora não</button>
@@ -1316,6 +1419,11 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           <button type="button" className={`iconbtn ${ouvindo ? 'ativo' : ''}`} aria-pressed={ouvindo}
                   aria-label={ouvindo ? 'Parar de ouvir' : 'Falar pelo microfone'} title="Microfone" onClick={ouvir}>
             <Icone nome="microfone" />
+          </button>
+          <button type="button" className="acolhe-voz-botao" aria-pressed={maos}
+                  aria-label="Conversa por voz: você fala e ela responde falando" title="Conversa por voz"
+                  onClick={() => ligarMaos(!maos)}>
+            <Icone nome="onda" tamanho={18} /> <span>Conversa por voz</span>
           </button>
           <button type="button" className="btn sm ghost" onClick={novaConversa}>Nova conversa</button>
           <span className="grow" />

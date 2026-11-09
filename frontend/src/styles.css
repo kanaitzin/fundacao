@@ -1615,8 +1615,6 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .acolhe-opcoes label{ display:flex; align-items:center; gap:8px; margin:0; font-size:13.5px; font-weight:600; min-width:0 }
 .acolhe-opcoes label span{ white-space:normal; min-width:0 }
 .acolhe-voz select{ width:auto; min-height:36px; margin:0; border-radius:10px; padding:0 8px }
-.acolhe-ler{ min-height:36px }
-.acolhe-ler input{ width:20px; height:20px; margin:0; flex:none }
 .acolhe-aviso{ margin:8px 16px 0; padding:10px 12px; border-radius:12px; background:var(--brand-soft); color:var(--ink); font-size:13.5px }
 .acolhe-aviso p{ margin:6px 0 8px }
 .acolhe-conversa{ flex:1 1 auto; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:10px }
@@ -1630,8 +1628,63 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   border:1px solid var(--brand); border-radius:999px; background:transparent; color:var(--titulo);
   font:inherit; font-weight:600; cursor:pointer;
 }
-.acolhe-ouvir{ align-self:flex-start; display:inline-flex; align-items:center; gap:4px; min-height:30px; padding:0 8px;
-  border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--muted); font-size:12.5px; cursor:pointer }
+/* OUVIR E COPIAR embaixo de cada resposta (fase 300): discretos, como nos aplicativos
+   de IA, e com a palavra junto do desenho. */
+.acolhe-resposta-acoes{ display:flex; gap:4px; margin-top:2px }
+.acolhe-acao{ display:inline-flex; align-items:center; gap:5px; min-height:32px; padding:0 10px;
+  border:0; border-radius:999px; background:transparent; color:var(--muted); font:inherit; font-size:13px; font-weight:600; cursor:pointer }
+.acolhe-acao:hover{ background:var(--sunken); color:var(--ink) }
+.acolhe-acao.ativo{ background:var(--brand-soft); color:var(--brand) }
+
+/* AS BOAS-VINDAS (fase 300): a saudação, quem ela é e as frases de um toque. */
+.acolhe-boas-vindas{ display:flex; flex-direction:column; gap:10px }
+.acolhe-boas-vindas p{ margin:0; color:var(--ink); font-size:14.5px; line-height:1.5 }
+.acolhe-ola{ display:flex; align-items:center; gap:12px }
+.acolhe-ola strong{ font-size:20px; color:var(--titulo) }
+.acolhe-boas-vindas .eyebrow{ margin-top:6px }
+.acolhe-frases{ display:flex; flex-wrap:wrap; gap:8px }
+.acolhe-frase{ display:inline-flex; align-items:center; gap:6px; min-height:38px; padding:6px 14px;
+  border:1.5px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink);
+  font:inherit; font-size:14px; font-weight:600; text-align:left; cursor:pointer }
+.acolhe-frase:hover{ border-color:var(--brand); background:var(--brand-soft) }
+.acolhe-frase.doc{ border-color:var(--brand-soft) }
+.acolhe-frase.doc svg{ color:var(--brand); flex:none }
+.acolhe-como{ font-size:13px !important; color:var(--muted) !important }
+
+/* O BOTÃO DA CONVERSA POR VOZ, ao lado do microfone. */
+.acolhe-voz-botao{ display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px;
+  border:1.5px solid var(--brand); border-radius:999px; background:var(--brand-soft); color:var(--brand);
+  font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; white-space:nowrap }
+.acolhe-voz-botao:hover, .acolhe-voz-botao[aria-pressed="true"]{ background:var(--brand-solid); color:var(--on-solid); border-color:var(--brand-solid) }
+
+/* A TELA DA CONVERSA POR VOZ: o círculo que respira enquanto ouve, gira devagar
+   enquanto pensa e pulsa enquanto fala. Com Reduzir movimento, fica parado e a
+   frase diz o estado. */
+.acolhe-voz-modo{ position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:16px; padding:24px 20px; background:var(--surface); text-align:center; border-radius:inherit; overflow-y:auto }
+.acolhe-voz-circulo{ position:relative; width:180px; height:180px; display:grid; place-items:center; flex:none }
+.acolhe-voz-circulo .anel{ position:absolute; inset:0; border-radius:50%; background:var(--brand); opacity:.12 }
+.acolhe-voz-circulo .a2{ inset:18px; opacity:.16 }
+.acolhe-voz-circulo .a3{ inset:36px; opacity:.22 }
+.acolhe-voz-circulo .miolo{ position:relative; width:96px; height:96px; border-radius:50%; display:grid; place-items:center;
+  background:var(--surface); box-shadow:0 6px 24px -8px var(--brand) }
+.acolhe-voz-modo[data-estado="ouvindo"] .anel{ animation:voz-respira 1.8s ease-in-out infinite }
+.acolhe-voz-modo[data-estado="ouvindo"] .a2{ animation-delay:.2s }
+.acolhe-voz-modo[data-estado="ouvindo"] .a3{ animation-delay:.4s }
+.acolhe-voz-modo[data-estado="falando"] .anel{ animation:voz-fala .7s ease-in-out infinite alternate }
+.acolhe-voz-modo[data-estado="falando"] .a2{ animation-delay:.15s }
+.acolhe-voz-modo[data-estado="falando"] .a3{ animation-delay:.3s }
+.acolhe-voz-modo[data-estado="pensando"] .a1{ border:3px dashed var(--brand); background:transparent; opacity:.5; animation:voz-gira 3s linear infinite }
+@keyframes voz-respira{ 0%,100%{ transform:scale(.92) } 50%{ transform:scale(1.04) } }
+@keyframes voz-fala{ from{ transform:scale(.9) } to{ transform:scale(1.08) } }
+@keyframes voz-gira{ to{ transform:rotate(360deg) } }
+@media (prefers-reduced-motion: reduce){ .acolhe-voz-circulo .anel{ animation:none !important } }
+.acolhe-voz-estado{ margin:0; font-size:18px; font-weight:700; color:var(--titulo) }
+.acolhe-voz-fala{ margin:0; max-width:34ch; min-height:3em; color:var(--ink); font-size:15px; line-height:1.5 }
+.acolhe-voz-fala small{ display:block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:2px }
+.acolhe-voz-botoes{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px }
+.acolhe-voz-botoes .btn{ display:inline-flex; align-items:center; gap:6px }
+.acolhe-voz-dica{ margin:0; font-size:13px }
 .acolhe-anexo{ display:inline-flex; align-items:center; gap:4px; font-size:13px; color:var(--muted) }
 .acolhe-proposta{ display:flex; flex-direction:column; gap:8px; padding:12px; border:1px solid var(--line-2); border-radius:14px; background:var(--surface) }
 .acolhe-estado{ margin:0; font-size:13.5px; font-weight:600 }
