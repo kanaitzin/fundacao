@@ -353,14 +353,15 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
   return null;
 }
 
+/** O aviso da primeira resposta no modo guia. A tela o tira quando o quadro azul já diz o mesmo (fase 300). */
+export const AVISO_DO_MODO_GUIA = 'Estou no modo guia: explico as telas, levo você até elas e anoto sugestões. Para ler os dados e montar relatórios, a Acolhe+AI precisa estar ligada na instalação.\n\n';
+
 export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean,
                                   ensinadas: readonly PalavraDaCasa[] = []): RespostaDoGuia {
   /* O banco de palavras da casa (fase 238): "o piá tá com piripaque" ganha "crianca menino passando mal".
      E as que a equipe ensinou e a coordenação aprovou (fase 244). */
   const t = traduzirPalavrasDaCasa(sem(texto), ensinadas);
-  const aviso = primeira
-    ? 'Estou no modo guia: explico as telas, levo você até elas e anoto sugestões. Para ler os dados e montar relatórios, a Acolhe+AI precisa estar ligada na instalação.\n\n'
-    : '';
+  const aviso = primeira ? AVISO_DO_MODO_GUIA : '';
 
   const comRascunho = (r: NonNullable<RespostaDoGuia['rascunho']>): RespostaDoGuia => ({
     texto: `${aviso}Montei o rascunho com o que você contou. Confira, mude o que quiser, acrescente falando ou anexe foto. Quando estiver bom, aperte Está bom${r.tela ? '' : ' e escolha onde ele vai ficar'}.`,

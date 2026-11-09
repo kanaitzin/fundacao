@@ -124,6 +124,8 @@ export const A_ACOLHE_EM_TODA_TELA: string[] = [
   'A Acolhe+AI fica no botão do canto da tela, em todas as telas. Ela conversa por texto e pela voz, e vê só o que você vê: lê os dados com o seu acesso, pelas mesmas telas que você usa.',
   'Ela explica qualquer tela, leva você até ela e abre o formulário que você pedir. Na primeira vez ela pergunta se pode mexer na tela; depois escreve à vista, campo por campo, e no fim você confere e salva. Ela nunca salva sozinha.',
   'Ela redige relatório pela voz: você conta à vontade, ela organiza o texto na linguagem da equipe e mostra o rascunho para você editar, completar falando ou ilustrar com foto.',
+  'Ao abrir, ela se apresenta e oferece frases prontas para começar e os documentos que monta com você: o rascunho da ATA, o relatório pela voz, o relatório do período, o de visitas, o das vivências, a trajetória, o da internação e a tabela que vira planilha. Um toque na frase é o mesmo que escrever.',
+  'Embaixo de cada resposta há Ouvir, que lê a resposta em voz alta e para com um toque, e Copiar. Ao lado do microfone fica a Conversa por voz: você fala, ela responde falando e volta a ouvir, para quando as mãos estão ocupadas, e Encerrar a conversa por voz volta à conversa escrita.',
   'Ela faz contas e monta tabelas que você baixa como planilha, lê foto ou PDF que você anexar (receita, nota de compra, alta do hospital) e propõe onde guardar.',
   'Ela não decide diagnóstico, culpa, risco, punição, remédio ou destino de criança, não compara crianças nem casas, não assina no lugar de ninguém e não apaga nada. Em urgência, ela diz primeiro o que fazer pela criança.',
 ];
@@ -147,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 300, dia: '09/11/2026',
+    texto: 'A Acolhe+AI agora se apresenta pelo seu nome e oferece frases prontas e os documentos que monta com você, de um toque. Cada resposta tem Ouvir e Copiar, e ao lado do microfone fica a Conversa por voz: você fala, ela responde falando e volta a ouvir.' },
   { fase: 299, dia: '09/11/2026',
     texto: 'Quem atende mais de uma casa vê no alto o que está olhando, Todas as casas ou a casa aberta. Um toque ali abre as duas visões: as oito casas juntas, com os números ou o dia de todas, e cada casa por inteiro, para entrar nela. E na Portaria, o documento do visitante aberto em Ver o documento agora se esconde de novo pelo Esconder.' },
   { fase: 298, dia: '09/11/2026',
@@ -262,7 +266,7 @@ export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string
   { fase: 243, dia: '24/10/2026',
     texto: 'Peça à Acolhe+AI o relatório do período da casa, das visitas, da internação ou a trajetória, e ela leva até ele. E, quando você escrever uma palavra que rotula a criança, como agressivo, aparece embaixo do campo a sugestão de escrever o fato. É só sugestão: você salva como quiser.' },
   { fase: 242, dia: '24/10/2026',
-    texto: 'No começo do plantão, pergunte à Acolhe+AI o que você precisa saber, e ela leva ao que mudou desde o seu último plantão. No fim, peça o rascunho da ATA. E, com as mãos ocupadas, marque Mãos ocupadas: você fala, ela responde em voz alta e volta a ouvir.' },
+    texto: 'No começo do plantão, pergunte à Acolhe+AI o que você precisa saber, e ela leva ao que mudou desde o seu último plantão. No fim, peça o rascunho da ATA. E, com as mãos ocupadas, toque em Conversa por voz: você fala, ela responde em voz alta e volta a ouvir.' },
   { fase: 241, dia: '24/10/2026',
     texto: 'Antes de escolher o modelo da Acolhe+AI no computador do Pão, a TI pode medir: as frases do plantão e os pedidos que ela tem de recusar, com quantas foram bem atendidas e quanto tempo cada uma levou.' },
   { fase: 240, dia: '24/10/2026',

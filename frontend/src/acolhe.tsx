@@ -9,7 +9,7 @@ import { notaDoMomento } from '../../backend/src/modules/assistente/momento';
 import { turnoAgora } from './turno';
 import { palavrasEnsinadas } from '../../backend/src/modules/assistente/palavras-da-casa';
 import type { PalavraDaCasa } from '../../backend/src/modules/assistente/palavras-da-casa';
-import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
+import { AVISO_DO_MODO_GUIA, CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, apertarEste, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 import { APRESENTACAO, COMO_CONVERSAR, DOCUMENTOS_QUE_EU_FACO, FRASES_PRONTAS, boasVindas, frasesDoCargo } from './acolhe-boas-vindas';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
@@ -393,6 +393,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
       return;
     }
     const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0, ensinadas);
+    /* O quadro azul do alto já diz que é o modo guia: a resposta não repete (fase 300). */
+    if (ligada === false && r.texto.startsWith(AVISO_DO_MODO_GUIA)) r.texto = r.texto.slice(AVISO_DO_MODO_GUIA.length);
     /* A criança nomeada (fase 196): o perfil é o lugar dela. O rascunho, a
        sugestão e a conta continuam vindo antes: "relatório: a Alice voltou da
        escola" é texto para conferir, e não ida ao perfil. */
@@ -1227,6 +1229,19 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
     );
   }
 
+  const avisoDaVoz = (
+        <div className="acolhe-aviso" role="alertdialog" aria-labelledby="t-aviso-voz">
+          <strong id="t-aviso-voz">Antes de usar o microfone</strong>
+          <p>O que você falar é transformado em texto pelo serviço do navegador (no Chrome, o do Google). Evite dizer nome completo e dados de criança em voz alta; escreva quando puder.</p>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn sm" onClick={() => { aceitarAvisoDaVoz(); setAvisoVoz(false); if (maosRef.current) ouvirSozinho(); else ouvir(); }}>
+              Entendi, usar o microfone
+            </button>
+            <button className="btn sm sec" onClick={() => { setAvisoVoz(false); if (maosRef.current) ligarMaos(false); }}>Agora não</button>
+          </div>
+        </div>
+  );
+
   return (
     <div className="acolhe-painel" role="dialog" aria-modal="false" aria-labelledby="t-acolhe" data-ocupada={ocupada ? '1' : undefined}>
       <header className="acolhe-topo">
@@ -1341,7 +1356,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
         )}
         <div ref={fim} />
       </div>
-      {maos && !avisoVoz && (() => {
+      {maos && (() => {
         const estado = falandoAgora ? 'falando' : ocupada ? 'pensando' : ouvindo ? 'ouvindo' : 'esperando';
         const ultimaDela = [...linhas].reverse().find((l) => l.quem === 'acolhe' && l.texto.trim());
         const frase = {
@@ -1353,6 +1368,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
         return (
           <div className="acolhe-voz-modo" role="dialog" aria-modal="false" aria-labelledby="t-voz-modo" data-estado={estado}>
             <h3 id="t-voz-modo" className="so-leitor">Conversa por voz</h3>
+            {avisoVoz ? avisoDaVoz : (<>
             <div className="acolhe-voz-circulo" aria-hidden="true">
               <span className="anel a1" /><span className="anel a2" /><span className="anel a3" />
               <span className="miolo"><SimboloDaAcolhe tamanho={64} /></span>
@@ -1374,21 +1390,11 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
               </button>
             </div>
             <p className="mutetxt acolhe-voz-dica">A conversa fica escrita embaixo, para você conferir depois.</p>
+            </>)}
           </div>
         );
       })()}
-      {avisoVoz && (
-        <div className="acolhe-aviso" role="alertdialog" aria-labelledby="t-aviso-voz">
-          <strong id="t-aviso-voz">Antes de usar o microfone</strong>
-          <p>O que você falar é transformado em texto pelo serviço do navegador (no Chrome, o do Google). Evite dizer nome completo e dados de criança em voz alta; escreva quando puder.</p>
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn sm" onClick={() => { aceitarAvisoDaVoz(); setAvisoVoz(false); if (maosRef.current) ouvirSozinho(); else ouvir(); }}>
-              Entendi, usar o microfone
-            </button>
-            <button className="btn sm sec" onClick={() => { setAvisoVoz(false); if (maosRef.current) ligarMaos(false); }}>Agora não</button>
-          </div>
-        </div>
-      )}
+      {avisoVoz && !maos && avisoDaVoz}
       {anexando && (
         <div className="acolhe-anexar">
           <AnexosDaMensagem key={pelaCamera ? 'camera' : 'anexo'} id="acolhe-anexo" anexos={anexosDaPergunta}

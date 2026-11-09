@@ -279,7 +279,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 09/11/2026, fase 299
+### Onde estamos — 09/11/2026, fase 300
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -442,6 +442,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 297 | **o sigilo de saúde também no banco** (M4): **o papel da aplicação lia o conteúdo de todo registro sigiloso da casa**, escondido só pelo servidor; hoje lê direto só o que diz que o registro existe, e o conteúdo pelas visões `*_legivel` (nursing/1691); **as revisões acharam o relatório gerado guardando o sigiloso para o Gestor, o retorno de um sigiloso nascendo aberto, a situação mudando sem triagem, a casa do atendimento sem conferência e a fila sem internet e os conflitos com a evolução inteira onde a cozinha lia**, fechados nas 1692 a 1694 |
 | 298 | **as gravações conferem a casa** (M5): pelo papel da aplicação, **a coordenação da Casa 04 levava a estadia de uma criança para a Casa 03, punha horário de remédio na receita, horário de trabalho e síntese de ocorrência na Casa 03**, e o educador dava ciência em atividade de lá (1696 a 1701); **as revisões acharam a transferência reaberta pelo destino, a estadia encerrada reativada, a fila do arquivo, o aviso forjado, a ATA geral fechada sem pendência, e a atividade, a internação, o apoio escolar e o relatório levados para criança de outra casa**, fechados nas 1702 a 1713 |
 | 299 | **o botão das duas visões** (plano de 06/11, item 2, e o §10 item 1): quem alcança mais de uma casa vê no alto *Todas as casas* ou a casa aberta, e um toque escolhe entre as oito juntas (o Painel do gestor, o dia das unidades dos outros) e uma casa por inteiro (`FolhaDaCasa`); e **o Marcelo passa a ser a Coordenação Geral das oito casas no protótipo**, com a *Coordenação da casa* (a Carla, da Casa 03) no seletor |
+| 300 | **a Acolhe+AI acolhedora, e a conversa por voz** (pedido de 09/11): ela se apresenta pelo nome e pela hora, oferece frases prontas e os documentos que monta (`acolhe-boas-vindas.ts`), cada resposta tem *Ouvir* e *Copiar* no lugar das duas caixinhas, e o botão **Conversa por voz**, ao lado do microfone, abre a tela em que ela ouve, pensa e responde falando |
 
 **Medido no fim da 298:** 253 migrações, 155 tabelas, 178 suítes, 1542 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -566,6 +567,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 300** (§2): a Acolhe+AI acolhedora e a conversa por voz, a pedido de 09/11. **Frase pronta nova** entra no `acolhe-boas-vindas.ts` com o `precisa` da tela que ela pede, e se confere mandando o pedido ao `responderPeloGuia`: nenhuma pode cair em *não reconheci*. **A leitura em voz alta mora na resposta** (*Ouvir*, que vira *Parar*), e **as mãos ocupadas são a Conversa por voz**, com tela própria (`acolhe-voz-modo`), o mesmo `ligarMaos` da 242 por baixo; quem mexer no microfone continua nunca religando com a leitura tocando. MEDIDO_300 **Próxima:** a pauta arrumada para o Marcelo; depois o 1.0, só quando a pessoa da Fundação pedir.
 
 **FEITO — fase 299** (§2): o botão das duas visões, o item 2 do plano de 06/11 (pedido de 09/11: *um botão lindo e sugestivo para trocar de casa, vendo tudo diferente, mas podendo ver todas ao mesmo tempo*). **Tela nova que junta as casas** entra no `VISAO_DAS_OITO` do `App.tsx`, e com ela aberta o botão diz *Todas as casas*; a tela das oito de cada cargo sai do `telaDasOito`. **A casa aberta mora no `escolhida` do `App.tsx`**, e quem troca de casa por um caminho novo chama o `setEscolhida` (a própria casa de trabalho volta a ser `null`, sem a marca de *olhando outra*). **No protótipo, o Marcelo (`u0`) é Coordenação Geral** (`TODAS_AS_CASAS` do `mock-casa.ts`): o seletor tem `coordenacao_geral` (ele) e `coordenador` (a Carla, coordenadora da Casa 03), e o `/prototipo/cargo` devolve a marca das oito casas. **Ensaio que entra pelo atalho do Marcelo cai nas Unidades**; quem precisa da coordenação de uma casa troca para `coordenador`. MEDIDO_299 **Próxima:** a pauta arrumada para o Marcelo; depois o 1.0, só quando a pessoa da Fundação pedir.
 
