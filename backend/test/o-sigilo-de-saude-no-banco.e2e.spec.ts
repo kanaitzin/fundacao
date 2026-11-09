@@ -163,18 +163,19 @@ describe('O sigilo de saúde também no banco', () => {
     for (const [tabela, meta] of Object.entries(O_QUE_DIZ_QUE_EXISTE)) {
       const { rows } = await admin.query(
         `SELECT a.attname AS col,
-                has_column_privilege('rede_app', a.attrelid, a.attname, 'SELECT') AS le
+                has_column_privilege('rede_app', a.attrelid, a.attname, 'SELECT') AS le,
+                coalesce(col_description(a.attrelid, a.attnum), '') LIKE 'MORTA %' AS morta
            FROM pg_attribute a
           WHERE a.attrelid = $1::regclass AND a.attnum > 0 AND NOT a.attisdropped
           ORDER BY a.attname`, [tabela]);
       const legiveis = rows.filter((r) => r.le).map((r) => r.col).sort();
       expect({ tabela, legiveis }).toEqual({ tabela, legiveis: [...meta].sort() });
-      // Toda coluna da tabela chega pela visão (o conteúdo, mascarado).
+      // Toda coluna da tabela chega pela visão (o conteúdo, mascarado), menos a declarada MORTA.
       const { rows: daVisao } = await admin.query(
         `SELECT attname FROM pg_attribute WHERE attrelid = $1::regclass AND attnum > 0 AND NOT attisdropped`,
         [VISAO[tabela]]);
       const naVisao = new Set(daVisao.map((r) => r.attname));
-      expect({ tabela, faltam: rows.map((r) => r.col).filter((c) => !naVisao.has(c)) })
+      expect({ tabela, faltam: rows.filter((r) => !r.morta).map((r) => r.col).filter((c) => !naVisao.has(c)) })
         .toEqual({ tabela, faltam: [] });
       // E a visão só se lê, como a aplicação.
       const { rows: [p] } = await admin.query(

@@ -764,7 +764,7 @@ tira só a técnica e a coordenação, com o motivo (`app_marcar_sigilo_de_saude
 `evolution_id`, `person_id`, `house_id`, `confidential` (o estado novo), `reason` (obrigatório
 ao tirar), `created_by`, `created_at`. Só cresce; lida no histórico de saúde do perfil.
 
-**O sigilo também no banco (fase 297, nursing/1691 a 1693, sync/1694).** A aplicação lê direto em
+**O sigilo também no banco (fase 297, nursing/1691 a 1693 e 1695, sync/1694).** A aplicação lê direto em
 `health_encounter`, `health_evolution` e `nursing_triage` só as colunas que dizem que o registro
 existe (a criança, a casa, o tipo, o dia, a situação, quem registrou, a data do retorno da consulta);
 o conteúdo se lê pelas visões `health_encounter_legivel`, `health_evolution_legivel` e

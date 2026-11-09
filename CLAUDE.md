@@ -441,7 +441,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 296 | **o esqueci minha senha com limite**: **de um endereço só saíam até 720 e-mails por dia para cada conta**; hoje dez pedidos por hora por endereço e sessenta e-mails por hora na instituição, contados no banco (`reset_request`, identity/1689); **a primeira versão deixava dois e-mails reais derrubarem o esqueci de todos, pedidos ao mesmo tempo passarem juntos e uma origem encher o disco**, achado pelas duas revisões e fechado na 1690 |
 | 297 | **o sigilo de saúde também no banco** (M4): **o papel da aplicação lia o conteúdo de todo registro sigiloso da casa**, escondido só pelo servidor; hoje lê direto só o que diz que o registro existe, e o conteúdo pelas visões `*_legivel` (nursing/1691); **as revisões acharam o relatório gerado guardando o sigiloso para o Gestor, o retorno de um sigiloso nascendo aberto, a situação mudando sem triagem, a casa do atendimento sem conferência e a fila sem internet e os conflitos com a evolução inteira onde a cozinha lia**, fechados nas 1692 a 1694 |
 
-**Medido no fim da 296:** 230 migrações, 155 tabelas, 176 suítes, 1533 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 297:** 235 migrações, 155 tabelas, 177 suítes, 1539 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
