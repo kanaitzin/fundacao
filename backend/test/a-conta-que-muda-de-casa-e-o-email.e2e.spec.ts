@@ -151,10 +151,10 @@ describe('A conta que muda de casa, e o e-mail da promoção', () => {
     /* A coordenação da casa de onde ela veio não confirma. */
     expect((await post(t.coord, `/staff/${ids.promovida}/confirm-email`,
       { email: `outro.${rodada}@paodospobres.dev` })).status).toBe(404);
-    /* Ninguém confirma o próprio e-mail. */
+    /* Conta que não está a confirmar não passa por aqui, nem a do próprio Gestor (1686). */
     const { rows: [{ id: gestorId }] } = await admin.query(`SELECT id FROM app_user WHERE email = 'gestor@paodospobres.dev'`);
     expect((await post(t.gestor, `/staff/${gestorId}/confirm-email`,
-      { email: 'gestor@paodospobres.dev' })).status).toBe(403);
+      { email: 'gestor@paodospobres.dev' })).status).toBe(404);
     /* E-mail que não é e-mail, e e-mail de outra conta. */
     expect((await post(t.gestor, `/staff/${ids.promovida}/confirm-email`, { email: 'sem-arroba' })).status).toBe(400);
     expect((await post(t.gestor, `/staff/${ids.promovida}/confirm-email`,
@@ -190,5 +190,30 @@ describe('A conta que muda de casa, e o e-mail da promoção', () => {
     const tirar = await post(t.gestor, `/staff/${r.body.id}/coordenacao-geral`, { todas: false });
     expect(tirar.status).toBe(201);
     expect((await naLista(r.body.id)).emailAConfirmar).toBe(false);
+  });
+
+  it('a Coordenação Geral não troca o e-mail do Gestor Geral, nem o de outra Coordenação Geral', async () => {
+    /* O caminho que as revisões provaram na 1685: a CG trocava o e-mail do Gestor para uma
+       caixa dela e recebia o link do esqueci (1686). */
+    const email = `cg.da.suite.${rodada}@paodospobres.dev`;
+    const r = await post(t.gestor, '/staff', { nome: 'Coordenação Geral da suíte 292 (fictício)',
+      email, cargo: 'coordenador', casaId: ids.AI3, senhaInicial: 'Senha-da-cg-292!' });
+    expect(r.status).toBe(201);
+    criados.push(r.body.id);
+    const marcar = await post(t.gestor, `/staff/${r.body.id}/coordenacao-geral`, { todas: true });
+    const cg = await entrarPelaPrimeiraVez(http, email, marcar.body.senhaInicial, 'Senha-da-cg-nova-1!');
+
+    const { rows: [g] } = await admin.query(`SELECT id, email FROM app_user WHERE email = 'gestor@paodospobres.dev'`);
+    const tentar = await post(cg, `/staff/${g.id}/confirm-email`, { email: `caixa.da.cg.${rodada}@paodospobres.dev` });
+    expect([403, 404]).toContain(tentar.status);
+    const { rows: [depois] } = await admin.query(`SELECT email FROM app_user WHERE id = $1`, [g.id]);
+    expect(depois.email).toBe(g.email);
+
+    /* A CG não confirma a própria marca nem a de outra CG: é do Gestor. */
+    expect([403, 404]).toContain((await post(cg, `/staff/${r.body.id}/confirm-email`, { email })).status);
+    /* E uma educadora sem marca nenhuma não tem e-mail a confirmar. */
+    const { rows: [edu] } = await admin.query(`SELECT id FROM app_user WHERE email = 'educador.ai3@paodospobres.dev'`);
+    expect((await post(cg, `/staff/${edu.id}/confirm-email`,
+      { email: `outra.caixa.${rodada}@paodospobres.dev` })).status).toBe(404);
   });
 });
