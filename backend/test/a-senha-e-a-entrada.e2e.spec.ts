@@ -361,7 +361,8 @@ describe('A senha e a entrada', () => {
     expect(i).toMatch(/DATABASE_APP_URL\)" == \*dev-only-change-me\*/);
     expect(i).toMatch(/o rede_app aceita a senha de desenvolvimento/);
     expect(ler('.env.example')).toMatch(/^LOGIN_MAX_POR_ENDERECO=\d+$/m);
-    expect(i).toMatch(/falta "TRUST_PROXY vazio"/);
+    /* Vazio, ou um valor que o servidor lê como não confiar (fase 296). */
+    expect(i).toMatch(/if \[\[ -z "\$tp" \|\| "\$tp" =~ \^\(nao\|não\|false\|0\|no\|off\)\$ \]\]; then\s*falta "TRUST_PROXY=/);
     expect(i).toMatch(/LOGIN_MAX_ATTEMPTS LOGIN_MAX_POR_ENDERECO LOGIN_LOCK_MINUTES/);
   });
 });
