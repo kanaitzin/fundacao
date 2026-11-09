@@ -128,7 +128,10 @@ mais** limite, não menos: o ganho é a conversa principal não se encher de log
 | colocar no ar, preparar a máquina, mexer no servidor | `implantacao` (passo a passo; nunca faz o deploy) |
 
 O hook `.claude/hooks/jest-em-serie.sh` recusa o `jest` sem `--runInBand`, e o
-`.github/workflows/suite.yml` roda os `tsc` e a suíte a cada push.
+`.github/workflows/suite.yml` roda os `tsc` e a suíte a cada push. **Commit no meio de uma fase
+leva `[skip ci]` na mensagem** (pedido do dono em 09/11): o estado do meio da fase reprova de
+propósito, e cada reprovação no GitHub manda um e-mail *All jobs have failed* ao dono. Só o commit
+que fecha a fase, com a suíte verde aqui nas duas condições, vai sem o `[skip ci]`.
 
 ## O que NUNCA se faz
 

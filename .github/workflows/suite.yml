@@ -10,6 +10,12 @@
 #     PostgreSQL sob ele; fica para um segundo workflow, noturno, quando este estiver estável;
 #   - os ensaios de navegador e a simulação: levam de dez minutos a horas e pedem o Chromium.
 #
+# COMMIT NO MEIO DE UMA FASE LEVA `[skip ci]` NA MENSAGEM (pedido do dono em 09/11): a sessão
+# empurra a cada parada, e o estado do meio da fase reprova de propósito (os números da
+# documentação ainda velhos, o teste esperando o conserto). Cada reprovação mandava um e-mail
+# "All jobs have failed" ao dono. O GitHub não roda workflow nenhum para commit com
+# `[skip ci]`; o commit que FECHA a fase, depois da suíte verde na sessão, vai sem ele e roda aqui.
+#
 # Nada aqui publica coisa alguma, nada usa dado real, e as senhas são as de desenvolvimento,
 # as mesmas do `scripts/preparar-ambiente.sh` (o banco nasce e morre com a rodada).
 name: A suíte
