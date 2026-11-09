@@ -271,6 +271,17 @@ export class NursingService {
            input.acompanhanteNome?.trim() || null,
            input.comportamentoAoChegar || null, input.comportamentoAoSair || null,
            input.retornoDe || null]);
+        /* O sigilo marcado já no registro vai na MESMA transação (fase 297): em duas, a
+           marcação que falhasse deixava o registro aberto. O retorno de um sigiloso já nasce
+           sigiloso pelo gatilho da 1692, e aí não se marca de novo. */
+        if (input.sigiloso === true) {
+          const { rows: [ja] } = await c.query(
+            `SELECT confidential FROM health_evolution WHERE id = $1`, [r.out_evolution_id]);
+          if (!ja?.confidential) {
+            await c.query(`SELECT app_marcar_sigilo_de_saude('atendimento', $1, true, $2)`,
+              [r.out_evolution_id, input.motivoDoSigilo ?? null]);
+          }
+        }
         return r;
       });
     } catch (e: any) {
@@ -300,8 +311,13 @@ export class NursingService {
       throw e;
     }
     const id = ids.out_evolution_id;
-    /* Quem registra já pode marcar como sigiloso (fase 287). */
-    if (input.sigiloso === true) await this.marcarSigilo(user, 'atendimento', id, true, input.motivoDoSigilo ?? null);
+    /* Quem registra já pode marcar como sigiloso (fase 287), marcado acima, na mesma transação. */
+    if (input.sigiloso === true) {
+      await this.audit.log({
+        action: 'health.sigilo.marcado', actorId: user.id, houseId: input.houseId,
+        entity: 'health_evolution', entityId: id, detail: { qual: 'atendimento' },
+      });
+    }
 
     await this.audit.log({
       action: 'health.evolution_submit', actorId: user.id, houseId: input.houseId,

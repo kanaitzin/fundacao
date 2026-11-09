@@ -49,6 +49,11 @@ export class NursingOfflineHandlers implements OnModuleInit {
       prazoRetorno: p.prazoRetorno, encaminhamentos: p.encaminhamentos,
       intercorrenciasDeslocamento: p.intercorrenciasDeslocamento,
       observacoes: p.observacoes,
+      /* O que a folha manda e a fila deixava cair (fase 297): o sigilo, sobretudo. */
+      acompanhanteNome: p.acompanhanteNome,
+      comportamentoAoChegar: p.comportamentoAoChegar, comportamentoAoSair: p.comportamentoAoSair,
+      retornoDe: p.retornoDe,
+      sigiloso: p.sigiloso === true, motivoDoSigilo: p.motivoDoSigilo ?? null,
       offline: true, clientOpId: op.clientOpId,
     });
     return { duplicada: !!(r as any).duplicada };

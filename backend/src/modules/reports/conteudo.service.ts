@@ -252,12 +252,13 @@ export class ConteudoService {
               AND ($4::uuid IS NULL OR ma.person_id = $4)`,
           [ini, fim, casa, pessoa]);
         const { rows: atendimentos } = await c.query(
-          /* O registro sigiloso (fase 287) sai sem o conteúdo para quem não lê. */
+          /* O registro sigiloso (fase 287) entra sem o conteúdo para todos: o texto fica guardado no
+             relatório, que outros cargos leem (fase 297). Quem precisar, escreve à mão. */
           `SELECT he.happened_at, he.kind,
-                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.place END AS place,
-                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.specialty END AS specialty,
-                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso' ELSE he.reason END AS reason,
-                  CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.outcome END AS outcome
+                  CASE WHEN he.confidential THEN NULL ELSE he.place END AS place,
+                  CASE WHEN he.confidential THEN NULL ELSE he.specialty END AS specialty,
+                  CASE WHEN he.confidential THEN 'Registro sigiloso' ELSE he.reason END AS reason,
+                  CASE WHEN he.confidential THEN NULL ELSE he.outcome END AS outcome
              FROM health_encounter_legivel he
             WHERE he.happened_at >= $1 AND he.happened_at < $2
               AND ($3::uuid IS NULL OR he.house_id = $3)
@@ -425,7 +426,7 @@ export class ConteudoService {
                 AND ($4::uuid IS NULL OR a.person_id = $4)
              UNION ALL
              SELECT he.happened_at, 'Saúde',
-                    CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso'
+                    CASE WHEN he.confidential THEN 'Registro sigiloso'
                          ELSE concat_ws(', ', he.kind, he.specialty, he.place) END, he.status
                FROM health_encounter_legivel he
               WHERE he.happened_at >= $1 AND he.happened_at < $2

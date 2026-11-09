@@ -297,7 +297,7 @@ export class FollowupsService {
           `SELECT e.id, e.kind, e.happened_at AS quando,
                   -- O registro sigiloso (fase 287) entra sem o conteúdo para quem não lê.
                   CASE WHEN e.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso'
-                       ELSE e.state_return END AS state_return, e.status,
+                       ELSE e.state_return END AS state_return, e.status, e.confidential,
                   app_user_display_name(e.accompanied_by) AS autor
              FROM health_evolution_legivel e
             WHERE e.person_id = $1
@@ -307,7 +307,9 @@ export class FollowupsService {
           candidatos.push({
             entidade: 'health_evolution', id: r.id, tipo: 'saude',
             origem: 'Evoluções de saúde', titulo: r.kind, quando: r.quando,
-            autor: r.autor, classificacao: 'operacional', resumo: r.state_return,
+            /* O sigiloso entra como restrito (fase 297): o acompanhamento é lido por outros cargos. */
+            autor: r.autor, classificacao: r.confidential ? 'restrito' : 'operacional',
+            resumo: r.state_return,
           });
         }
       }

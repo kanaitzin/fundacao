@@ -10,7 +10,9 @@
  *  2. as visões entregam o conteúdo do registro sigiloso só a quem lê o sigilo;
  *  3. as visões devolvem as mesmas linhas que a política de leitura das tabelas;
  *  4. nega por padrão: coluna nova das três tabelas reprova até alguém dizer se ela é
- *     conteúdo (só pela visão) ou o que diz que o registro existe (lista abaixo).
+ *     conteúdo (só pela visão) ou o que diz que o registro existe (lista abaixo);
+ *  5. o retorno de uma consulta sigilosa nasce sigiloso, e o histórico do sigilo (quem
+ *     marcou e por quê) só se lê com o sigilo (1692).
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -46,11 +48,11 @@ describe('O sigilo de saúde também no banco', () => {
   const u: Record<string, string> = {};
   const ids: Record<string, string> = {};
   const auth = (k: string) => ({ Authorization: `Bearer ${t[k]}` });
-  const enviar = (sigiloso: boolean, texto: string) =>
+  const enviar = (sigiloso: boolean, texto: string, extra: Record<string, unknown> = {}) =>
     request(http).post('/api/v1/nursing/evolutions').set(auth('educador'))
       .send({ personId: ids.crianca, houseId: ids.AI3, tipo: 'consulta',
               quandoAconteceu: new Date().toISOString(), especialidade: texto,
-              estadoRetorno: texto, sigiloso, prazoRetorno: null });
+              estadoRetorno: texto, sigiloso, prazoRetorno: null, ...extra });
   /** Uma consulta como o papel da aplicação, com a identidade de quem. */
   const comoApp = <T>(quem: string, sql: string, p: unknown[] = []) =>
     db.asUser(u[quem], async (c) => (await c.query(sql, p)).rows as T[]);
@@ -181,5 +183,36 @@ describe('O sigilo de saúde também no banco', () => {
                 has_table_privilege('public', $1, 'SELECT') AS publico`, [VISAO[tabela]]);
       expect(p).toEqual({ ins: false, upd: false, publico: false });
     }
+  });
+
+  it('o retorno de uma consulta sigilosa nasce sigiloso, e o histórico do sigilo só se lê com o sigilo', async () => {
+    const amanha = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const marcada = await enviar(true, SEGREDO, { prazoRetorno: amanha });
+    expect(marcada.status).toBe(201);
+    const op = await request(http).get(`/api/v1/nursing/evolutions/options?personId=${ids.crianca}`)
+      .set(auth('educador'));
+    const { rows: [{ encounter_id: consulta }] } = await admin.query(
+      `SELECT encounter_id FROM health_evolution WHERE id = $1`,
+      [marcada.body.id ?? marcada.body.evolutionId ?? marcada.body.out_evolution_id]);
+    const retorno = op.body.retornosMarcados.find((r: any) => r.id === consulta);
+    expect(retorno.rotulo).toBe('Retorno de um registro sigiloso');
+    // A educadora registra o retorno sem marcar o sigilo: ele nasce sigiloso assim mesmo.
+    const ret = await enviar(false, SEGREDO, { retornoDe: consulta });
+    expect(ret.status).toBe(201);
+    const novo = ret.body.id ?? ret.body.evolutionId ?? ret.body.out_evolution_id;
+    const { rows: [n] } = await admin.query(
+      `SELECT ev.confidential AS ev, en.confidential AS en,
+              (SELECT count(*)::int FROM health_confidential_change h WHERE h.evolution_id = ev.id) AS hist
+         FROM health_evolution ev JOIN health_encounter en ON en.id = ev.encounter_id WHERE ev.id = $1`, [novo]);
+    expect(n).toEqual({ ev: true, en: true, hist: 1 });
+    const [lido] = await comoApp<any>('educador',
+      `SELECT state_return FROM health_evolution_legivel WHERE id = $1`, [novo]);
+    expect(lido.state_return).toBeNull();
+    // Quem marcou e por quê: só com o sigilo.
+    const conta = async (quem: string) => (await comoApp<any>(quem,
+      `SELECT count(*)::int AS n FROM health_confidential_change WHERE person_id = $1`, [ids.crianca]))[0].n;
+    expect(await conta('educador')).toBe(0);
+    expect(await conta('gestor')).toBe(0);
+    expect(await conta('tecnica')).toBeGreaterThanOrEqual(2);
   });
 });

@@ -2939,6 +2939,8 @@ interface Triagem {
   comportamentoAoSair?: string | null;
   /** O sigilo por registro (fase 287): a consulta que nasceu junto, e quem registrou. */
   sigiloso?: boolean; atId?: string; autorId?: string;
+  /** O tipo sem a especialidade, para a linha do sigiloso de quem não lê (fase 297). */
+  tipoSemDetalhe?: string;
 }
 /** Quem marcou e quem tirou o sigilo de um registro de saúde (fase 287). */
 const SIGILO_SAUDE: { atId: string | null; evId: string | null; sigiloso: boolean; motivo: string | null;
@@ -12015,8 +12017,19 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   /** `GET /nursing/triage?houseId=` — a fila do que ainda não foi assinado. */
   if (rota === '/nursing/triage' && metodo === 'GET') {
+    const leTriagem = LEEM_O_SIGILO.includes(eu.role);
     return TRIAGENS.filter((t) => !t.assinada).map((t) => {
       const horas = Math.floor((Date.now() - new Date(t.enviadaEm).getTime()) / 3_600_000);
+      /* O sigiloso, para quem não lê, só diz que existe (fase 297, como o servidor). */
+      if (t.sigiloso && !leTriagem) {
+        return {
+          id: t.id, acolhidoId: t.personId, acolhido: kid(t.personId)?.nome ?? '—',
+          casa: 'AI3 · Casa 03', tipo: t.tipoSemDetalhe ?? 'Atendimento', quando: t.enviadaEm,
+          acompanhante: t.enviadaPor,
+          status: t.pedidoComplemento ? 'complemento_solicitado' : 'aguardando_triagem',
+          horasNaFila: horas, foraDoPrazo: horas > 24, sigiloso: true,
+        };
+      }
       return {
         id: t.id, acolhidoId: t.personId, acolhido: kid(t.personId)?.nome ?? '—',
         casa: 'AI3 · Casa 03', tipo: t.tipo, quando: t.enviadaEm,
@@ -12032,6 +12045,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         horasNaFila: horas,
         // Prazo é acompanhamento, não punição.
         foraDoPrazo: horas > 24,
+        sigiloso: !!t.sigiloso,
       };
     });
   }
@@ -12060,7 +12074,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       .filter((a) => a.personId === daCrianca && a.status === 'retorno_pendente' && a.retornoEm)
       .sort((x, y) => x.retornoEm!.localeCompare(y.retornoEm!))
       .map((a) => ({ id: a.id, retornoEm: a.retornoEm!, quando: a.quando,
-        rotulo: [TIPO_AT[a.tipo] ?? a.tipo, a.especialidade, a.local].filter(Boolean).join(' · ') }));
+        /* O retorno de uma consulta sigilosa não diz a especialidade nem o lugar (fase 287). */
+        rotulo: a.sigiloso && !LEEM_O_SIGILO.includes(eu.role) ? 'Retorno de um registro sigiloso'
+          : [TIPO_AT[a.tipo] ?? a.tipo, a.especialidade, a.local].filter(Boolean).join(' · ') }));
     return {
       ...(retornosMarcados ? { retornosMarcados } : {}),
       tipos: [
@@ -12098,6 +12114,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         'Esse retorno já foi registrado ou não é desta criança. Abra a folha de novo para ver os retornos marcados.');
     }
     const k = kid(String(b.personId ?? ''));
+    /* O retorno de um registro sigiloso nasce sigiloso (fase 297, como o gatilho da 1692). */
+    if (cumpre?.sigiloso) b.sigiloso = true;
     const novoAt = { id: uid(), personId: String(b.personId ?? ''), tipo: String(b.tipo ?? 'consulta'),
       quando: String(b.quandoAconteceu), local: (b.local as string) || null,
       especialidade: (b.especialidade as string) || null, profissional: null, motivo: null,
@@ -12113,6 +12131,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     TRIAGENS = [{
       id: uid(), personId: String(b.personId ?? ''),
       tipo: `${TIPO[String(b.tipo)] ?? 'Atendimento'}${b.especialidade ? ` de ${b.especialidade}` : ''}`,
+      tipoSemDetalhe: TIPO[String(b.tipo)] ?? 'Atendimento',
       enviadaPor: eu.fullName, enviadaEm: String(b.quandoAconteceu),
       /* Nas duas direções (regra 14): o que a tela manda, o mock guarda. */
       quemLevou: String(b.acompanhanteNome ?? '').trim() || null,
@@ -12251,7 +12270,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           && a.retornoEm != null && a.retornoEm < HOJE,
       }));
     const evolucoes = TRIAGENS.filter((t) => t.personId === pid).map((t) => t.sigiloso && !le ? {
-      id: t.id, tipoRotulo: t.tipo, quando: t.enviadaEm, acompanhante: t.enviadaPor,
+      id: t.id, tipoRotulo: t.tipoSemDetalhe ?? 'Atendimento', quando: t.enviadaEm, acompanhante: t.enviadaPor,
       estadoRetorno: null, orientacoes: null, quemLevou: null, comportamentoAoChegar: null,
       comportamentoAoSair: null, status: null, statusRotulo: null, complementoEnfermagem: null,
       conteudoOculto: true, historicoDoSigilo: [], ...sigiloDe(true, t.autorId),
