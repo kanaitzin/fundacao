@@ -1405,6 +1405,23 @@ textarea{
 :root[data-theme="rs"] .tabbar button:nth-child(3n+3) .icone,
 :root[data-theme="rs"] .portas-lateral button:nth-child(3n+3) .icone{ color:#7A5B00; background:#FFF1BF }
 
+/* A SETINHA DA CASA (fase 299): o código da casa aberta, com a seta que diz que troca. Alvo de 34 px,
+   como os botões do topo. */
+.troca-casa{
+  display:inline-flex; align-items:center; gap:4px; min-height:34px; padding:0 10px;
+  border:1px solid var(--line); border-radius:10px; background:var(--raised); color:var(--titulo);
+  font:inherit; font-weight:800; font-size:13px; cursor:pointer; flex:none; white-space:nowrap;
+}
+.troca-casa:hover{ background:var(--brand-soft); border-color:var(--brand) }
+/* A folha das casas: uma por linha, a aberta marcada. */
+.casas-lista{ display:grid; gap:8px; margin:12px 0 }
+.casas-lista button{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 6px; min-height:48px; padding:8px 12px;
+  border:2px solid var(--line); border-radius:12px; background:var(--surface);
+  color:var(--ink); font:inherit; text-align:left; cursor:pointer;
+}
+.casas-lista button[aria-current="true"]{ border-color:var(--brand); box-shadow:0 0 0 2px var(--brand-soft) }
+
 /* A folha de escolher a cor da tela: uma amostra por tema. */
 .temas-lista{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0 }
 .temas-lista button{

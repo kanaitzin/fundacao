@@ -421,12 +421,12 @@ const USUARIOS: Record<string, { id: string; fullName: string; role: string; sen
   /* A portaria entra com login mínimo desde a fase 160 (decisão de 26/09). */
   'portaria.ai3@paodospobres.dev': { id: 'u12', fullName: 'Paulo da Portaria', role: 'portaria', senha: 'senha-dev-123' },
   /* A Coordenação Geral (fase 176): o cargo coordenador com a marca das oito
-     casas. A conta do Marcelo continua a da Casa 03 no protótipo, porque é por
-     ela que os ensaios entram; a demonstração do cargo novo é esta. */
+     casas. Desde a 299 o Marcelo também é (plano de 06/11); esta conta continua
+     para quem entra pelo e-mail. */
   'coordenacao.geral@paodospobres.dev': { id: 'u13', fullName: 'Graça da Coordenação Geral', role: 'coordenador', senha: 'senha-dev-123' },
 };
 /** Quem coordena as oito casas, como a coluna `todas_as_casas` do servidor (1634). */
-const TODAS_AS_CASAS = new Set<string>(['u13']);
+const TODAS_AS_CASAS = new Set<string>(['u0', 'u13']);
 /* O e-mail que veio da casa, na conta promovida para todas as casas (identity/1685):
    até o Gestor Geral ou a Coordenação Geral confirmar, o esqueci e o convite esperam. */
 const EMAIL_A_CONFIRMAR = new Set<string>();
@@ -706,7 +706,10 @@ const TRABALHO_DA_EQUIPE: {
  * fase 83, não do banco.
  */
 const PESSOA_DO_CARGO: Record<string, { id: string; fullName: string; role: string; senha: string | null }> = {
-  coordenador: USUARIOS['mbarbosa@paodospobres.com.br'],
+  /* O Marcelo é a Coordenação Geral (plano de 06/11, fase 299); a coordenação de uma casa é a
+     Carla, da Casa 03. */
+  coordenacao_geral: USUARIOS['mbarbosa@paodospobres.com.br'],
+  coordenador: USUARIOS['coord.ai3@paodospobres.dev'],
   educador: USUARIOS['educador.ai3@paodospobres.dev'],
   lider_diurno: USUARIOS['lider.ai3@paodospobres.dev'],
   equipe_tecnica: USUARIOS['tecnica.ai3@paodospobres.dev'],
@@ -6055,7 +6058,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const pessoa = PESSOA_DO_CARGO[alvo];
     if (pessoa) eu = pessoa;
     cofreLiberado = false;   // trocar de cargo fecha o cofre: a porta é por pessoa.
-    return { ok: true, id: eu.id, fullName: eu.fullName, role: eu.role,
+    return { ok: true, id: eu.id, fullName: eu.fullName, role: eu.role, todasAsCasas: TODAS_AS_CASAS.has(eu.id),
              email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id) };
   }
   if (rota === '/auth/password') {

@@ -129,7 +129,10 @@ const FRASE_DAS_ABAS: Record<string, string> = {
 };
 
 const CARGOS_DEMO = [
-  { value: 'coordenador',         label: 'Coordenação' },
+  /* O MARCELO É A COORDENAÇÃO GERAL (plano de 06/11): o atalho dele entra nas oito casas, com a
+     setinha da casa no alto. A coordenação de uma casa é a da Casa 03. */
+  { value: 'coordenacao_geral',   label: 'Coordenação Geral' },
+  { value: 'coordenador',         label: 'Coordenação da casa' },
   { value: 'equipe_tecnica',      label: 'Equipe técnica' },
   { value: 'educador',            label: 'Educador social' },
   { value: 'lider_diurno',        label: 'Líder Diurno' },
@@ -165,6 +168,37 @@ const rotuloDoTema = () =>
  * botão está na folha da conta (fase 184), e uma folha aberta por cima da
  * outra deixava dois "Fechar" na tela. Quem abre esta fecha a da conta antes.
  */
+/** A folha da setinha da casa: as casas que a pessoa alcança, a aberta marcada. */
+function FolhaDaCasa({ casas, aberta, minha, onEscolher, onFechar }: {
+  casas: House[]; aberta: string; minha: string | null;
+  onEscolher: (h: House) => void; onFechar: () => void;
+}) {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [onFechar]);
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-casa"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-casa">Trocar de casa</h3>
+        <div className="casas-lista">
+          {casas.map((h) => (
+            <button key={h.id} aria-current={h.id === aberta ? 'true' : undefined}
+                    onClick={() => onEscolher(h)}>
+              <b>{h.code}</b> <span>{h.name}</span>
+              {h.code === minha && <span className="mutetxt"> · sua casa</span>}
+              {h.id === aberta && <span className="mutetxt"> · aberta agora</span>}
+            </button>
+          ))}
+        </div>
+        <button className="btn sec block" onClick={onFechar}>Fechar</button>
+      </div>
+    </div>
+  );
+}
+
 function FolhaTema({ onFechar }: { onFechar: () => void }) {
   /* A folha marca a cor ESCOLHIDA, e não a que está na tela: à noite, com o
      escuro automático, a tela está escura e a escolha continua sendo o rosa. */
@@ -457,6 +491,8 @@ export function App() {
   /* A folha da conta, que no celular guarda o que saiu do topo (fase 184). */
   const [conta, setConta] = useState(false);
   const [folhaTema, setFolhaTema] = useState(false);
+  /* A setinha da casa (pedido de 06/11): a folha das casas que a pessoa alcança. */
+  const [folhaCasa, setFolhaCasa] = useState(false);
   const [mais, setMais] = useState(false);
   const [escolhida, setEscolhida] = useState<string | null>(null);
   /*
@@ -725,6 +761,20 @@ export function App() {
           <span className="rolechip so-no-monitor">
             {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
           </span>
+          {/* A SETINHA DA CASA (plano de 06/11): quem alcança mais de uma casa troca daqui,
+              sem passar pelas Unidades. O código da casa fica à vista, a setinha diz que abre. */}
+          {casaAtual && houses.length > 1 && (
+            <button className="troca-casa" aria-haspopup="dialog"
+                    aria-label={`Casa aberta: ${casaAtual.code} · ${casaAtual.name}. Trocar de casa`}
+                    title={`${casaAtual.code} · ${casaAtual.name}`}
+                    onClick={() => setFolhaCasa(true)}>
+              <span>{casaAtual.code}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none"
+                   stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          )}
           <span className="grow" />
           <RelogioDoTopo />
           {/* A BUSCA DE CRIANÇA (fase 183): só para quem vê os acolhidos, e só na
@@ -789,6 +839,16 @@ export function App() {
       </header>
 
       {folhaTema && <FolhaTema onFechar={() => setFolhaTema(false)} />}
+      {folhaCasa && casaAtual && (
+        <FolhaDaCasa casas={houses} aberta={casaAtual.id} minha={casa?.code ?? null}
+                     onEscolher={(h) => {
+                       /* A própria casa de trabalho volta a ser a de sempre, sem marca de "olhando outra". */
+                       setEscolhida(casa && h.code === casa.code ? null : h.id);
+                       setFolhaCasa(false);
+                       marcarChegada();
+                     }}
+                     onFechar={() => setFolhaCasa(false)} />
+      )}
       {conta && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-conta"
              onClick={(e) => { if (e.target === e.currentTarget) setConta(false); }}>
@@ -831,7 +891,10 @@ export function App() {
         saía pela borda do celular, e a sexta chegaria com a coordenação. Aba
         que não cabe é aba que ninguém acha.
       */}
-      <TrocaCargo cargoAtual={me.role} onChange={async (role) => {
+      <TrocaCargo cargoAtual={me.todasAsCasas && me.role === 'coordenador' ? 'coordenacao_geral' : me.role}
+                  onChange={async (escolha) => {
+        /* A Coordenação Geral é o cargo coordenador com a marca das oito casas (1634). */
+        const role = escolha === 'coordenacao_geral' ? 'coordenador' : escolha;
         /*
          * TROCAR DE CARGO TROCA DE PESSOA — e o nome no alto tem de dizer isso.
          *
@@ -844,15 +907,15 @@ export function App() {
          * Fora do protótipo o seletor não existe, e este bloco não roda: a
          * pessoa é a da sessão, e cargo não se escolhe.
          */
-        setMe({ ...me, role });
+        setMe({ ...me, role, todasAsCasas: escolha === 'coordenacao_geral' });
         definirQuemAssina(me.fullName, role);
         if (import.meta.env.VITE_PROTOTIPO === '1') {
           try {
-            const quem = await api<{ fullName?: string; id?: string; email?: string }>(
-              '/prototipo/cargo', { method: 'POST', body: JSON.stringify({ role }) });
+            const quem = await api<{ fullName?: string; id?: string; email?: string; todasAsCasas?: boolean }>(
+              '/prototipo/cargo', { method: 'POST', body: JSON.stringify({ role: escolha }) });
             if (quem?.fullName) {
               setMe({ ...me, role, fullName: quem.fullName, id: quem.id ?? me.id,
-                      email: quem.email ?? me.email });
+                      email: quem.email ?? me.email, todasAsCasas: !!quem.todasAsCasas });
               definirQuemAssina(quem.fullName, role);
               definirAutor(quem.id ?? me.id);
             }
