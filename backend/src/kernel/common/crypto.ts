@@ -26,6 +26,18 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return timingSafeEqual(key, expected);
 }
 
+/**
+ * A chave da senha com o sal que o banco entregou (fase 293): o hash fica no banco, e quem
+ * compara é ele. O custo é o mesmo para e-mail com e sem conta (o sal falso tem os mesmos
+ * parâmetros).
+ */
+export async function chaveDaSenha(password: string, sal: { n: number; r: number; p: number; sal: string; tamanho: number }): Promise<string> {
+  const key = await scrypt(password, Buffer.from(sal.sal, 'base64'), sal.tamanho, {
+    N: sal.n, r: sal.r, p: sal.p, maxmem: 128 * 1024 * 1024,
+  });
+  return key.toString('base64');
+}
+
 /** Token de sessão opaco; somente o hash vai ao banco (ADR-002). */
 export function newSessionToken(): { token: string; hash: string } {
   const token = randomBytes(32).toString('base64url');

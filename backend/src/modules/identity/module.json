@@ -32,7 +32,8 @@
     "app_user_role_period",
     "shift_draft",
     "shift_draft_item",
-    "shift_assignment"
+    "shift_assignment",
+    "auth_segredo"
   ],
   "observacao": "Contém a migração de fundação (instituição, casas, usuários e auditoria), da qual todo o resto depende. Não é removível."
 }

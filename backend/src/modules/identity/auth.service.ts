@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
-import { verifyPassword, hashPassword, newSessionToken, hashToken } from '../../kernel/common/crypto';
+import { chaveDaSenha, hashPassword, newSessionToken, hashToken } from '../../kernel/common/crypto';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { FRASE_DA_SENHA, senhaAceita } from '../../kernel/common/senha.regra';
 
@@ -43,61 +43,54 @@ export class AuthService {
 
   async login(email: string, password: string, ipDaPorta?: string, userAgent?: string) {
     const ip = enderecoDaTentativa(ipDaPorta);
-    // Proteção contra força bruta por conta (persistida: vale entre instâncias)
-    /* Pelas funções `auth_*` (1190): a aplicação não alcança mais as tabelas de
-       sessão e de tentativa, e o `WHERE` que protege mora no banco. */
-    const { rows: [attempts] } = await this.db.query(
-      `SELECT auth_tentativas_recentes($1, $2) AS fails`, [email, this.lockMinutes]);
-    if (attempts.fails >= this.maxAttempts) {
-      await this.audit.log({ action: 'auth.login_locked', detail: { emailHash: hashToken(email.toLowerCase()) } });
+    /*
+     * A SENHA CONFERIDA DENTRO DO BANCO (fase 293). O banco entrega o sal (o falso e fixo,
+     * para e-mail sem conta), o servidor deriva a chave da senha digitada com ele, e a
+     * `auth_entrar` faz o resto numa transação só: com a trava do e-mail e do endereço
+     * tomadas, conta as tentativas (por conta e, desde a 291, pelas CONTAS diferentes de um
+     * mesmo endereço), compara, anota e abre a sessão. Uma rajada em paralelo não passa do
+     * limite, e o hash nunca sai do banco. O próprio servidor (sem `TRUST_PROXY`, atrás do
+     * proxy, todo mundo chega como ele) não trava pelo endereço, para um engano na
+     * instalação não travar as oito casas. Na auditoria, nem o endereço nem o e-mail.
+     */
+    const chave = await this.chave(email, password);
+    const { token, hash } = newSessionToken();
+    const { rows: [r] } = await this.db.query(
+      `SELECT * FROM auth_entrar($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [email, chave, ip && !daPropriaMaquina(ip) ? ip : null,
+       this.maxAttempts, this.maxPorEndereco, this.lockMinutes,
+       hash, this.ttlHours, userAgent ?? null]);
+
+    if (r.out_status === 'conta_travada' || r.out_status === 'endereco_travado') {
+      await this.audit.log(r.out_status === 'conta_travada'
+        ? { action: 'auth.login_locked', detail: { emailHash: hashToken(email.toLowerCase()) } }
+        : { action: 'auth.endereco_travado' });
       throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
     }
-
-    /* E pelo endereço (fase 291): quem tenta uma senha comum em muitos e-mails nunca chega
-       a cinco erros em nenhum. Conta as CONTAS diferentes que erraram, e não os erros: a
-       troca de turno de uma casa, que sai para a internet por um endereço só, erra sempre
-       nas mesmas poucas contas. O próprio servidor (sem `TRUST_PROXY`, atrás do proxy, todo
-       mundo chega como ele) não trava, para um engano na instalação não travar as oito
-       casas. Na auditoria, nem o endereço nem o e-mail. */
-    if (ip && !daPropriaMaquina(ip)) {
-      const { rows: [porEndereco] } = await this.db.query(
-        `SELECT auth_tentativas_do_endereco($1, $2) AS fails`, [ip, this.lockMinutes]);
-      if (porEndereco.fails >= this.maxPorEndereco) {
-        await this.audit.log({ action: 'auth.endereco_travado' });
-        throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
-      }
-    }
-
-    const { rows: [user] } = await this.db.query(`SELECT * FROM auth_find_user($1)`, [email]);
-    const ok = user && user.active && (await verifyPassword(password, user.password_hash));
-
-    await this.db.query(
-      `SELECT auth_registrar_tentativa($1, $2, $3)`,
-      [email, ip ?? null, !!ok],
-    );
-
-    if (!ok) {
+    if (r.out_status !== 'ok') {
       await this.audit.log({ action: 'auth.login_failed', detail: { emailHash: hashToken(email.toLowerCase()) } });
       throw new UnauthorizedException(GENERIC_FAIL);
     }
 
-    const { token, hash } = newSessionToken();
-    const { rows: [session] } = await this.db.query(
-      `SELECT auth_criar_sessao($1, $2, $3, $4, $5) AS id`,
-      [user.id, hash, this.ttlHours, userAgent ?? null, ip ?? null],
-    );
     await this.audit.log({
-      action: 'auth.login', actorId: user.id, institutionId: user.institution_id,
-      detail: { sessionId: session.id, role: user.role },
+      action: 'auth.login', actorId: r.out_id, institutionId: r.out_institution_id,
+      detail: { sessionId: r.out_sessao, role: r.out_role },
     });
 
     return {
       token,
       user: {
-        id: user.id, email: user.email, fullName: user.full_name,
-        role: user.role, mustChangePassword: user.must_change_password,
+        id: r.out_id, email: r.out_email, fullName: r.out_nome,
+        role: r.out_role, mustChangePassword: r.out_must_change,
       },
     };
+  }
+
+  /** A chave da senha digitada, com o sal que o banco entrega para este e-mail. */
+  private async chave(email: string, password: string): Promise<string> {
+    const { rows: [s] } = await this.db.query(`SELECT * FROM auth_sal($1)`, [email ?? '']);
+    return chaveDaSenha(password ?? '', {
+      n: s.out_n, r: s.out_r, p: s.out_p, sal: s.out_sal, tamanho: s.out_tamanho });
   }
 
   async validate(token: string): Promise<AuthenticatedUser> {
@@ -159,21 +152,15 @@ export class AuthService {
    * continua trabalhando; quem estava com a conta aberta em outro lugar, não.
    */
   /**
-   * A senha de quem já entrou, conferida de novo (na troca e na reautenticação), com a mesma
-   * trava da entrada (fase 291): até aqui, uma sessão aberta num tablet esquecido deixava
-   * tentar a senha sem limite. O erro conta para a conta como um erro de entrada.
+   * A senha de quem já entrou, conferida de novo (na troca e na reautenticação) dentro do
+   * banco, pela sessão, com a mesma trava da entrada (fases 291 e 293). O erro conta para a
+   * conta como um erro de entrada.
    */
-  private async travadoPelaConta(user: AuthenticatedUser): Promise<void> {
-    const { rows: [t] } = await this.db.query(
-      `SELECT auth_tentativas_recentes($1, $2) AS fails`, [user.email, this.lockMinutes]);
-    if (t.fails >= this.maxAttempts) {
+  private recusaDaConferencia(status: string, frase: string): never {
+    if (status === 'conta_travada') {
       throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
     }
-  }
-
-  private async anotarErroDaConta(user: AuthenticatedUser, ip?: string): Promise<void> {
-    await this.db.query(`SELECT auth_registrar_tentativa($1, $2, $3)`,
-      [user.email, enderecoDaTentativa(ip) ?? null, false]);
+    throw new UnauthorizedException(frase);
   }
 
   async changeOwnPassword(user: AuthenticatedUser, atual: string, nova: string, ip?: string) {
@@ -181,28 +168,16 @@ export class AuthService {
       throw new BadRequestException('A senha nova precisa ser diferente da atual.');
     }
     if (!senhaAceita(nova)) throw new BadRequestException(FRASE_DA_SENHA);
-    await this.travadoPelaConta(user);
-    const ok = await this.db.asUser(user.id, async (c) => {
-      const { rows: [u] } = await c.query(`SELECT password_hash FROM app_user WHERE id = $1`, [user.id]);
-      return u ? verifyPassword(atual ?? '', u.password_hash) : false;
-    });
-    if (!(await ok)) {
-      await this.anotarErroDaConta(user, ip);
-      throw new UnauthorizedException(
+    const chave = await this.chave(user.email, atual ?? '');
+    const hash = await hashPassword(nova);
+    const { rows: [r] } = await this.db.query(
+      `SELECT auth_trocar_minha_senha($1, $2, $3, $4, $5, $6) AS status`,
+      [user.sessionId, chave, hash, enderecoDaTentativa(ip) ?? null, this.maxAttempts, this.lockMinutes]);
+    if (r.status !== 'ok') {
+      this.recusaDaConferencia(r.status,
         'A senha atual não confere. Confira e tente de novo; se você não lembra, a '
         + 'coordenação consegue enviar um novo acesso.');
     }
-
-    const hash = await hashPassword(nova);
-    await this.db.asUser(user.id, async (c) => {
-      await c.query(
-        `UPDATE app_user SET password_hash = $2, must_change_password = false, updated_at = now()
-          WHERE id = $1`, [user.id, hash]);
-      /* Todas MENOS a atual: quem trocou a própria senha continua trabalhando. */
-      await c.query(
-        `SELECT auth_revogar_sessoes(NULL, $1, 'senha_alterada_pelo_usuario', $2)`,
-        [user.id, user.sessionId]);
-    });
     await this.audit.log({
       action: 'auth.password_change', actorId: user.id, entity: 'app_user', entityId: user.id,
     });
@@ -210,14 +185,14 @@ export class AuthService {
   }
 
   async reauth(user: AuthenticatedUser, password: string, ip?: string) {
-    await this.travadoPelaConta(user);
-    const { rows: [u] } = await this.db.query(`SELECT * FROM auth_find_user($1)`, [user.email]);
-    if (!u || !(await verifyPassword(password, u.password_hash))) {
-      await this.anotarErroDaConta(user, ip);
-      await this.audit.log({ action: 'auth.reauth_failed', actorId: user.id });
-      throw new UnauthorizedException('Senha incorreta');
+    const chave = await this.chave(user.email, password ?? '');
+    const { rows: [r] } = await this.db.query(
+      `SELECT auth_reautenticar($1, $2, $3, $4, $5) AS status`,
+      [user.sessionId, chave, enderecoDaTentativa(ip) ?? null, this.maxAttempts, this.lockMinutes]);
+    if (r.status !== 'ok') {
+      if (r.status === 'falhou') await this.audit.log({ action: 'auth.reauth_failed', actorId: user.id });
+      this.recusaDaConferencia(r.status, 'Senha incorreta');
     }
-    await this.db.query(`SELECT auth_marcar_reautenticacao($1)`, [user.sessionId]);
     await this.audit.log({ action: 'auth.reauth', actorId: user.id, detail: { sessionId: user.sessionId } });
     return { ok: true };
   }

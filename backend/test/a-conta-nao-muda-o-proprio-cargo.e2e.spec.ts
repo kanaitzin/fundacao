@@ -31,12 +31,9 @@ const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
   ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
 
-/** O que a aplicação pode escrever na própria conta: a troca da própria senha. */
-const COLUNAS_QUE_A_APLICACAO_ESCREVE: Record<string, string> = {
-  password_hash: 'a troca da própria senha (auth.service.ts)',
-  must_change_password: 'a troca da própria senha apaga o pedido de trocar',
-  updated_at: 'a troca da própria senha marca quando',
-};
+/** O que a aplicação pode escrever na própria conta: nada desde a fase 293 (identity/1687).
+ *  A troca da própria senha é a função `auth_trocar_minha_senha`, que confere a atual. */
+const COLUNAS_QUE_A_APLICACAO_ESCREVE: Record<string, string> = {};
 
 describe('A conta não muda o próprio cargo, nem a casa', () => {
   let app: INestApplication, admin: Client, db: DatabaseService, http: any;
@@ -116,10 +113,11 @@ describe('A conta não muda o próprio cargo, nem a casa', () => {
   it('a educadora não desativa a própria conta', () => recusa(`active = false`));
   it('a educadora não troca o próprio e-mail', () => recusa(`email = 'outro@paodospobres.dev'`));
 
-  it('a troca da própria senha continua passando pelo papel da aplicação', async () => {
-    const r = await db.asUser(educador, (c) => c.query(
-      `UPDATE app_user SET updated_at = now() WHERE id = $1`, [educador]));
-    expect(r.rowCount).toBe(1);
+  it('a própria conta não apaga o pedido de trocar a senha nem lê o hash pelo SQL (1687)', async () => {
+    await expect(db.asUser(educador, (c) => c.query(
+      `UPDATE app_user SET must_change_password = false WHERE id = $1`, [educador]))).rejects.toThrow(/permission denied/);
+    await expect(db.asUser(educador, (c) => c.query(
+      `SELECT password_hash FROM app_user WHERE id = $1`, [educador]))).rejects.toThrow(/permission denied/);
   });
 
   it('a aplicação não escreve vínculo de casa nem casa', async () => {

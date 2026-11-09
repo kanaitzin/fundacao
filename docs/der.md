@@ -1027,11 +1027,11 @@ ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a 
 de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
 retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
-## Inventário — 153 tabelas por partição
+## Inventário — 154 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
-| identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
+| identity (18) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item, auth_segredo |
 | people (39) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change, technical_session, technical_session_attachment, document_text, reavaliacao_aviso, photo_change |
 | shifts (16) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_note_attachment, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, ata_write_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
@@ -1069,6 +1069,14 @@ pelo `restaurar.sh --ensaio`. Imutável (gatilho recusa UPDATE e DELETE). Ningu�
 lê nem escreve direto: `app_saude_da_implantacao` devolve, por tipo, o último
 evento, o último que deu certo e as falhas de sete dias, e a fila do Drive em
 contagens; só para Gestor Geral, Coordenação Geral e conta técnica.
+
+### `auth_segredo` — o segredo do sal falso da entrada
+UMA LINHA SÓ (fase 293, identity/1687): `valor`, 32 bytes sorteados na instalação. A
+`auth_sal` tira dele, com o e-mail, o sal falso e fixo de quem não tem conta, para a
+resposta da entrada não contar quais e-mails existem. Ninguém da aplicação lê nem
+escreve: só as funções `auth_*`. A senha é conferida dentro do banco (`auth_entrar`,
+`auth_trocar_minha_senha`, `auth_reautenticar`, `auth_concluir_convite`), e o papel da
+aplicação não lê a coluna `app_user.password_hash`.
 
 ### `app_user_role_period` — o cargo da época
 O CARGO DE CADA PESSOA, POR PERÍODO (fase 165, identity/1620): `user_id`,

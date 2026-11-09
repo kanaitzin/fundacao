@@ -189,10 +189,14 @@ export class InviteService {
        quem administra a conta (identity/1681) não confere nada sem identidade. Com a
        identidade de outra pessoa, gastar o convite de quem atende todas as casas seria
        recusado, e o primeiro acesso da Enfermagem quebraria. */
-    const r = await this.db.query(
-      `SELECT * FROM app_consume_invite($1,$2,$3)`,
-      [hashToken(token.trim()), hash, ip ?? null],
-    ).then((res) => res.rows[0]).catch((e: any) => {
+    /* O convite gasto e a sessão aberta na mesma função (fase 293): a sessão só nasce para
+       a conta do convite. */
+    const { token: sessao, hash: sessaoHash } = newSessionToken();
+    await this.db.query(
+      `SELECT * FROM auth_concluir_convite($1,$2,$3,$4,$5,$6)`,
+      [hashToken(token.trim()), hash, ip ?? null, sessaoHash,
+       Number(process.env.SESSION_TTL_HOURS ?? 14), userAgent ?? null],
+    ).catch((e: any) => {
       if (String(e?.message ?? '').includes('convite_invalido')) {
         throw new HttpException(
           'Convite inválido ou vencido. Peça um novo à coordenação.', HttpStatus.GONE);
@@ -202,15 +206,6 @@ export class InviteService {
 
     // Entra direto: a pessoa acabou de provar que tem o e-mail e escolheu a
     // senha. Mandá-la digitar tudo de novo agora não protege nada.
-    const { token: sessao, hash: sessaoHash } = newSessionToken();
-    /* Pela função `auth_criar_sessao` (1190): a aplicação não escreve mais
-       direto em `user_session`. */
-    await this.db.query(
-      `SELECT auth_criar_sessao($1, $2, $3, $4, $5)`,
-      [r.out_user, sessaoHash, Number(process.env.SESSION_TTL_HOURS ?? 14),
-       userAgent ?? null, ip ?? null],
-    );
-
     return { ok: true, token: sessao };
   }
 }

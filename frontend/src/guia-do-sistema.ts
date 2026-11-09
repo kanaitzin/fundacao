@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 293, dia: '09/11/2026',
+    texto: 'Sem mudança nas telas: a senha passa a ser conferida dentro do banco, e o sistema não lê mais a senha guardada de ninguém. Quando muitas tentativas erradas chegam ao mesmo tempo, a entrada trava no limite certo, e a resposta da tela é a mesma para e-mail com e sem conta.' },
   { fase: 292, dia: '09/11/2026', aba: 'equipe',
     texto: 'Quando alguém da equipe muda de casa pela Equipe, a senha de antes deixa de valer e as sessões abertas se encerram, porque a casa de antes sabia a senha; quem fez a mudança recebe uma senha nova para entregar em mãos. E quando alguém de uma casa passa a atender todas as casas, o cartão da pessoa mostra e-mail a confirmar: o Gestor Geral ou a Coordenação Geral confere com ela em Confirmar o e-mail, e até lá o esqueci minha senha e o convite não vão para aquele e-mail.' },
   { fase: 291, dia: '08/11/2026', aba: 'equipe',
