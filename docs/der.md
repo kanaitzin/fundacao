@@ -1031,7 +1031,7 @@ retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
 | Partição | Tabelas |
 |---|---|
-| identity (18) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item, auth_segredo |
+| identity (19) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item, auth_segredo, reset_request |
 | people (39) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change, technical_session, technical_session_attachment, document_text, reavaliacao_aviso, photo_change |
 | shifts (16) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_note_attachment, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, ata_write_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
@@ -1077,6 +1077,15 @@ resposta da entrada não contar quais e-mails existem. Ninguém da aplicação l
 escreve: só as funções `auth_*`. A senha é conferida dentro do banco (`auth_entrar`,
 `auth_trocar_minha_senha`, `auth_reautenticar`, `auth_concluir_convite`), e o papel da
 aplicação não lê a coluna `app_user.password_hash`.
+
+### `reset_request` — os pedidos do esqueci minha senha
+CADA PEDIDO, COM O ENDEREÇO (fase 296, identity/1689): `email` (como foi limpo), `ip`,
+`enviado` (se saiu e-mail) e `segurado` (`endereco` ou `teto`, quando um limite
+segurou). Quem escreve e quem lê é só a `auth_pedir_nova_senha`, que conta antes de
+tudo os pedidos do mesmo endereço na última hora (no IPv6, o bloco /64) e os e-mails que
+saíram na última hora na instituição. A resposta é a mesma em todos os casos. RLS ligado
+e nenhum acesso da aplicação, como a `login_attempt`; o prazo de guarda é o mesmo pedido
+ao DPO.
 
 ### `app_user_role_period` — o cargo da época
 O CARGO DE CADA PESSOA, POR PERÍODO (fase 165, identity/1620): `user_id`,
