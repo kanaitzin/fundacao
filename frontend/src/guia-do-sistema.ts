@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 292, dia: '09/11/2026', aba: 'equipe',
+    texto: 'Quando alguém da equipe muda de casa pela Equipe, a senha de antes deixa de valer e as sessões abertas se encerram, porque a casa de antes sabia a senha; quem fez a mudança recebe uma senha nova para entregar em mãos. E quando alguém de uma casa passa a atender todas as casas, o cartão da pessoa mostra e-mail a confirmar: o Gestor Geral ou a Coordenação Geral confere com ela em Confirmar o e-mail, e até lá o esqueci minha senha e o convite não vão para aquele e-mail.' },
   { fase: 291, dia: '08/11/2026', aba: 'equipe',
     texto: 'A senha passa a ter pelo menos 8 caracteres, com uma letra maiúscula e um símbolo, e a tela diz o que falta enquanto você escreve. Quem entra pela primeira vez com a senha que recebeu da coordenação cria a sua antes de começar: até criar, só aparece a folha da senha, com Sair ao lado. A senha que a Equipe gera é sorteada no formato Farol-pipa-0427, fácil de ditar. E quando muitas contas diferentes erram a senha a partir do mesmo lugar, a entrada dali espera alguns minutos; errar a senha atual na troca também conta para a sua conta.' },
   { fase: 290, dia: '08/11/2026',

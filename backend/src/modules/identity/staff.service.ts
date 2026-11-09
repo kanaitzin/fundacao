@@ -36,6 +36,10 @@ export const SETORES: Array<{
 
 const LABEL = new Map(SETORES.map((s) => [s.code, s.label]));
 
+/** O e-mail que veio da casa fica a confirmar na promoção para todas as casas (1685). */
+const FRASE_DO_EMAIL_A_CONFIRMAR = 'Confira o e-mail institucional da pessoa em Confirmar o e-mail: '
+  + 'até lá, o esqueci minha senha e o convite não vão a ele.';
+
 /**
  * SENHA INICIAL (fase 291): a regra mora no `senha.regra.ts`; aqui, o sorteio pelo
  * `randomInt` do `node:crypto` (o `Math.random` não é para segredo). A pessoa a troca no
@@ -97,6 +101,7 @@ export class StaffService {
       editavel: r.editavel,
       proprio: r.id === user.id,
       todasAsCasas: !!r.todas_as_casas,
+      emailAConfirmar: !!r.email_a_confirmar,
     }));
   }
 
@@ -133,41 +138,61 @@ export class StaffService {
   }) {
     /*
      * A SENHA DE ANTES NÃO ACOMPANHA A CONTA para um cargo que quem a sabia não
-     * administra (1683): da casa para todas as casas, ou de educador para coordenação.
-     * O banco encerra a senha, as sessões e os convites na mudança; aqui, na mesma
-     * transação, a senha nova é redefinida por quem fez a mudança e volta só para ela.
+     * administra (1683), nem para outra casa (1685): da casa para todas as casas, de
+     * educador para coordenação, ou da Casa 03 para a Casa 04. O banco encerra a senha,
+     * as sessões e os convites na mudança; aqui, na mesma transação, a senha nova é
+     * redefinida por quem fez a mudança e volta só para ela.
      */
-    const senha = await this.naConta(user, async (c) => {
-      const { rows: [antes] } = await c.query(
-        `SELECT role, todas_as_casas FROM app_staff_list() WHERE id = $1`, [id]);
+    const r = await this.naConta(user, async (c) => {
       await c.query(`SELECT * FROM app_update_staff($1,$2,$3::role_code,$4)`,
         [id, input.nome ?? null, input.cargo ?? null, input.casaId ?? null]);
-      /* Conta que a lista de quem pede não traz: o banco recusa o que não for dela, e o
-         que passar não ganha senha nova daqui (se o banco encerrou a de antes, quem pediu
-         usa o Redefinir senha). */
-      if (!antes) return null;
-      return this.senhaNovaSeEstreitou(c, id, antes, input.cargo ?? antes.role, !!antes.todas_as_casas);
+      return this.depoisDaMudanca(c, id);
     });
-    if (!senha) return { ok: true };
+    if (!r.senha) return { ok: true, ...(r.emailAConfirmar ? { emailAConfirmar: r.emailAConfirmar } : {}) };
     return {
       ok: true,
-      senhaInicial: senha,
-      aviso: 'Cargo alterado. A senha de antes deixou de valer e as sessões abertas foram '
-           + 'encerradas, porque quem a conhecia não administra o cargo novo. Entregue esta '
-           + 'senha nova à pessoa; ela é mostrada uma única vez.',
+      senhaInicial: r.senha,
+      ...(r.emailAConfirmar ? { emailAConfirmar: r.emailAConfirmar } : {}),
+      aviso: 'A senha de antes deixou de valer e as sessões abertas foram encerradas, porque '
+           + 'quem a conhecia não administra mais esta conta. Entregue esta senha nova à '
+           + 'pessoa; ela é mostrada uma única vez.'
+           + (r.emailAConfirmar ? ` ${FRASE_DO_EMAIL_A_CONFIRMAR}` : ''),
     };
   }
 
-  /** Se a mudança tirou a conta do alcance de quem a administrava, redefine a senha. */
-  private async senhaNovaSeEstreitou(c: any, id: string, antes: { role: string; todas_as_casas: boolean },
-                                     cargo: string, todas: boolean): Promise<string | null> {
-    const { rows: [m] } = await c.query(
-      `SELECT app_estreita_quem_administra($1::role_code, $2, $3::role_code, $4) AS estreitou`,
-      [antes.role, !!antes.todas_as_casas, cargo, todas]);
-    if (!m?.estreitou) return null;
-    const senha = senhaInicial();
-    await c.query(`SELECT * FROM app_reset_staff_password($1,$2)`, [id, await hashPassword(senha)]);
-    return senha;
+  /**
+   * Depois de uma mudança de cargo ou de casa: se o banco encerrou a senha de antes,
+   * redefine na mesma transação e devolve a senha nova a quem mudou; e diz o e-mail que
+   * ficou a confirmar, quando a conta passou a atender todas as casas.
+   */
+  private async depoisDaMudanca(c: any, id: string): Promise<{ senha: string | null; emailAConfirmar: string | null }> {
+    const { rows: [m] } = await c.query(`SELECT app_acesso_encerrado($1) AS encerrado`, [id]);
+    let senha: string | null = null;
+    if (m?.encerrado) {
+      senha = senhaInicial();
+      await c.query(`SELECT * FROM app_reset_staff_password($1,$2)`, [id, await hashPassword(senha)]);
+    }
+    const { rows: [l] } = await c.query(
+      `SELECT email, email_a_confirmar FROM app_staff_list() WHERE id = $1`, [id]);
+    return { senha, emailAConfirmar: l?.email_a_confirmar ? l.email : null };
+  }
+
+  /**
+   * O E-MAIL DA PROMOÇÃO (decisão de 09/11, 1685): a conta que passou a atender todas as
+   * casas fica com o e-mail que a casa digitou até o Gestor Geral ou a Coordenação Geral
+   * confirmar ou trocar. Até lá, o esqueci minha senha não manda nada e o convite é recusado.
+   */
+  async confirmarEmail(user: AuthenticatedUser, id: string, email?: string) {
+    const r = await this.naConta(user, async (c) => {
+      const { rows: [row] } = await c.query(`SELECT * FROM app_confirmar_email($1,$2)`, [id, email ?? '']);
+      return row;
+    });
+    return {
+      ok: true,
+      aviso: r.out_trocou
+        ? `E-mail de ${r.out_nome} trocado e confirmado. O esqueci minha senha e o convite passam a ir para ele.`
+        : `E-mail de ${r.out_nome} confirmado. O esqueci minha senha e o convite passam a ir para ele.`,
+    };
   }
 
   /**
@@ -176,15 +201,11 @@ export class StaffService {
    */
   async marcarCoordenacaoGeral(user: AuthenticatedUser, id: string, todas: boolean) {
     const r = await this.db.asUser(user.id, async (c) => {
-      const { rows: [antes] } = await c.query(
-        `SELECT role, todas_as_casas FROM app_staff_list() WHERE id = $1`, [id]);
       const { rows: [row] } = await c.query(
         `SELECT * FROM app_marcar_coordenacao_geral($1, $2)`, [id, !!todas]);
-      /* A senha de antes não acompanha a conta para as oito casas (1683). */
-      const senha = antes
-        ? await this.senhaNovaSeEstreitou(c, id, antes, antes.role, !!todas)
-        : null;
-      return { ...row, senha };
+      /* A senha de antes não acompanha a conta para as oito casas (1683), e o e-mail
+         que veio da casa fica a confirmar (1685). */
+      return { ...row, ...(await this.depoisDaMudanca(c, id)) };
     }).catch((e: any) => {
       const m = String(e?.message ?? '');
       if (m.includes('so_o_gestor_marca_coordenacao_geral')) {
@@ -203,9 +224,11 @@ export class StaffService {
     return {
       ok: true, todasAsCasas: !!todas,
       ...(r.senha ? { senhaInicial: r.senha } : {}),
+      ...(r.emailAConfirmar ? { emailAConfirmar: r.emailAConfirmar } : {}),
       aviso: todas
         ? `${r.out_nome} passa a coordenar as oito casas. O vínculo com a casa em que estava foi encerrado, e o histórico continua.`
           + (r.senha ? ' A senha de antes deixou de valer e as sessões abertas foram encerradas. Entregue esta senha nova à pessoa; ela é mostrada uma única vez.' : '')
+          + (r.emailAConfirmar ? ` ${FRASE_DO_EMAIL_A_CONFIRMAR}` : '')
         : `${r.out_nome} deixa de coordenar as oito casas. Para voltar a uma casa, lance o vínculo na equipe dela.`,
     };
   }
@@ -292,6 +315,7 @@ export class StaffService {
       }
       if (m.includes('nome_insuficiente')) throw new BadRequestException('Informe o nome completo.');
       if (m.includes('email_invalido')) throw new BadRequestException('E-mail institucional inválido.');
+      if (m.includes('email_em_uso')) throw new ConflictException('Já existe uma conta com este e-mail.');
       if (m.includes('motivo_insuficiente')) {
         throw new BadRequestException('Informe o motivo da desativação. Ele fica registrado.');
       }

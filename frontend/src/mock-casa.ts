@@ -427,6 +427,9 @@ const USUARIOS: Record<string, { id: string; fullName: string; role: string; sen
 };
 /** Quem coordena as oito casas, como a coluna `todas_as_casas` do servidor (1634). */
 const TODAS_AS_CASAS = new Set<string>(['u13']);
+/* O e-mail que veio da casa, na conta promovida para todas as casas (identity/1685):
+   até o Gestor Geral ou a Coordenação Geral confirmar, o esqueci e o convite esperam. */
+const EMAIL_A_CONFIRMAR = new Set<string>();
 /** O cargo de uma pessoa do protótipo pelo nome, como o `app_user_cargo` do servidor (fase 172). */
 function cargoPeloNome(nome?: string | null): string | null {
   if (!nome) return null;
@@ -5955,7 +5958,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/auth/esqueci-a-senha') {
     if (!String(b.email ?? '').trim()) return new Recusa(400, 'Informe o e-mail.');
     const u = USUARIOS[String(b.email).toLowerCase().trim()];
-    if (u) gravarEsqueci({ email: String(b.email).toLowerCase().trim(), gasto: false });
+    if (u && !EMAIL_A_CONFIRMAR.has(u.id)) gravarEsqueci({ email: String(b.email).toLowerCase().trim(), gasto: false });
     return {
       ok: true,
       aviso: 'Se este e-mail estiver cadastrado, enviamos para ele um link para criar uma senha '
@@ -5998,6 +6001,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ok: true, token: 'prototipo' };
   }
   if (rota.startsWith('/staff/') && rota.endsWith('/convite')) {
+    if (EMAIL_A_CONFIRMAR.has(seg[1])) {
+      return new Recusa(400, 'Confirme o e-mail desta pessoa em Confirmar o e-mail antes de enviar o convite.');
+    }
     return {
       ok: true,
       expiraEm: new Date(Date.now() + 24 * 3600_000).toISOString(),
@@ -6948,11 +6954,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const todas = b.todas !== false;
     /* A senha de antes não acompanha a conta para as oito casas (identity/1683). */
     const senhaNova = todas && !TODAS_AS_CASAS.has(alvo.id) ? senhaInicialDoPrototipo() : null;
+    if (todas && !TODAS_AS_CASAS.has(alvo.id)) EMAIL_A_CONFIRMAR.add(alvo.id);
+    if (!todas) EMAIL_A_CONFIRMAR.delete(alvo.id);
     if (todas) TODAS_AS_CASAS.add(alvo.id); else TODAS_AS_CASAS.delete(alvo.id);
     return { ok: true, todasAsCasas: todas, ...(senhaNova ? { senhaInicial: senhaNova } : {}),
+      ...(todas && EMAIL_A_CONFIRMAR.has(alvo.id) ? { emailAConfirmar: true } : {}),
       aviso: todas
         ? `${alvo.fullName} passa a coordenar as oito casas. O vínculo com a casa em que estava foi encerrado, e o histórico continua.`
           + (senhaNova ? ' A senha de antes deixou de valer e as sessões abertas foram encerradas. Entregue esta senha nova à pessoa; ela é mostrada uma única vez.' : '')
+          + (EMAIL_A_CONFIRMAR.has(alvo.id) ? ' Confira o e-mail institucional da pessoa em Confirmar o e-mail: até lá, o esqueci minha senha e o convite não vão a ele.' : '')
         : `${alvo.fullName} deixa de coordenar as oito casas. Para voltar a uma casa, lance o vínculo na equipe dela.` };
   }
   if (rota === '/staff') {
@@ -6966,6 +6976,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
             transversal: false, casa: null, casaId: null, ativo: !DESATIVADOS.has(u.id),
             ultimoAcesso: null, senhaInicialPendente: false, editavel: true,
             proprio: false, corDaLinha: null, todasAsCasas: true,
+            emailAConfirmar: EMAIL_A_CONFIRMAR.has(u.id),
           }))
       : [];
     return [...EQUIPE_CASA.filter((m) => !TODAS_AS_CASAS.has(m.id)).map((m) => ({
@@ -6986,6 +6997,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       proprio: m.id === eu.id,
       corDaLinha: CORES_DA_LINHA.get(m.id) ?? null,
       todasAsCasas: false,
+      emailAConfirmar: EMAIL_A_CONFIRMAR.has(m.id),
     })), ...geral];
   }
   if (rota.startsWith('/staff/line-colors')) {
@@ -7142,6 +7154,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * aparece uma única vez. Um curinga que engole isso ensina a equipe uma
    * operação que não é a do sistema.
    */
+  if (seg[0] === 'staff' && seg[2] === 'confirm-email' && metodo === 'POST') {
+    if (!alcancoTodasAsCasas(eu) || !contaDeTodasAsCasas(seg[1])) return new Recusa(404, 'Usuário não encontrado.');
+    if (seg[1] === eu.id) return new Recusa(403, 'A sua própria conta é alterada por quem administra a equipe.');
+    const email = String(b.email ?? '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return new Recusa(400, 'E-mail institucional inválido.');
+    EMAIL_A_CONFIRMAR.delete(seg[1]);
+    const nome = EQUIPE_CASA.find((m) => m.id === seg[1])?.nome
+      ?? Object.values(USUARIOS).find((u) => u.id === seg[1])?.fullName ?? 'a pessoa';
+    return { ok: true, aviso: `E-mail de ${nome} confirmado. O esqueci minha senha e o convite passam a ir para ele.` };
+  }
   if (seg[0] === 'staff' && seg[2] === 'deactivate' && metodo === 'POST') {
     if (!['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role)) {
       return new Recusa(403, 'Administrar a equipe é da coordenação, da gestão ou da '
@@ -7182,11 +7204,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const membro = EQUIPE_CASA.find((m) => m.id === seg[1]);
     const estreita = membro && b.cargo && b.cargo !== membro.cargo && !contaDeTodasAsCasas(seg[1])
       && (cargoDeTodasAsCasas(b.cargo) || b.cargo === 'coordenador');
-    if (estreita) {
+    /* E nem para outra casa (identity/1685): a senha que a casa de antes sabia não vale na nova. */
+    const mudouDeCasa = membro && b.casaId && b.casaId !== CASA.id && !cargoDeTodasAsCasas(b.cargo ?? membro.cargo);
+    /* Quem passa a atender todas as casas fica com o e-mail a confirmar (1685). */
+    const promovida = membro && estreita && cargoDeTodasAsCasas(b.cargo);
+    if (promovida) EMAIL_A_CONFIRMAR.add(membro.id);
+    if (estreita || mudouDeCasa) {
       return { ok: true, senhaInicial: senhaInicialDoPrototipo(),
-        aviso: 'Cargo alterado. A senha de antes deixou de valer e as sessões abertas foram '
-          + 'encerradas, porque quem a conhecia não administra o cargo novo. Entregue esta '
-          + 'senha nova à pessoa; ela é mostrada uma única vez.' };
+        ...(promovida ? { emailAConfirmar: true } : {}),
+        aviso: 'A senha de antes deixou de valer e as sessões abertas foram encerradas, porque '
+          + 'quem a conhecia não administra mais esta conta. Entregue esta senha nova à '
+          + 'pessoa; ela é mostrada uma única vez.'
+          + (promovida ? ' Confira o e-mail institucional da pessoa em Confirmar o e-mail: até lá, o esqueci minha senha e o convite não vão a ele.' : '') };
     }
     return { ok: true, aviso: 'Cadastro atualizado. No protótipo a alteração vale só nesta tela.' };
   }

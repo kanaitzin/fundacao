@@ -15,6 +15,8 @@ interface Membro {
   senhaInicialPendente: boolean; editavel: boolean; proprio: boolean;
   /** A Coordenação Geral (fase 176): coordenação que alcança as oito casas. */
   todasAsCasas?: boolean;
+  /** O e-mail que veio da casa, na conta promovida para todas as casas (fase 292). */
+  emailAConfirmar?: boolean;
 }
 interface Casa { id: string; codigo: string; nome: string; propria: boolean; }
 
@@ -98,6 +100,7 @@ export function Equipe({ papel }: { papel: string }) {
     { rotulo: string; token: string; aviso: string } | null>(null);
   const [registrando, setRegistrando] = useState(false);
   const [revogando, setRevogando] = useState<Aparelho | null>(null);
+  const [confirmando, setConfirmando] = useState<Membro | null>(null);
 
   const ehGestor = papel === 'gestor_geral';
   const minhaCasa = casas.find((c) => c.propria) ?? null;
@@ -209,6 +212,11 @@ export function Equipe({ papel }: { papel: string }) {
                   {m.ativo
                     ? <span className="pill c-ok">Ativo</span>
                     : <span className="pill c-mute">Desativado</span>}
+                  {m.ativo && m.emailAConfirmar && (
+                    <span className="pill c-warn" title="O esqueci minha senha e o convite esperam a confirmação">
+                      e-mail a confirmar
+                    </span>
+                  )}
                   {m.ativo && m.senhaInicialPendente && (
                     <span className="pill c-warn" title="Ainda usando a senha entregue pela coordenação">
                       senha inicial
@@ -258,10 +266,19 @@ export function Equipe({ papel }: { papel: string }) {
                       * fase 9, e a tela só oferecia a senha inicial, que é
                       * justamente o que vira recado de WhatsApp.
                       */}
+                    {/* O e-mail que veio da casa, na promoção para todas as casas (fase 292):
+                        quem confirma é quem pode editar esta conta, o Gestor Geral ou a
+                        Coordenação Geral. Até lá, o convite espera. */}
+                    {m.emailAConfirmar ? (
+                      <button className="btn sm" onClick={() => setConfirmando(m)}>
+                        Confirmar o e-mail
+                      </button>
+                    ) : (
                     <button className="btn sm" onClick={() => acao(() =>
                       api(`/staff/${m.id}/convite`, { method: 'POST', body: '{}' }))}>
                       Convidar
                     </button>
+                    )}
                     {/* A Coordenação Geral (fase 176): só o Gestor Geral põe ou
                         tira, e só em quem é da coordenação. */}
                     {ehGestor && m.cargo === 'coordenador' && m.ativo && (
@@ -394,6 +411,11 @@ export function Equipe({ papel }: { papel: string }) {
           }} />
       )}
 
+      {confirmando && (
+        <FolhaConfirmarEmail membro={confirmando} onFechar={() => setConfirmando(null)}
+          onConfirmar={(email) => { const m = confirmando; setConfirmando(null);
+            acao(() => api(`/staff/${m.id}/confirm-email`, { method: 'POST', body: JSON.stringify({ email }) })); }} />
+      )}
       {revogando && (
         <FolhaRevogar
           aparelho={revogando}
@@ -755,6 +777,34 @@ function FolhaRevogar({ aparelho, onFechar, onRevogar }: {
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" onClick={() => onRevogar(motivo.trim())}>
             Revogar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Confirmar ou trocar o e-mail de quem passou a atender todas as casas (fase 292). */
+function FolhaConfirmarEmail({ membro, onFechar, onConfirmar }: {
+  membro: Membro; onFechar: () => void; onConfirmar: (email: string) => void;
+}) {
+  const [email, setEmail] = useState(membro.email);
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-email"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-email">Confirmar o e-mail de {membro.nome}</h3>
+        <p className="mutetxt">
+          Este e-mail veio da casa em que a pessoa trabalhava. Confira com ela se a caixa é
+          dela e de mais ninguém: o esqueci minha senha e o convite passam a ir para ele.
+        </p>
+        <label className="f" htmlFor="conf-email">E-mail institucional</label>
+        <input id="conf-email" type="email" value={email} autoComplete="off"
+               onChange={(e) => setEmail(e.target.value)} />
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" onClick={() => onConfirmar(email.trim())}>
+            Confirmar o e-mail
           </button>
         </div>
       </div>

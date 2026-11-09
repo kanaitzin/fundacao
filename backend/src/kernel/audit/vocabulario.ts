@@ -333,6 +333,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'auth.invite_issued': 'Convite de primeiro acesso emitido',
   'auth.first_access': 'Primeiro acesso concluído',
   'auth.reset_requested': 'Pedido de senha nova por e-mail',
+  'auth.reset_email_a_confirmar': 'Pedido de senha nova para e-mail ainda a confirmar (nada enviado)',
   'push.ligado': 'Aviso no celular ligado num aparelho',
   'assistente.conversa': 'Conversa com a Acolhe+AI',
   'assistente.preparado': 'Registro preparado com a Acolhe+AI e confirmado',
@@ -358,6 +359,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'staff.reset_password': 'Senha de pessoa da equipe redefinida',
   /* A Coordenação Geral (fase 176): a coordenação que alcança as oito casas. */
   'staff.coordenacao_geral': 'Coordenação geral definida ou retirada',
+  'staff.email_confirmado': 'E-mail de quem atende todas as casas confirmado',
   /* Abrir o trabalho de alguém é, ele mesmo, uma ação — e ela aparece aqui,
      com o nome de quem olhou e a finalidade que escreveu (fase 117). Quem
      consulta também é consultável. */

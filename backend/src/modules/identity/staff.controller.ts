@@ -74,6 +74,13 @@ export class StaffController {
     return this.staff.marcarCoordenacaoGeral(user, id, body?.todas !== false);
   }
 
+  /** O e-mail da promoção para todas as casas, confirmado ou trocado (1685). */
+  @Post(':id/confirm-email')
+  confirmarEmail(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                 @Body() body: any) {
+    return this.staff.confirmarEmail(user, id, typeof body?.email === 'string' ? body.email : '');
+  }
+
   @Post(':id/deactivate')
   deactivate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
              @Body() body: any) {

@@ -20,6 +20,7 @@ erDiagram
     role_code role
     bool active "desligado = desativado"
     bool todas_as_casas "Coordenação Geral (1634): coordenador que alcança as oito casas; só o gestor marca"
+    bool email_a_confirmar "e-mail que veio da casa na promoção para todas as casas (1685): esqueci e convite esperam o Gestor ou a CG"
   }
   USER_HOUSE_ASSIGNMENT {
     timestamptz valid_from

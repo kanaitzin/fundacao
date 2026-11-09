@@ -465,8 +465,8 @@ lista de cargos da Equipe tirou a Enfermagem de quem não alcança todas.
 **Para o A4** (está no `CLAUDE.md`, no bloco dos consertos):
 - **O e-mail herdado.** O e-mail que a casa digitou continua o da conta promovida, e o esqueci minha
   senha e o convite vão a ele. O conserto pede decisão: o Gestor Geral confirmar ou trocar o e-mail na
-  promoção, e o esqueci recusado até lá.
-- **A troca de casa.** A conta que muda de casa leva a senha que a casa de antes sabia.
+  promoção, e o esqueci recusado até lá. *(Decidido pelo dono em 09/11 e feito na 292.)*
+- **A troca de casa.** A conta que muda de casa leva a senha que a casa de antes sabia. *(Feito na 292.)*
 - **O vínculo pela rota.** O `app_update_staff` ainda abre vínculo de casa para conta de todas as casas
   quando a rota recebe a casa.
 - **O de antes:** a senha gerada por `Math.random` em 63 mil combinações; a troca do primeiro acesso
@@ -504,7 +504,7 @@ nem memória, nem rascunho que importe.
   criado);
 - escreva *continue*.
 
-**3. O que a sessão nova lê.** O `CLAUDE.md` diz onde estamos. A próxima fase é a **291, o A4** (a 290, o A3, foi feita aqui na mesma noite).
+**3. O que a sessão nova lê.** O `CLAUDE.md` diz onde estamos. A próxima fase era a **291, o A4** (a 290, o A3, foi feita aqui na mesma noite). *Feitas depois, na outra conta: a 291 (a senha e a entrada) e, de volta a esta, a 292 (a conta que muda de casa e o e-mail da promoção). O `CLAUDE.md` diz a próxima.*
 
 **4. Se a sessão nova não conseguir empurrar para este branch.** O proxy de cada sessão só deixa
 empurrar para branches `claude/...`, e talvez só para o da própria sessão. Nesse caso ela empurra para

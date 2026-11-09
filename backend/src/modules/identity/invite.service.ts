@@ -71,6 +71,11 @@ export class InviteService {
       if (m.includes('cargo_nao_pode_editar')) {
         throw new ForbiddenException('Você não gerencia contas deste cargo.');
       }
+      /* O e-mail que veio da casa, na conta promovida para todas as casas (1685). */
+      if (m.includes('email_a_confirmar')) {
+        throw new BadRequestException(
+          'Confirme o e-mail desta pessoa em Confirmar o e-mail antes de enviar o convite.');
+      }
       // As recusas do gatilho de quem administra a conta (identity/1681 e 1682).
       if (m.includes('nao_administra_a_si_mesmo')) {
         throw new ForbiddenException('A sua própria conta é alterada por quem administra a equipe.');
