@@ -1254,6 +1254,7 @@ export function App() {
         {abaEfetiva === 'implantacao' && ve('implantacao') && <Implantacao />}
         {abaEfetiva === 'guia' && ve('guia') && (
           <Guia papel={me.role} todasAsCasas={!!me.todasAsCasas} doTurno={abasDoTurno} ve={ve}
+                variasCasas={houses.length > 1} trocarDeCasa={() => setFolhaCasa(true)}
                 irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); marcarChegada(); }} />
         )}
         {abaEfetiva === 'sugestoes' && ve('sugestoes') && (

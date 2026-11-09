@@ -128,6 +128,13 @@ export const A_ACOLHE_EM_TODA_TELA: string[] = [
   'Ela não decide diagnóstico, culpa, risco, punição, remédio ou destino de criança, não compara crianças nem casas, não assina no lugar de ninguém e não apaga nada. Em urgência, ela diz primeiro o que fazer pela criança.',
 ];
 
+/** O botão das duas visões, no alto (fase 299): só para quem atende mais de uma casa. */
+export const AS_DUAS_VISOES_NO_GUIA: string[] = [
+  'No alto da tela, ao lado do seu nome, o botão da cor da marca diz o que você está vendo: Todas as casas, ou a casa aberta. Um toque nele abre a folha O que você quer ver?, e a troca vale na hora, em todas as telas.',
+  'Todas as casas juntas é o cartão de cima. Para o Gestor Geral, ele abre o Painel com os números e os gráficos das oito, no período escolhido; para a Coordenação Geral, a Enfermagem e o Líder Noturno Geral, abre o dia das oito casas numa tela só.',
+  'Uma casa por inteiro são os cartões de baixo, na ordem do código. A casa escolhida abre no Dia da Casa, e o resto do menu passa a mostrar essa casa: os acolhidos, a ATA, a saúde, a escala. A faixa azul no alto da tela lembra qual casa está aberta, e o Trocar de casa dela abre a mesma folha.',
+];
+
 /** A conta e os avisos, que não são tela do menu. */
 export const MINHA_CONTA_NO_GUIA: string[] = [
   'Na Minha conta, no topo, você escolhe a cor e o tamanho da letra da tela, troca a senha, liga o aviso no celular ou no computador e sai do sistema.',
@@ -141,7 +148,7 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
   { fase: 299, dia: '09/11/2026',
-    texto: 'Quem atende mais de uma casa vê no alto o que está olhando, Todas as casas ou a casa aberta. Um toque ali abre as duas visões: as oito casas juntas, com os números ou o dia de todas, e cada casa por inteiro, para entrar nela.' },
+    texto: 'Quem atende mais de uma casa vê no alto o que está olhando, Todas as casas ou a casa aberta. Um toque ali abre as duas visões: as oito casas juntas, com os números ou o dia de todas, e cada casa por inteiro, para entrar nela. E na Portaria, o documento do visitante aberto em Ver o documento agora se esconde de novo pelo Esconder.' },
   { fase: 298, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: o que se grava fica na casa de quem grava. A estadia, a receita, a atividade, a internação, a síntese da ocorrência e o relatório não podem mais ser levados para uma criança ou uma casa que a pessoa não atende, e o que já foi encerrado não se reescreve.' },
   { fase: 297, dia: '09/11/2026',

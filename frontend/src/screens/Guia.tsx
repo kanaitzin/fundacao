@@ -17,7 +17,7 @@ import { Icone } from '../icones';
 import { ROTULO_CARGO } from '../rotulos';
 import {
   ABAS_DO_PERFIL_NO_GUIA, ALTO_DO_PERFIL, A_ACOLHE_EM_TODA_TELA, COM_A_ACOLHE, CURTA_DO_TURNO,
-  MINHA_CONTA_NO_GUIA, NOVIDADES, telasDescritas,
+  MINHA_CONTA_NO_GUIA, NOVIDADES, telasDescritas, AS_DUAS_VISOES_NO_GUIA,
 } from '../guia-do-sistema';
 
 interface TelaDoTurno { aba: string; icone: string; label: string }
@@ -25,9 +25,12 @@ interface TelaDoTurno { aba: string; icone: string; label: string }
 /** Sem acento e em minúsculas, para a busca achar "saude" em "Saúde". */
 const plano = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export function Guia({ papel, todasAsCasas, doTurno, ve, irPara }: {
+export function Guia({ papel, todasAsCasas, doTurno, ve, irPara, variasCasas = false, trocarDeCasa }: {
   papel: string;
   todasAsCasas: boolean;
+  /** Quem atende mais de uma casa vê a parte das duas visões, com o botão que abre a folha. */
+  variasCasas?: boolean;
+  trocarDeCasa?: () => void;
   /** As abas do turno que o cargo tem (Painel, Dia, Chamada, Acolhidos, Passagem). */
   doTurno: TelaDoTurno[];
   ve: (aba: string) => boolean;
@@ -76,7 +79,7 @@ export function Guia({ papel, todasAsCasas, doTurno, ve, irPara }: {
       {/* Botões, e não âncoras: a âncora muda o endereço, e o voltar do
           aparelho leva para fora do Guia. */}
       <nav className="guia-indice" aria-label="Partes do guia">
-        {[['guia-novidades', 'Novidades', !termo], ['guia-telas', 'As telas', true],
+        {[['guia-novidades', 'Novidades', !termo], ['guia-casas', 'Todas as casas ou uma casa', variasCasas], ['guia-telas', 'As telas', true],
           ['guia-perfil', 'O perfil da criança', ve('acolhidos')], ['guia-acolhe', 'A Acolhe+AI', true],
           ['guia-conta', 'Minha conta e avisos', true]]
           .filter(([, , mostra]) => mostra).map(([id, rotulo]) => (
@@ -105,6 +108,18 @@ export function Guia({ papel, todasAsCasas, doTurno, ve, irPara }: {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {variasCasas && casa('casa casas unidades trocar todas visao', ...AS_DUAS_VISOES_NO_GUIA) && (
+        <section id="guia-casas" className="guia-secao">
+          <h3>Todas as casas ou uma casa</h3>
+          {AS_DUAS_VISOES_NO_GUIA.map((p) => <p key={p}>{p}</p>)}
+          {trocarDeCasa && (
+            <button type="button" className="btn sec" onClick={trocarDeCasa}>
+              <Icone nome="unidades" /> Escolher o que ver
+            </button>
+          )}
         </section>
       )}
 
