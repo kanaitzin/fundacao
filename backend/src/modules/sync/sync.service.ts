@@ -235,12 +235,15 @@ export class SyncService {
     description: string; versionA: unknown; versionB: unknown;
   }) {
     const id = await this.db.asUser(user.id, async (c) => {
-      const { rows: [r] } = await c.query(
-        `INSERT INTO sync_conflict (house_id, entity, entity_id, kind, description, version_a, version_b)
-         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb) RETURNING id`,
-        [input.houseId, input.entity, input.entityId ?? null, input.kind, input.description,
+      /* Sem RETURNING (fase 297): quem abre o conflito, quase sempre a educadora, não lê
+         conflitos (sync/1694), e o RETURNING pede a leitura da linha. */
+      const { rows: [r] } = await c.query(`SELECT gen_random_uuid() AS id`);
+      await c.query(
+        `INSERT INTO sync_conflict (id, house_id, entity, entity_id, kind, description, version_a, version_b)
+         VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb)`,
+        [r.id, input.houseId, input.entity, input.entityId ?? null, input.kind, input.description,
          JSON.stringify(input.versionA), JSON.stringify(input.versionB)]);
-      return r.id;
+      return r.id as string;
     });
     await this.bus.publish('sync.conflict', { conflitoId: id, tipo: input.kind }, { houseId: input.houseId });
     /* O CONFLITO CHEGA A QUEM DECIDE (varredura de 27/10). Ele esperava a decisão
@@ -259,6 +262,11 @@ export class SyncService {
   }
 
   async listConflicts(user: AuthenticatedUser, houseId: string) {
+    /* alcance:sincronizacao — quem decide é quem lê (fase 297, sync/1694): o conflito guarda o
+       registro inteiro, e a recusa vem dita, em vez da lista vazia. */
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException('Os registros sem internet que esperam decisão são vistos pela equipe técnica e pela coordenação.');
+    }
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT id, entity, entity_id, kind, description, version_a, version_b,

@@ -6733,6 +6733,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
   if (rota.startsWith('/sync/conflicts') && metodo === 'GET') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Os registros sem internet que esperam decisão são vistos pela equipe técnica e pela coordenação.');
+    }
     return CONFLITOS.filter((c) => c.aberto).map(({ aberto, ...resto }) => ({
       ...resto,
       aviso: 'As duas versões ficam registradas. Quem conhece o caso escolhe qual vale.',

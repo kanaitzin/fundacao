@@ -215,4 +215,42 @@ describe('O sigilo de saúde também no banco', () => {
     expect(await conta('gestor')).toBe(0);
     expect(await conta('tecnica')).toBeGreaterThanOrEqual(2);
   });
+
+  it('a triagem só pela função, a casa conferida, e a fila e os conflitos só para quem deve ler (1693 e 1694)', async () => {
+    // A situação não muda por fora da triagem.
+    expect(await erroComoApp('enfermagem',
+      `UPDATE health_evolution SET status = 'assinada' WHERE id = $1`, [ids.evoAberta])).toMatch(/permission denied/);
+    expect(await erroComoApp('enfermagem',
+      `INSERT INTO nursing_triage (evolution_id, nurse_id, action) VALUES ($1, $2, 'assinada')`,
+      [ids.evoAberta, u.enfermagem])).toMatch(/permission denied/);
+    // A casa tem de ser a da criança.
+    const { rows: [{ id: AI4 }] } = await admin.query(`SELECT id FROM house WHERE code='AI4'`);
+    const outra = await enviar(false, ABERTO, { houseId: AI4 });
+    expect(outra.status).toBe(400);
+    // A fila e o conflito de um atendimento sigiloso.
+    const { rows: [{ id: cozinha }] } = await admin.query(
+      `SELECT u.id FROM app_user u JOIN user_house_assignment a ON a.user_id = u.id
+        WHERE u.role = 'cozinha' AND a.house_id = $1 AND u.active LIMIT 1`, [ids.AI3]);
+    u.cozinha = cozinha;
+    await admin.query(
+      `INSERT INTO offline_operation (client_op_id, user_id, house_id, kind, payload, happened_at, queued_at, status)
+       VALUES ('op-297-sigilo', $1, $2, 'health.evolution', $3::jsonb, now(), now(), 'conflito')`,
+      [u.educador, ids.AI3, JSON.stringify({ motivo: SEGREDO, sigiloso: true })]);
+    await admin.query(
+      `INSERT INTO sync_conflict (house_id, entity, kind, description, version_a, version_b)
+       VALUES ($1, 'health.evolution', 'estado_divergente', 'conferência 297', $2::jsonb, '{}'::jsonb)`,
+      [ids.AI3, JSON.stringify({ origem: 'aparelho', payload: { motivo: SEGREDO, sigiloso: true } })]);
+    const fila = (quem: string) => comoApp<any>(quem,
+      `SELECT payload FROM offline_operation WHERE client_op_id = 'op-297-sigilo'`);
+    const conflito = (quem: string) => comoApp<any>(quem,
+      `SELECT version_a FROM sync_conflict WHERE description = 'conferência 297'`);
+    expect(await fila('educador')).toHaveLength(1);
+    for (const quem of ['cozinha', 'gestor', 'tecnica']) expect({ quem, n: (await fila(quem)).length }).toEqual({ quem, n: 0 });
+    for (const quem of ['cozinha', 'educador', 'gestor']) {
+      expect({ quem, n: (await conflito(quem)).length }).toEqual({ quem, n: 0 });
+    }
+    expect(await conflito('tecnica')).toHaveLength(1);
+    const lista = await request(http).get(`/api/v1/sync/conflicts?houseId=${ids.AI3}`).set(auth('educador'));
+    expect(lista.status).toBe(403);
+  });
 });

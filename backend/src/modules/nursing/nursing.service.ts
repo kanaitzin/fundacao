@@ -288,6 +288,9 @@ export class NursingService {
       if (e?.message?.includes('acolhido_fora_de_escopo')) {
         throw new NotFoundException('Acolhido não encontrado.');
       }
+      if (e?.message?.includes('casa_nao_confere')) {
+        throw new BadRequestException('Registre o atendimento na casa em que a criança está.');
+      }
       if (e?.message?.includes('retorno_nao_pendente')) {
         throw new BadRequestException(
           'Esse retorno já foi registrado ou não é desta criança. Abra a folha de novo para ver os retornos marcados.');
@@ -429,42 +432,20 @@ export class NursingService {
       throw new BadRequestException('Descreva o que falta para o acompanhante complementar.');
     }
 
-    const ok = await this.db.asUser(user.id, async (c) => {
-      const { rows: [e] } = await c.query(
-        `SELECT id, person_id, house_id, status FROM health_evolution WHERE id = $1`, [evolutionId]);
-      if (!e) return null;
-      if (e.status === 'assinada') return { ja: true, corrida: false, e };
-
-      /*
-       * O ESTADO PRIMEIRO, conferido no próprio UPDATE; a triagem depois (fase 91).
-       *
-       * Antes a triagem era gravada e o estado mudava com `WHERE id = $1`. A
-       * Enfermagem assinando enquanto o Gestor devolvia: as duas passavam pela
-       * leitura acima, e a segunda a gravar desfazia a primeira — a evolução
-       * ASSINADA voltava a "complemento solicitado", com duas triagens
-       * registradas, e as duas pessoas lendo "feito". A leitura continua dando
-       * a frase certa; quem garante que é uma triagem só é o WHERE com o estado
-       * que foi lido (regra 11).
-       */
-      const { rowCount } = await c.query(
-        `UPDATE health_evolution SET status = $2 WHERE id = $1 AND status = $3`,
-        [evolutionId, input.acao === 'assinar' ? 'assinada' : 'complemento_solicitado', e.status]);
-      if (!rowCount) return { ja: false, corrida: true, e };
-
-      await c.query(
-        `INSERT INTO nursing_triage (evolution_id, nurse_id, complement, clinical_note, action, request_note)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [evolutionId, user.id, input.complemento ?? null, input.notaClinica ?? null,
-         input.acao === 'assinar' ? 'assinada' : 'complemento_solicitado', input.pedido ?? null]);
-      return { ja: false, corrida: false, e };
-    });
-    if (!ok) throw new NotFoundException('Evolução não encontrada.');
-    if (ok.ja) throw new BadRequestException('Esta evolução já foi triada e assinada.');
-    if (ok.corrida) {
+    /* A triagem é uma função do banco (fase 297, nursing/1693): ela prende a linha, muda a
+       situação só a partir de uma pendente e grava a triagem, juntas. A aplicação não escreve
+       mais a situação nem a triagem por conta própria. */
+    const r = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT * FROM app_triar_evolucao($1, $2, $3, $4, $5)`,
+      [evolutionId, input.acao, input.complemento ?? null, input.notaClinica ?? null, input.pedido ?? null])).rows[0]);
+    if (r.out_resultado === 'inexistente') throw new NotFoundException('Evolução não encontrada.');
+    if (r.out_resultado === 'ja_assinada') throw new BadRequestException('Esta evolução já foi triada e assinada.');
+    if (r.out_resultado === 'corrida') {
       throw new ConflictException(
         'Outra pessoa triou esta evolução enquanto você conferia. Abra de novo para ver como ficou. '
         + 'O que você escreveu não foi gravado.');
     }
+    const ok = { e: { house_id: r.out_house as string, person_id: r.out_person as string } };
 
     await this.audit.log({
       action: input.acao === 'assinar' ? 'health.triage_sign' : 'health.triage_request',

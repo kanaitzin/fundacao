@@ -764,6 +764,18 @@ tira só a técnica e a coordenação, com o motivo (`app_marcar_sigilo_de_saude
 `evolution_id`, `person_id`, `house_id`, `confidential` (o estado novo), `reason` (obrigatório
 ao tirar), `created_by`, `created_at`. Só cresce; lida no histórico de saúde do perfil.
 
+**O sigilo também no banco (fase 297, nursing/1691 a 1693, sync/1694).** A aplicação lê direto em
+`health_encounter`, `health_evolution` e `nursing_triage` só as colunas que dizem que o registro
+existe (a criança, a casa, o tipo, o dia, a situação, quem registrou, a data do retorno da consulta);
+o conteúdo se lê pelas visões `health_encounter_legivel`, `health_evolution_legivel` e
+`nursing_triage_legivel`, do dono das tabelas, com `security_barrier`, com as linhas da política de
+leitura e o conteúdo vazio no sigiloso para quem não o lê. A aplicação não escreve nessas tabelas: o
+registro é o `app_submit_evolution`, a triagem é o `app_triar_evolucao`, e a casa do atendimento tem
+de ser uma casa em que a criança esteve. O retorno de uma consulta sigilosa nasce sigiloso
+(`trg_retorno_herda_o_sigilo`), e o histórico do sigilo só se lê com o sigilo. A fila sem internet
+(`offline_operation`) se lê só por quem a mandou, e o conflito (`sync_conflict`) só pela técnica,
+pela coordenação e pelo Gestor Geral; o de um atendimento sigiloso, só por quem lê o sigilo.
+
 ### `education_attendance`
 **A FREQUÊNCIA ESCOLAR** (migração 1675, fase 283; decidido em 06/11: o educador marca no Dia da Casa, e a
 técnica e a coordenação corrigem com o motivo e o comprovante). Uma marca por vínculo e dia de aula:

@@ -14,5 +14,5 @@
     "sync_conflict"
   ],
   "removivel": true,
-  "observacao": "Não conhece nenhum domínio: quem sabe aplicar uma operação offline é o módulo dono, que se registra via SyncService.registerHandler. O aparelho institucional (§11.7) é verificado pelo servidor contra o registro da casa — o cliente não afirma nada sobre si."
+  "observacao": "Não conhece nenhum domínio: quem sabe aplicar uma operação offline é o módulo dono, que se registra via SyncService.registerHandler. O aparelho institucional (§11.7) é verificado pelo servidor contra o registro da casa — o cliente não afirma nada sobre si. A política de leitura dos conflitos (1694) pergunta ao `app_le_sigilo_de_saude` da partição de saúde se quem lê pode ver o conflito de um atendimento sigiloso: o conflito guarda a versão inteira, e a regra do sigilo mora num lugar só."
 }

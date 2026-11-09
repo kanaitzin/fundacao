@@ -12,7 +12,10 @@
 --   * os gatilhos e se estão ligados: a auditoria que só acrescenta e as travas das
 --     fases 288 e 289 moram neles;
 --   * o dono de cada função SECURITY DEFINER: com `--no-owner`, ela passa a ser de
---     quem restaura, e restaurada por um superusuário rodaria como superusuário.
+--     quem restaura, e restaurada por um superusuário rodaria como superusuário;
+--   * cada visão, pelo dono, pelas opções (o `security_barrier`) e pela soma da
+--     definição (fase 297): as visões do sigilo de saúde escondem o conteúdo, e uma
+--     visão trocada por outra sem a máscara manteria as mesmas permissões.
 --
 -- Até a 289 o backup ia com --no-privileges, e o banco restaurado não dava ao
 -- rede_app nem a leitura das casas. O ensaio passava.
@@ -55,4 +58,9 @@ SELECT linha FROM (
   SELECT 'definer ' || p.oid::regprocedure::text || ' dono ' || p.proowner::regrole::text
     FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
    WHERE ns.nspname = 'public' AND p.prosecdef
+  UNION ALL
+  SELECT 'visao ' || c.relname || ' dono ' || c.relowner::regrole::text || ' '
+         || coalesce(array_to_string(c.reloptions, ','), '-') || ' ' || md5(pg_get_viewdef(c.oid))
+    FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
+   WHERE ns.nspname = 'public' AND c.relkind = 'v'
 ) x ORDER BY 1;

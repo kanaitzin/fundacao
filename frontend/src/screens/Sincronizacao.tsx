@@ -120,13 +120,14 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
       // da CASA. São perguntas diferentes, e a tela não as mistura.
       const [s, c] = await Promise.all([
         api<Status>('/sync/status'),
-        api<Conflito[]>(`/sync/conflicts?houseId=${houseId}`),
+        /* Os conflitos guardam o registro inteiro: só quem decide os lê (fase 297). */
+        resolve ? api<Conflito[]>(`/sync/conflicts?houseId=${houseId}`) : Promise.resolve([] as Conflito[]),
       ]);
       setStatus(s); setConflitos(c); setCarregou(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir a sincronização.');
     }
-  }, [houseId]);
+  }, [houseId, resolve]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -178,7 +179,16 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
         Conflitos em aberto{conflitos.length > 0 ? ` · ${conflitos.length}` : ''}
       </div>
 
-      {carregou && conflitos.length === 0 && !erro && (
+      {!resolve && (
+        <div className="card">
+          <p className="mutetxt" style={{ margin: 0 }}>
+            Quando um registro feito sem internet não pode ser gravado, a equipe técnica e a
+            coordenação decidem qual versão vale.
+          </p>
+        </div>
+      )}
+
+      {resolve && carregou && conflitos.length === 0 && !erro && (
         <div className="card">
           <p className="mutetxt" style={{ margin: 0 }}>
             <b>Nenhum conflito em aberto nesta casa.</b> Isto é o estado normal: o conflito só
