@@ -53,7 +53,7 @@ export const FRASES_PRONTAS: FrasePronta[] = [
   { rotulo: 'Ver os remédios de agora', pedido: 'Me leva para a saúde', precisa: 'saude' },
   { rotulo: 'Fazer uma conta', pedido: 'Quanto é 12,50 + 7,90 + 23,40?' },
   { rotulo: 'Ler o texto de um papel', pedido: 'Como faço para ler o texto de um papel?' },
-  { rotulo: 'Ensinar uma palavra da casa', pedido: 'Como ensino uma palavra para você?' },
+  { rotulo: 'Como te ensino uma gíria?', pedido: 'Como ensino uma palavra para você?' },
 ];
 
 /** Os documentos que ela monta, ou leva até onde ele sai pronto. */
