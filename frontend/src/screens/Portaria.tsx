@@ -501,8 +501,8 @@ function CartaoDoVisitante({ v, foto, podeVerCpf, onVerFoto, onAnexar, children 
             )}
             {inteiro && (
               <button type="button" className="btn sm ghost ver-cpf" onClick={esconderCpf}
-                      aria-label={`Esconder o documento de ${nome}`}>
-                Esconder
+                      aria-label={`Fechar o documento de ${nome}`}>
+                Fechar o documento
               </button>
             )}
             {inteiro && <small className="mutetxt ver-cpf-nota">A abertura ficou registrada com o seu nome.</small>}

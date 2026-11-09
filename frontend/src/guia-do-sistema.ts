@@ -152,7 +152,7 @@ export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string
   { fase: 300, dia: '09/11/2026',
     texto: 'A Acolhe+AI agora se apresenta pelo seu nome e oferece frases prontas e os documentos que monta com você, de um toque. Cada resposta tem Ouvir e Copiar, e ao lado do microfone fica a Conversa por voz: você fala, ela responde falando e volta a ouvir.' },
   { fase: 299, dia: '09/11/2026',
-    texto: 'Quem atende mais de uma casa vê no alto o que está olhando, Todas as casas ou a casa aberta. Um toque ali abre as duas visões: as oito casas juntas, com os números ou o dia de todas, e cada casa por inteiro, para entrar nela. E na Portaria, o documento do visitante aberto em Ver o documento agora se esconde de novo pelo Esconder.' },
+    texto: 'Quem atende mais de uma casa vê no alto o que está olhando, Todas as casas ou a casa aberta. Um toque ali abre as duas visões: as oito casas juntas, com os números ou o dia de todas, e cada casa por inteiro, para entrar nela. E na Portaria, o documento do visitante aberto em Ver o documento agora se fecha de novo pelo Fechar o documento.' },
   { fase: 298, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: o que se grava fica na casa de quem grava. A estadia, a receita, a atividade, a internação, a síntese da ocorrência e o relatório não podem mais ser levados para uma criança ou uma casa que a pessoa não atende, e o que já foi encerrado não se reescreve.' },
   { fase: 297, dia: '09/11/2026',
