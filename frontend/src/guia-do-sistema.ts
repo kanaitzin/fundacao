@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 294, dia: '09/11/2026',
+    texto: 'Sem mudança nas telas: toda foto guardada sai sem o lugar onde foi tirada. O celular grava na foto a localização, que numa casa é o endereço dela; agora essa parte sai antes de guardar, e a foto continua em pé e do mesmo jeito.' },
   { fase: 293, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: a senha passa a ser conferida dentro do banco, e a senha guardada de cada pessoa não sai mais de lá. Quando muitas tentativas erradas chegam ao mesmo tempo, a entrada trava no limite certo, e a resposta da tela é a mesma para e-mail com e sem conta.' },
   { fase: 292, dia: '09/11/2026', aba: 'equipe',

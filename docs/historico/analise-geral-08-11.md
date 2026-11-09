@@ -169,7 +169,7 @@ restritas; é uma marca por campo.
 redesenhada no aparelho e perde o EXIF sem querer, mas a que já chega pequena (até 2000 px e
 600 KB, `anexos.tsx:52`) vai como veio, o que pode acontecer com foto de galeria já reduzida por
 outro aplicativo. E fotos saem da instituição no livro da vida (fase 270). *Correção:* redesenhar toda
-imagem no aparelho, ou tirar o EXIF no servidor ao gravar.
+imagem no aparelho, ou tirar o EXIF no servidor ao gravar. *Feito na 294 (09/11), no servidor: o GPS do EXIF e o XMP saem de toda imagem guardada.*
 
 **M3. A porta da internet tem duas frestas.** O servidor escuta em todas as interfaces
 (`backend/src/main.ts:15`, sem endereço): se a porta 3000 não estiver fechada no firewall, quem
