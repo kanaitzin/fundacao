@@ -79,6 +79,8 @@ describe('As gravações conferem a casa', () => {
       VALUES ($1, $2, (SELECT enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
                         WHERE t.typname = 'prescription_kind' ORDER BY e.enumsortorder LIMIT 1)::prescription_kind,
               'Conferência 298', '1', 'oral') RETURNING id`, [x.kid3, x.ai3]);
+    await admin.query(`INSERT INTO activity (house_id, kind, title, scheduled_at)
+      VALUES ($1, 'coletiva', 'conferência 298', now() + interval '400 days')`, [x.ai4]);
     x.tr = await um(`INSERT INTO transfer_request (person_id, episode_id, from_house_id, to_house_id, reason, requested_by, status)
       SELECT s.person_id, s.episode_id, s.house_id, $2, 'conferência 298', $3, 'devolvida'
         FROM house_stay s WHERE s.person_id = $1 AND s.status = 'ativa' RETURNING id`, [x.kid3, x.ai4, u.coord3]);
@@ -130,13 +132,21 @@ describe('As gravações conferem a casa', () => {
         `UPDATE house_stay SET status = 'ativa', ended_at = NULL WHERE id = $1`, [x.stay4]],
       ['item na fila de arquivo da Casa 03', 'coord4',
         `SELECT * FROM app_archive_enqueue($1, 'ata', 'conferencia_298', gen_random_uuid(), 'x.pdf')`, [x.ai3]],
+      ['relatório na ficha de criança da Casa 03', 'coord4',
+        `INSERT INTO report_document (house_id, person_id, kind, period_start, period_end, purpose, created_by)
+         VALUES (NULL, $1, 'mensal', app_hoje(), app_hoje(), 'x', app_current_user())`, [x.kid3]],
+      ['atividade da Casa 04 levada para criança da Casa 03', 'coord4',
+        `UPDATE activity SET person_id = $1 WHERE house_id = $2`, [x.kid3, x.ai4]],
+      ['estadia encerrada reescrita', 'coord4',
+        `UPDATE house_stay SET end_reason = 'outro motivo' WHERE house_id = $1 AND status = 'encerrada'`, [x.ai4]],
       ['aviso forjado para outra pessoa', 'educador4',
         `INSERT INTO notification (user_id, safe_title, title) VALUES ($1, 'x', 'x')`, [u.coord3]],
     ];
     const passaram: string[] = [];
     for (const [caso, quem, sql, p] of casos) {
       const r = await tenta(quem, sql, p);
-      if (!r.startsWith('recusou')) passaram.push(`${caso}: ${r}`);
+      /* Recusa ou nenhuma linha alcançada: as duas seguram. */
+      if (r === 'passou') passaram.push(`${caso}: ${r}`);
     }
     expect(passaram).toEqual([]);
   });
