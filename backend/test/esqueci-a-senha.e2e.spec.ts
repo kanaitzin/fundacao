@@ -146,52 +146,81 @@ describe('Esqueci minha senha', () => {
     }
   });
 
+  /** O pedido como a rota faz, com o endereço que ela passaria. */
+  const pedir = (e: string, ip: string | null) => admin.query(
+    `SELECT * FROM auth_pedir_nova_senha($1, $2, 60, $3::inet)`, [e, `h-${rodada}-${Math.random()}`, ip]);
+  const doBloco = async (ip: string) => (await admin.query(
+    `SELECT count(*) FILTER (WHERE segurado IS NULL)::int AS livres,
+            count(*) FILTER (WHERE segurado = 'endereco')::int AS marcas
+       FROM reset_request WHERE bloco = app_bloco_do_endereco($1::inet)`, [ip])).rows[0];
+
   it('o mesmo endereço pede no máximo dez por hora, e o bloco /64 do IPv6 conta como um (fase 296)', async () => {
-    const pedir = (e: string, ip: string) => admin.query(
-      `SELECT * FROM auth_pedir_nova_senha($1, 'h-${rodada}-' || $2, 60, $3::inet)`, [e, `${e}-${ip}-${Math.random()}`, ip]);
-    for (let i = 0; i < 10; i++) await pedir(`inventado.${i}.${rodada}@paodospobres.dev`, '203.0.113.7');
+    for (let i = 0; i < 9; i++) await pedir(`inventado.${i}.${rodada}@paodospobres.dev`, '203.0.113.7');
+    /* O IPv4 escrito como IPv6 é o mesmo endereço. */
+    await pedir(`inventado.9.${rodada}@paodospobres.dev`, '::ffff:203.0.113.7');
     /* O décimo primeiro, com o e-mail de verdade: segurado pelo endereço, sem link. */
-    const r = await pedir(email, '203.0.113.7');
-    expect(r.rows).toEqual([]);
-    const { rows: [seg] } = await admin.query(
-      `SELECT segurado FROM reset_request WHERE ip = '203.0.113.7' ORDER BY id DESC LIMIT 1`);
-    expect(seg.segurado).toBe('endereco');
-    /* Outro endereço segue livre; no IPv6, trocar o fim do endereço não abre outra conta. */
+    expect((await pedir(email, '203.0.113.7')).rows).toEqual([]);
+    /* E os seguintes não deixam linha nenhuma: uma marca por janela. */
+    for (let i = 0; i < 5; i++) await pedir(`mais.${i}.${rodada}@paodospobres.dev`, '203.0.113.7');
+    expect(await doBloco('203.0.113.7')).toEqual({ livres: 10, marcas: 1 });
+    /* No IPv6, trocar o fim do endereço não abre outra conta. */
     for (let i = 0; i < 10; i++) await pedir(`v6.${i}.${rodada}@paodospobres.dev`, `2001:db8:296::${i + 1}`);
     await pedir(`v6.fim.${rodada}@paodospobres.dev`, '2001:db8:296::ffff');
-    const { rows: [v6] } = await admin.query(
-      `SELECT segurado FROM reset_request WHERE ip = '2001:db8:296::ffff' ORDER BY id DESC LIMIT 1`);
-    expect(v6.segurado).toBe('endereco');
-    const { rows: [livre] } = await admin.query(
-      `SELECT count(*)::int n FROM reset_request WHERE ip = '203.0.113.8'`);
-    expect(livre.n).toBe(0);
+    expect(await doBloco('2001:db8:296::1')).toEqual({ livres: 10, marcas: 1 });
+    /* Outro endereço segue livre. */
+    await pedir(`outro.${rodada}@paodospobres.dev`, '203.0.113.8');
+    expect(await doBloco('203.0.113.8')).toEqual({ livres: 1, marcas: 0 });
+    /* A tabela não guarda o que foi digitado. */
+    const { rows: colunas } = await admin.query(
+      `SELECT attname FROM pg_attribute WHERE attrelid = 'reset_request'::regclass AND attnum > 0 AND NOT attisdropped`);
+    expect(colunas.map((c) => c.attname)).not.toContain('email');
   });
 
-  it('a instituição manda no máximo sessenta e-mails de redefinição por hora (fase 296)', async () => {
-    await admin.query(`INSERT INTO reset_request (email, ip, enviado)
-                       SELECT 'teto.' || g || '@paodospobres.dev', '198.51.100.9', true FROM generate_series(1, 60) g`);
+  it('quinze pedidos ao mesmo tempo do mesmo endereço passam só dez (fase 296)', async () => {
+    const conexoes = await Promise.all(Array.from({ length: 15 }, async () => {
+      const c = new Client({ connectionString: adminUrl }); await c.connect(); return c;
+    }));
     try {
-      /* Uma conta de verdade, sem pedido recente: só o teto a segura. */
-      const r = await admin.query(`SELECT * FROM auth_pedir_nova_senha($1, $2, 60, '198.51.100.10'::inet)`,
-        ['educador2.ai3@paodospobres.dev', `teto-${rodada}`]);
-      expect(r.rows).toEqual([]);
-      const { rows: [seg] } = await admin.query(
-        `SELECT segurado FROM reset_request WHERE ip = '198.51.100.10' ORDER BY id DESC LIMIT 1`);
-      expect(seg.segurado).toBe('teto');
-      const { rows: [a] } = await admin.query(
-        `SELECT count(*)::int n FROM audit_event WHERE action = 'auth.reset_teto' AND at > now() - interval '1 hour'`);
-      expect(a.n).toBe(1);
+      await Promise.all(conexoes.map((c, i) => c.query(
+        `SELECT * FROM auth_pedir_nova_senha($1, $2, 60, '203.0.113.20'::inet)`,
+        [`rajada.${i}.${rodada}@paodospobres.dev`, `r-${rodada}-${i}`])));
     } finally {
-      await admin.query(`DELETE FROM reset_request WHERE ip IN ('198.51.100.9', '198.51.100.10')`);
+      await Promise.all(conexoes.map((c) => c.end()));
+    }
+    expect(await doBloco('203.0.113.20')).toEqual({ livres: 10, marcas: 1 });
+  });
+
+  it('o teto da instituição segura só a repetição, e o primeiro e-mail de cada conta sai (fase 296)', async () => {
+    const ids296 = (await admin.query(
+      `SELECT id, email FROM app_user WHERE email IN ('educador2.ai3@paodospobres.dev', 'educador.ai4@paodospobres.dev')`)).rows;
+    const repetida = ids296.find((u) => u.email.startsWith('educador2'))!.id;
+    await admin.query(`INSERT INTO reset_request (bloco, enviado)
+                       SELECT '198.51.100.9', true FROM generate_series(1, 60)`);
+    await admin.query(`INSERT INTO reset_request (user_id, bloco, enviado) VALUES ($1, '198.51.100.9', true)`, [repetida]);
+    try {
+      /* Quem já recebeu um na hora: segurado pelo teto. */
+      expect((await pedir('educador2.ai3@paodospobres.dev', '198.51.100.10')).rows).toEqual([]);
+      const { rows: [seg] } = await admin.query(
+        `SELECT segurado FROM reset_request WHERE user_id = $1 ORDER BY id DESC LIMIT 1`, [repetida]);
+      expect(seg.segurado).toBe('teto');
+      /* Quem não recebeu nenhum: sai, mesmo acima do teto. */
+      expect((await pedir('educador.ai4@paodospobres.dev', '198.51.100.11')).rows).toHaveLength(1);
+      /* A auditoria anota uma vez, sem autor: é da instituição, não da conta. */
+      const { rows: a } = await admin.query(
+        `SELECT actor_id FROM audit_event WHERE action = 'auth.reset_teto' AND at > now() - interval '1 hour'`);
+      expect(a).toEqual([{ actor_id: null }]);
+    } finally {
+      await admin.query(`DELETE FROM reset_request WHERE bloco <<= '198.51.100.0/24'`);
     }
   });
 
-  it('a rota manda o endereço, e o papel da aplicação não lê os pedidos (fase 296)', async () => {
+  it('a rota manda o endereço como a entrada, e o papel da aplicação não lê os pedidos (fase 296)', async () => {
+    /* Pela rota, da própria máquina: não conta por endereço e, sem e-mail, não deixa linha. */
     const antes = (await admin.query(`SELECT count(*)::int n FROM reset_request`)).rows[0].n;
-    await esqueci(`pela.rota.${rodada}@paodospobres.dev`);
-    const { rows: [r] } = await admin.query(`SELECT ip FROM reset_request ORDER BY id DESC LIMIT 1`);
-    expect((await admin.query(`SELECT count(*)::int n FROM reset_request`)).rows[0].n).toBe(antes + 1);
-    expect(r.ip).toMatch(/127\.0\.0\.1|::1/);
+    expect((await esqueci(`pela.rota.${rodada}@paodospobres.dev`)).status).toBe(201);
+    expect((await admin.query(`SELECT count(*)::int n FROM reset_request`)).rows[0].n).toBe(antes);
+    /* E-mail comprido demais é recusado antes do banco. */
+    expect((await esqueci(`${'x'.repeat(260)}@paodospobres.dev`)).status).toBe(400);
     await expect(app.get(DatabaseService).query(`SELECT * FROM reset_request LIMIT 1`))
       .rejects.toThrow(/permission denied/);
   });

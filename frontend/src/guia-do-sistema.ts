@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 296, dia: '09/11/2026',
+    texto: 'Sem mudança nas telas: o esqueci minha senha passa a ter limite. Do mesmo lugar saem no máximo dez pedidos por hora, e quando muitos e-mails de senha nova saem na mesma hora, quem já recebeu um espera; o primeiro de cada pessoa sempre sai. Se o e-mail não chegar, a coordenação continua podendo reenviar o acesso.' },
   { fase: 295, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: quando a casa abrir pela internet, a tela chega com as proteções do navegador ligadas (nada de fora roda dentro dela, ninguém a põe dentro de outra página, a localização fica fechada), e a câmera, a leitura do papel e o PDF continuam abrindo. Um arquivo que não é PDF nem foto passa a pedir para baixar, em vez de abrir na tela.' },
   { fase: 294, dia: '09/11/2026',

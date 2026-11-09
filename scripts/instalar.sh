@@ -89,8 +89,10 @@ else
   for v in BANCO_LIMITE_CONSULTA_MS BANCO_LIMITE_TRAVA_MS BANCO_LIMITE_PARADA_MS BANCO_LIMITE_CONEXAO_MS; do
     [[ "$(val "$v")" == 0 ]] && falta "$v=0 desliga o limite" "o zero é só da simulação; apague a linha ou use o valor do .env.example (§12.4.1)"
   done
-  [[ -n "$(val TRUST_PROXY)" ]] && ok "TRUST_PROXY=$(val TRUST_PROXY)" \
-    || falta "TRUST_PROXY vazio" "atrás do Caddy da mesma máquina, use loopback: sem isso, o endereço de todo mundo é o do servidor (§12.9)"
+  tp="$(val TRUST_PROXY)"
+  if [[ -z "$tp" || "$tp" =~ ^(nao|não|false|0|no|off)$ ]]; then
+    falta "TRUST_PROXY=${tp:-vazio}" "atrás do Caddy da mesma máquina, use loopback: sem isso, o endereço de todo mundo é o do servidor, e a trava da entrada e o limite do esqueci contam a instituição inteira como um endereço só (§12.9)"
+  else ok "TRUST_PROXY=$tp"; fi
   for v in LOGIN_MAX_ATTEMPTS LOGIN_MAX_POR_ENDERECO LOGIN_LOCK_MINUTES; do
     x=$(val "$v")
     [[ -z "$x" || "$x" =~ ^[1-9][0-9]*$ ]] || falta "$v=$x não é um número inteiro maior que zero" "o servidor usa o padrão no lugar"

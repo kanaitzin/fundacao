@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { hashPassword, hashToken, newSessionToken } from '../../kernel/common/crypto';
+import { daPropriaMaquina, enderecoDaTentativa } from './auth.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { MailGateway } from './mail.gateway';
 import { FRASE_DA_SENHA, senhaAceita } from '../../kernel/common/senha.regra';
@@ -138,9 +139,13 @@ export class InviteService {
       + 'nova. O link vale uma hora e serve uma vez. Confira também a caixa de spam. Se não chegar, '
       + 'a coordenação pode reenviar o seu acesso.';
     if (!email?.trim()) throw new BadRequestException('Informe o e-mail.');
+    if (email.trim().length > 254) throw new BadRequestException('Confira o e-mail: ele está comprido demais.');
+    /* O endereço como a entrada o conta (fase 296): o pedido que chega da própria máquina
+       não trava pelo endereço, ou um TRUST_PROXY errado viraria um limite só para todos. */
+    const endereco = enderecoDaTentativa(ip);
     const { token, hash } = newSessionToken();
     const { rows: [r] } = await this.db.query(
-      `SELECT * FROM auth_pedir_nova_senha($1, $2, $3, $4)`, [email.trim(), hash, MINUTOS_ESQUECI, ip ?? null]);
+      `SELECT * FROM auth_pedir_nova_senha($1, $2, $3, $4)`, [email.trim(), hash, MINUTOS_ESQUECI, endereco && !daPropriaMaquina(endereco) ? endereco : null]);
     /* Sem esperar o envio (fase 293): esperar o SMTP só quando a conta existe contava, pelo
        tempo, que ela existe. A falha fica na saúde da implantação. */
     if (r) {

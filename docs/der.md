@@ -1027,7 +1027,7 @@ ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a 
 de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
 retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
-## Inventário — 154 tabelas por partição
+## Inventário — 155 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -1079,13 +1079,17 @@ escreve: só as funções `auth_*`. A senha é conferida dentro do banco (`auth_
 aplicação não lê a coluna `app_user.password_hash`.
 
 ### `reset_request` — os pedidos do esqueci minha senha
-CADA PEDIDO, COM O ENDEREÇO (fase 296, identity/1689): `email` (como foi limpo), `ip`,
-`enviado` (se saiu e-mail) e `segurado` (`endereco` ou `teto`, quando um limite
-segurou). Quem escreve e quem lê é só a `auth_pedir_nova_senha`, que conta antes de
-tudo os pedidos do mesmo endereço na última hora (no IPv6, o bloco /64) e os e-mails que
-saíram na última hora na instituição. A resposta é a mesma em todos os casos. RLS ligado
-e nenhum acesso da aplicação, como a `login_attempt`; o prazo de guarda é o mesmo pedido
-ao DPO.
+CADA PEDIDO, PELO BLOCO DO ENDEREÇO (fase 296, identity/1689 e 1690): `user_id` (a
+conta, nula quando o e-mail não tem conta), `bloco` (o endereço como a trava o conta:
+`app_bloco_do_endereco`, o /64 no IPv6), `enviado` e `segurado` (`endereco` ou `teto`).
+Nunca o que foi digitado. Quem escreve e lê é só a `auth_pedir_nova_senha`: dez pedidos
+por hora do mesmo bloco (o segurado é anotado uma vez por janela), e acima de sessenta
+e-mails por hora na instituição segura só quem já recebeu um na hora. Acima do teto, a
+auditoria anota `auth.reset_teto` uma vez por hora, sem autor (é da instituição, não da
+conta), e a saúde da implantação anota o e-mail que não saiu. Pedido da própria máquina
+não conta por endereço e só deixa linha quando sai e-mail. RLS ligado e nenhum acesso da
+aplicação, como a `login_attempt`; sem prazo de guarda até a decisão do DPO
+(PARA-A-REUNIAO §0 C1).
 
 ### `app_user_role_period` — o cargo da época
 O CARGO DE CADA PESSOA, POR PERÍODO (fase 165, identity/1620): `user_id`,

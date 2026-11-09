@@ -33,7 +33,8 @@
     "shift_draft",
     "shift_draft_item",
     "shift_assignment",
-    "auth_segredo"
+    "auth_segredo",
+    "reset_request"
   ],
   "observacao": "Contém a migração de fundação (instituição, casas, usuários e auditoria), da qual todo o resto depende. Não é removível."
 }

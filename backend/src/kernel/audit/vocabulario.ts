@@ -334,6 +334,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'auth.first_access': 'Primeiro acesso concluído',
   'auth.reset_requested': 'Pedido de senha nova por e-mail',
   'auth.reset_email_a_confirmar': 'Pedido de senha nova para e-mail ainda a confirmar (nada enviado)',
+  'auth.reset_teto': 'Limite de e-mails de senha nova na hora alcançado (os repetidos não foram enviados)',
   'push.ligado': 'Aviso no celular ligado num aparelho',
   'assistente.conversa': 'Conversa com a Acolhe+AI',
   'assistente.preparado': 'Registro preparado com a Acolhe+AI e confirmado',
