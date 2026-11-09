@@ -70,7 +70,7 @@ const ABRE = '[data-acolhe-abre]';
 /* E o botão sem marca que, pelo nome, abre ou mostra alguma coisa. Os que gravam
    ou decidem ficam de fora pelo nome, e a pessoa nunca preenche nada aqui. */
 const VERBO_DE_ABRIR = /^(Registrar|Abrir|Ver|Nova|Novo|Pedir|Anexar|Cadastrar|Adicionar|Acrescentar|Corrigir|Editar|Escolher|Detalhes|Trocar|Marcar|Mudar|Baixar|Ler|Mostrar|Propor|Montar|Gerar|Definir|Lançar|Avisar|Solicitar|Pedido|Receitas|Dossiê|Relatório|Folha|Imprimir|Histórico|Quem)\b/i;
-const NAO_APERTAR = /(galeria|câmera|tirar foto|^Registrar a (saída|volta|chegada))|^(Salvar|Gravar|Confirmar|Assinar|Enviar|Concluir|Excluir|Encerrar|Remover|Tirar|Apagar|Sair|Desmarcar|Aprovar|Recusar|Devolver|Publicar|Dei|Não dei)\b/i;
+const NAO_APERTAR = /(galeria|câmera|tirar foto|^Registrar a (saída|volta|chegada)|^Registrar que foi)|^(Salvar|Gravar|Confirmar|Assinar|Enviar|Concluir|Excluir|Encerrar|Remover|Tirar|Apagar|Sair|Desmarcar|Aprovar|Recusar|Devolver|Publicar|Dei|Não dei)\b/i;
 const ENTRA = '[data-acolhe-entra], .pessoa-cartao, button.card.row';
 const VOLTA_DA_FOLHA = /^(Fechar|Voltar|Cancelar|Concluir)$/i;
 const VOLTA_DA_SUBTELA = /^(←|Voltar\b|Fechar\b|Cancelar\b)/i;

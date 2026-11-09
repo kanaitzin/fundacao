@@ -452,6 +452,8 @@ function CartaoDoVisitante({ v, foto, podeVerCpf, onVerFoto, onAnexar, children 
       setInteiro({ cpf: r.cpf ? comPontos(r.cpf) : '', rg: r.rg ?? '' });
     } catch (e) { setErroCpf(erroDe(e, 'Não consegui abrir o CPF. Tente de novo.')); }
   };
+  // Esconder de novo não apaga a abertura, que já está na auditoria.
+  const esconderCpf = () => { setInteiro(null); setErroCpf(''); };
   return (
     <li className="visitante">
       <div className="visitante-foto">
@@ -495,6 +497,12 @@ function CartaoDoVisitante({ v, foto, podeVerCpf, onVerFoto, onAnexar, children 
               <button type="button" className="btn sm ghost ver-cpf" onClick={verCpf}
                       aria-label={`Ver o documento inteiro de ${nome}`}>
                 Ver o documento
+              </button>
+            )}
+            {inteiro && (
+              <button type="button" className="btn sm ghost ver-cpf" onClick={esconderCpf}
+                      aria-label={`Esconder o documento de ${nome}`}>
+                Esconder
               </button>
             )}
             {inteiro && <small className="mutetxt ver-cpf-nota">A abertura ficou registrada com o seu nome.</small>}
