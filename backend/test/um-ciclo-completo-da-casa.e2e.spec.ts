@@ -32,6 +32,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -267,10 +268,10 @@ describe('Um ciclo completo da Casa 03', () => {
   it('hoje: a madrinha entra e sai pela portaria, com o documento conferido', async () => {
     const email = `portaria.sim.${rodada}@paodospobres.dev`;
     const p = await post(t.coord, '/staff', { nome: 'Portaria da Simulação (fictícia)', email,
-      cargo: 'portaria', casaId: ids.AI3, senhaInicial: 'senha-da-portaria' });
+      cargo: 'portaria', casaId: ids.AI3, senhaInicial: 'Senha-da-portaria!' });
     expect(p.status).toBe(201);
     ids.portaria = p.body.id;
-    t.portaria = await login(email, 'senha-da-portaria');
+    t.portaria = await entrarPelaPrimeiraVez(http, email, 'Senha-da-portaria!');
     const lista = await get(t.portaria, `/people/portaria/hoje?houseId=${ids.AI3}`);
     expect(lista.body.visitantes.some((v: any) => v.contatoId === ids.madrinha)).toBe(true);
     const e = await post(t.portaria, '/people/portaria/visitas', { contatoId: ids.madrinha, documento: 'RG' });

@@ -3,20 +3,20 @@ import { CameraNesteAparelho } from '../camera';
 import { useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
+import { FRASE_DA_SENHA, oQueFaltaNaSenha, senhaAceita } from '../../../backend/src/kernel/common/senha.regra';
 
 /**
- * PRIMEIRO ACESSO — sugestão de senha pessoal.
+ * A SENHA PESSOAL.
  *
- * Sugere, não obriga: a pessoa pode seguir com a senha inicial e trocar depois
- * pelo botão 🔑 da barra. Foi a escolha da Fundação, e ela tem uma razão
- * operacional boa — travar a entrada de um educador às 6h da manhã, no meio do
- * plantão, cria mais risco do que resolve.
- *
- * O que o sistema NÃO abre mão: enquanto a senha inicial estiver em uso, isso
- * fica visível para a coordenação na lista de equipe (coluna "senha inicial
- * pendente"). Sugerir sem esquecer.
+ * No primeiro acesso com a senha inicial, a troca é OBRIGATÓRIA (fase 291; decisão do
+ * dono do projeto em 08/11, que troca a de antes, quando só se sugeria): quem cadastrou
+ * a conta conhece a senha inicial, e até a troca entra no lugar da pessoa. O servidor
+ * recusa o resto até a troca; aqui, a folha aparece sozinha, sem o botão de adiar, e o
+ * que se pode fazer é criar a senha ou sair. A regra da senha é a do `senha.regra.ts`,
+ * a mesma do servidor.
  */
 export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, onAdiar, casa }: {
+  /** O primeiro acesso, com a senha inicial: a troca não se adia (fase 291). */
   email: string; primeiroAcesso: boolean; semSenhaAinda?: boolean;
   /** A casa, para o exemplo do aviso no computador (fase 191). */
   casa?: string | null;
@@ -31,7 +31,7 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     setErro('');
-    if (nova.length < 6) return setErro('A senha precisa de pelo menos 6 caracteres.');
+    if (!senhaAceita(nova)) return setErro(FRASE_DA_SENHA);
     if (nova !== repete) return setErro('As duas senhas não são iguais.');
     setOcupado(true);
     try {
@@ -54,13 +54,13 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
       <div className="sheet modal">
         <h3 id="t-senha">
           <Icone nome="chave" /> {semSenhaAinda ? 'Crie a sua senha'
-             : primeiroAcesso ? 'Que tal criar uma senha pessoal?' : 'Trocar minha senha'}
+             : primeiroAcesso ? 'Crie a sua senha para começar' : 'Trocar minha senha'}
         </h3>
         <p className="mutetxt">
           {semSenhaAinda
             ? 'Esta conta ainda não tem senha. A que você escrever agora é só sua: nem a coordenação, nem a Fundação, nem quem fez o sistema consegue vê-la. O que você registrar daqui em diante vai com o seu nome.'
             : primeiroAcesso
-              ? 'Você está usando a senha inicial entregue pela coordenação. Uma senha só sua protege o que você registra — e o que você registra tem o seu nome. Se preferir, pode continuar com a atual e trocar quando quiser pelo botão "Trocar minha senha", no alto da tela.'
+              ? 'A senha que você recebeu serve só para esta primeira entrada. Crie agora a sua: ela é só sua, e o que você registrar daqui em diante vai com o seu nome.'
               : 'Trocar a senha encerra as outras sessões abertas em seu nome. A sua, aqui, continua.'}
         </p>
         <p className="mutetxt"><b className="ff">{email}</b></p>
@@ -83,7 +83,10 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
           <input id="nova" type="password" autoComplete="new-password"
                  autoFocus={semSenhaAinda}
                  value={nova} onChange={(e) => setNova(e.target.value)}
-                 placeholder="Mínimo 6 caracteres" />
+                 placeholder="8 ou mais, com maiúscula e símbolo" />
+          {nova && oQueFaltaNaSenha(nova).length > 0 && (
+            <p className="mutetxt" aria-live="polite">Falta {oQueFaltaNaSenha(nova).join(', ')}.</p>
+          )}
 
           <label className="f" htmlFor="repete">Repita a senha</label>
           <input id="repete" type="password" autoComplete="new-password"
@@ -95,7 +98,7 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
           <div className="row" style={{ gap: 8, marginTop: 16 }}>
             {!semSenhaAinda && (
               <button type="button" className="btn sec grow" onClick={onAdiar}>
-                {primeiroAcesso ? 'Continuar com a senha atual' : 'Cancelar'}
+                {primeiroAcesso ? 'Sair' : 'Cancelar'}
               </button>
             )}
             <button type="submit" className="btn grow" disabled={ocupado}>

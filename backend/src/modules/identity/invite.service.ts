@@ -8,6 +8,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { hashPassword, hashToken, newSessionToken } from '../../kernel/common/crypto';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { MailGateway } from './mail.gateway';
+import { FRASE_DA_SENHA, senhaAceita } from '../../kernel/common/senha.regra';
 
 /**
  * CONVITE DE PRIMEIRO ACESSO (§8.2).
@@ -176,9 +177,7 @@ export class InviteService {
   async concluir(token: string, novaSenha: string, ip?: string, userAgent?: string) {
     if (!token?.trim()) throw new BadRequestException('Convite não informado.');
     const senha = (novaSenha ?? '').trim();
-    if (senha.length < 8) {
-      throw new BadRequestException('A senha precisa de pelo menos 8 caracteres.');
-    }
+    if (!senhaAceita(senha)) throw new BadRequestException(FRASE_DA_SENHA);
 
     const hash = await hashPassword(senha);
     /* SEM identidade na sessão, de propósito (`db.query`, e não `asUser`): o gatilho de

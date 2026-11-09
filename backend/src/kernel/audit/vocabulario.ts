@@ -327,6 +327,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'auth.logout': 'Saída do sistema',
   'auth.login_failed': 'Tentativa de entrada com senha errada',
   'auth.login_locked': 'Conta bloqueada por tentativas seguidas',
+  'auth.endereco_travado': 'Entrada recusada por tentativas seguidas do mesmo endereço',
   'auth.password_change': 'Senha trocada',
   'auth.invite_sent': 'Convite de primeiro acesso enviado',
   'auth.invite_issued': 'Convite de primeiro acesso emitido',

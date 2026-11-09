@@ -2,7 +2,9 @@ import { BadRequestException, ConflictException, ForbiddenException, Inject, Inj
 import { AuditService } from '../../kernel/audit/audit.service';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuthenticatedUser, RoleCode } from '../../kernel/contracts';
+import { randomInt } from 'node:crypto';
 import { hashPassword } from '../../kernel/common/crypto';
+import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../kernel/common/senha.regra';
 
 /**
  * SETORES — os cargos do §5, com a descrição que a tela mostra.
@@ -34,12 +36,13 @@ export const SETORES: Array<{
 
 const LABEL = new Map(SETORES.map((s) => [s.code, s.label]));
 
-/** Senha inicial legível: fácil de ditar por telefone, trocada no primeiro acesso. */
-function senhaInicial(): string {
-  const palavras = ['acolher', 'cuidado', 'plantao', 'unidade', 'equipe', 'rotina', 'abrigo'];
-  const p = palavras[Math.floor(Math.random() * palavras.length)];
-  const n = Math.floor(1000 + Math.random() * 9000);
-  return `${p}-${n}`;
+/**
+ * SENHA INICIAL (fase 291): a regra mora no `senha.regra.ts`; aqui, o sorteio pelo
+ * `randomInt` do `node:crypto` (o `Math.random` não é para segredo). A pessoa a troca no
+ * primeiro acesso, e o servidor cobra.
+ */
+export function senhaInicial(): string {
+  return senhaInicialSorteada(randomInt);
 }
 
 /**
@@ -106,9 +109,7 @@ export class StaffService {
         'A Coordenação Geral é uma coordenação sem casa: escolha o cargo Coordenação e deixe a casa em branco.');
     }
     const senha = (input.senhaInicial ?? '').trim() || senhaInicial();
-    if (senha.length < 6) {
-      throw new BadRequestException('A senha inicial precisa de pelo menos 6 caracteres.');
-    }
+    if (!senhaAceita(senha)) throw new BadRequestException(FRASE_DA_SENHA);
     const hash = await hashPassword(senha);
 
     /* A Coordenação Geral nasce sem casa, por uma função só dela (1634): o
@@ -122,8 +123,8 @@ export class StaffService {
     return {
       id: id.out_id,
       senhaInicial: senha,
-      aviso: 'Entregue esta senha à pessoa — ela é mostrada uma única vez. '
-           + 'No primeiro acesso o sistema sugere que ela crie uma senha própria.',
+      aviso: 'Entregue esta senha à pessoa. Ela é mostrada uma única vez, e no primeiro '
+           + 'acesso a pessoa cria a senha dela antes de começar.',
     };
   }
 
@@ -222,9 +223,7 @@ export class StaffService {
 
   async resetPassword(user: AuthenticatedUser, id: string, nova?: string) {
     const senha = (nova ?? '').trim() || senhaInicial();
-    if (senha.length < 6) {
-      throw new BadRequestException('A senha precisa de pelo menos 6 caracteres.');
-    }
+    if (!senhaAceita(senha)) throw new BadRequestException(FRASE_DA_SENHA);
     await this.comando(user, 'app_reset_staff_password($1,$2)', [id, await hashPassword(senha)]);
     return {
       senhaInicial: senha,
@@ -277,6 +276,9 @@ export class StaffService {
       // As recusas do gatilho de quem administra a conta (identity/1681 e 1682).
       if (m.includes('nao_administra_a_si_mesmo')) {
         throw new ForbiddenException('A sua própria conta é alterada por quem administra a equipe.');
+      }
+      if (m.includes('vinculo_de_quem_atende_todas')) {
+        throw new BadRequestException('Quem atende todas as casas fica sem casa de trabalho: deixe a casa em branco.');
       }
       if (m.includes('conta_de_toda_a_instituicao')) {
         throw new ForbiddenException(

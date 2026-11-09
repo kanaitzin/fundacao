@@ -76,6 +76,12 @@ import { CATEGORIAS_DOSSIE, DOSSIE_EXIGIDO, TIPOS_DE_VIVENCIA, TAMANHO_MAXIMO,
 import { CASAS_DA_FUNDACAO, CASA_MODELO, trocadorDeNomes, type ConfigDaCasa } from './casas-ficticias';
 import { QUEM_POE_FOTO } from '../../backend/src/modules/people/foto.regra';
 import { QUEM_VE_CPF_INTEIRO } from '../../backend/src/modules/people/cpf-na-portaria.regra';
+import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../backend/src/kernel/common/senha.regra';
+
+/** A senha inicial do protótipo, sorteada como no servidor (fase 291). */
+function senhaInicialDoPrototipo(): string {
+  return senhaInicialSorteada((n) => crypto.getRandomValues(new Uint32Array(1))[0] % n);
+}
 
 /**
  * UMA CASA DO PROTÓTIPO (fase 225). Tudo o que está abaixo é o servidor de
@@ -5969,9 +5975,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (rota === '/auth/convite/conferir') {
       return { valido: true, nome: u.fullName, email: pedidoEsqueci.email, motivo: 'esqueci' };
     }
-    if (String(b.novaSenha ?? '').length < 8) {
-      return new Recusa(400, 'A senha precisa de pelo menos 8 caracteres.');
-    }
+    if (!senhaAceita(b.novaSenha)) return new Recusa(400, FRASE_DA_SENHA);
     gravarEsqueci({ ...pedidoEsqueci, gasto: true });
     u.senha = String(b.novaSenha);
     eu = u;
@@ -5988,9 +5992,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (String(b.convite ?? '') !== CONVITE_DEMO || conviteGasto) {
       return new Recusa(410, 'Convite inválido ou vencido. Peça um novo à coordenação.');
     }
-    if (String(b.novaSenha ?? '').length < 8) {
-      return new Recusa(400, 'A senha precisa de pelo menos 8 caracteres.');
-    }
+    if (!senhaAceita(b.novaSenha)) return new Recusa(400, FRASE_DA_SENHA);
     conviteGasto = true;                 // uma vez só, também aqui
     eu.senha = String(b.novaSenha);
     return { ok: true, token: 'prototipo' };
@@ -6049,6 +6051,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
              email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id) };
   }
   if (rota === '/auth/password') {
+    if (!senhaAceita(b.novaSenha)) return new Recusa(400, FRASE_DA_SENHA);
     // Vale enquanto a página estiver aberta: a partir daqui a conta pede senha.
     eu.senha = String(b.novaSenha ?? '');
     return { ok: true, aviso: 'Senha criada. No protótipo ela vale só nesta janela.' };
@@ -6926,10 +6929,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (cargoDeTodasAsCasas(b.cargo) && !alcancoTodasAsCasas(eu)) {
       return new Recusa(403, 'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
     }
-    const senha = `inicial-${uid()}`;
+    const senha = String(b.senha ?? '').trim() || senhaInicialDoPrototipo();
+    if (!senhaAceita(senha)) return new Recusa(400, FRASE_DA_SENHA);
     return { id: uid(), senhaInicial: senha,
-      aviso: 'Entregue esta senha à pessoa — ela é mostrada uma única vez. No primeiro acesso '
-        + 'o sistema sugere que ela crie uma senha própria. No protótipo, a conta não entra na lista.' };
+      aviso: 'Entregue esta senha à pessoa. Ela é mostrada uma única vez, e no primeiro acesso '
+        + 'a pessoa cria a senha dela antes de começar. No protótipo, a conta não entra na lista.' };
   }
   if (seg[0] === 'staff' && seg[2] === 'coordenacao-geral' && metodo === 'POST') {
     if (eu.role !== 'gestor_geral') {
@@ -6943,7 +6947,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const todas = b.todas !== false;
     /* A senha de antes não acompanha a conta para as oito casas (identity/1683). */
-    const senhaNova = todas && !TODAS_AS_CASAS.has(alvo.id) ? `inicial-${uid()}` : null;
+    const senhaNova = todas && !TODAS_AS_CASAS.has(alvo.id) ? senhaInicialDoPrototipo() : null;
     if (todas) TODAS_AS_CASAS.add(alvo.id); else TODAS_AS_CASAS.delete(alvo.id);
     return { ok: true, todasAsCasas: todas, ...(senhaNova ? { senhaInicial: senhaNova } : {}),
       aviso: todas
@@ -7160,8 +7164,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'equipe técnica.');
     }
     if (contaDeTodasAsCasas(seg[1]) && !alcancoTodasAsCasas(eu)) return new Recusa(403, 'A conta de quem atende todas as casas é criada e alterada pelo Gestor Geral ou pela Coordenação Geral.');
-    const senha = String(b.senha ?? '').trim() || `inicial-${uid()}`;
-    if (senha.length < 6) return new Recusa(400, 'A senha precisa de pelo menos 6 caracteres.');
+    const senha = String(b.senha ?? '').trim() || senhaInicialDoPrototipo();
+    if (!senhaAceita(senha)) return new Recusa(400, FRASE_DA_SENHA);
     return { senhaInicial: senha,
       aviso: 'Senha redefinida e sessões encerradas. Entregue a senha à pessoa; ela é '
         + 'mostrada uma única vez. Quando der, prefira o convite: assim a senha não passa '
@@ -7179,7 +7183,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const estreita = membro && b.cargo && b.cargo !== membro.cargo && !contaDeTodasAsCasas(seg[1])
       && (cargoDeTodasAsCasas(b.cargo) || b.cargo === 'coordenador');
     if (estreita) {
-      return { ok: true, senhaInicial: `inicial-${uid()}`,
+      return { ok: true, senhaInicial: senhaInicialDoPrototipo(),
         aviso: 'Cargo alterado. A senha de antes deixou de valer e as sessões abertas foram '
           + 'encerradas, porque quem a conhecia não administra o cargo novo. Entregue esta '
           + 'senha nova à pessoa; ela é mostrada uma única vez.' };

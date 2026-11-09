@@ -127,6 +127,16 @@ mínimo de 10 com lista de senhas comuns; troca obrigatória cobrada no servidor
 responde 403 até trocar) e senha inicial que vence em 72 horas; limite por IP no Caddy ou no
 servidor. A trava por conta continua, com aviso à coordenação quando disparar.
 
+*Feito na fase 291 (08/11), com as decisões do dono:* a regra de 8 caracteres com maiúscula e símbolo
+(no lugar do mínimo de 10 com lista de senhas comuns que eu tinha sugerido); a senha inicial sorteada pelo
+`node:crypto`; a troca obrigatória cobrada no servidor; a trava pelo endereço, contando contas diferentes;
+a trava na senha atual da troca e da reautenticação; o servidor escutando só em `127.0.0.1`. **Ficou para a
+292:** a senha nova na troca de casa e o e-mail na promoção. **Para a 293:** a senha conferida no banco (com
+ela a `auth_find_user`, o `password_hash` que o `rede_app` lê, o `must_change_password` que a própria conta
+apaga pelo SQL, a conta e o registro da tentativa numa função só, e o tempo igual para e-mail com e sem
+conta). **Sem fase ainda:** a senha inicial que vence em 72 horas, o aviso à coordenação quando a trava
+dispara, o prazo de guarda da `login_attempt` e a guarda `<> 'gestor_geral'` da 1634.
+
 *Acrescentado pela revisão de segurança da fase 288 (`auditor-seguranca-lgpd`), para o conserto do A4:*
 - **o que sobrou do A2:** o `rede_app` lê o `password_hash` (a `user_select` deixa a gestão, a coordenação e a
   técnica lerem o da equipe), e a `auth_find_user` (0010), `SECURITY DEFINER`, devolve o hash de QUALQUER e-mail.

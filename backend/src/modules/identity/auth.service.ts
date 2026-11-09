@@ -3,11 +3,30 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { verifyPassword, hashPassword, newSessionToken, hashToken } from '../../kernel/common/crypto';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { FRASE_DA_SENHA, senhaAceita } from '../../kernel/common/senha.regra';
 
 // O tipo vive no kernel: é o vocabulário que todo módulo autenticado usa.
 export type { AuthenticatedUser } from '../../kernel/contracts';
 
 const GENERIC_FAIL = 'E-mail ou senha inválidos'; // mesma mensagem sempre: sem enumeração de contas
+
+/** Número do `.env` que só vale inteiro e maior que zero: vazio ou mal escrito usa o padrão,
+ *  em vez de virar zero (todo mundo travado) ou NaN (trava desligada sem aviso). */
+export function inteiroPositivo(valor: string | undefined, padrao: number): number {
+  const n = Number(valor);
+  return valor?.trim() && Number.isInteger(n) && n > 0 ? n : padrao;
+}
+
+/** O endereço como o banco o guarda: o IPv4 que chega escrito como IPv6 volta a ser IPv4. */
+export function enderecoDaTentativa(ip?: string): string | undefined {
+  if (!ip) return undefined;
+  return ip.startsWith('::ffff:') && ip.includes('.') ? ip.slice(7) : ip;
+}
+
+/** O próprio servidor: atrás do proxy sem `TRUST_PROXY`, é o endereço de todo mundo. */
+export function daPropriaMaquina(ip: string): boolean {
+  return ip === '::1' || ip.startsWith('127.');
+}
 
 @Injectable()
 export class AuthService {
@@ -16,11 +35,14 @@ export class AuthService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  private get maxAttempts() { return Number(process.env.LOGIN_MAX_ATTEMPTS ?? 5); }
-  private get lockMinutes() { return Number(process.env.LOGIN_LOCK_MINUTES ?? 15); }
+  private get maxAttempts() { return inteiroPositivo(process.env.LOGIN_MAX_ATTEMPTS, 5); }
+  private get lockMinutes() { return inteiroPositivo(process.env.LOGIN_LOCK_MINUTES, 15); }
+  /** Contas diferentes que um mesmo endereço pode errar na janela (fase 291). */
+  private get maxPorEndereco() { return inteiroPositivo(process.env.LOGIN_MAX_POR_ENDERECO, 20); }
   private get ttlHours() { return Number(process.env.SESSION_TTL_HOURS ?? 14); }
 
-  async login(email: string, password: string, ip?: string, userAgent?: string) {
+  async login(email: string, password: string, ipDaPorta?: string, userAgent?: string) {
+    const ip = enderecoDaTentativa(ipDaPorta);
     // Proteção contra força bruta por conta (persistida: vale entre instâncias)
     /* Pelas funções `auth_*` (1190): a aplicação não alcança mais as tabelas de
        sessão e de tentativa, e o `WHERE` que protege mora no banco. */
@@ -29,6 +51,21 @@ export class AuthService {
     if (attempts.fails >= this.maxAttempts) {
       await this.audit.log({ action: 'auth.login_locked', detail: { emailHash: hashToken(email.toLowerCase()) } });
       throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    /* E pelo endereço (fase 291): quem tenta uma senha comum em muitos e-mails nunca chega
+       a cinco erros em nenhum. Conta as CONTAS diferentes que erraram, e não os erros: a
+       troca de turno de uma casa, que sai para a internet por um endereço só, erra sempre
+       nas mesmas poucas contas. O próprio servidor (sem `TRUST_PROXY`, atrás do proxy, todo
+       mundo chega como ele) não trava, para um engano na instalação não travar as oito
+       casas. Na auditoria, nem o endereço nem o e-mail. */
+    if (ip && !daPropriaMaquina(ip)) {
+      const { rows: [porEndereco] } = await this.db.query(
+        `SELECT auth_tentativas_do_endereco($1, $2) AS fails`, [ip, this.lockMinutes]);
+      if (porEndereco.fails >= this.maxPorEndereco) {
+        await this.audit.log({ action: 'auth.endereco_travado' });
+        throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
+      }
     }
 
     const { rows: [user] } = await this.db.query(`SELECT * FROM auth_find_user($1)`, [email]);
@@ -121,18 +158,36 @@ export class AuthService {
    * Trocar a senha derruba as OUTRAS sessões e mantém a atual — quem trocou
    * continua trabalhando; quem estava com a conta aberta em outro lugar, não.
    */
-  async changeOwnPassword(user: AuthenticatedUser, atual: string, nova: string) {
-    if ((nova ?? '').length < 6) {
-      throw new BadRequestException('A senha precisa de pelo menos 6 caracteres.');
+  /**
+   * A senha de quem já entrou, conferida de novo (na troca e na reautenticação), com a mesma
+   * trava da entrada (fase 291): até aqui, uma sessão aberta num tablet esquecido deixava
+   * tentar a senha sem limite. O erro conta para a conta como um erro de entrada.
+   */
+  private async travadoPelaConta(user: AuthenticatedUser): Promise<void> {
+    const { rows: [t] } = await this.db.query(
+      `SELECT auth_tentativas_recentes($1, $2) AS fails`, [user.email, this.lockMinutes]);
+    if (t.fails >= this.maxAttempts) {
+      throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
     }
+  }
+
+  private async anotarErroDaConta(user: AuthenticatedUser, ip?: string): Promise<void> {
+    await this.db.query(`SELECT auth_registrar_tentativa($1, $2, $3)`,
+      [user.email, enderecoDaTentativa(ip) ?? null, false]);
+  }
+
+  async changeOwnPassword(user: AuthenticatedUser, atual: string, nova: string, ip?: string) {
     if (nova === atual) {
       throw new BadRequestException('A senha nova precisa ser diferente da atual.');
     }
+    if (!senhaAceita(nova)) throw new BadRequestException(FRASE_DA_SENHA);
+    await this.travadoPelaConta(user);
     const ok = await this.db.asUser(user.id, async (c) => {
       const { rows: [u] } = await c.query(`SELECT password_hash FROM app_user WHERE id = $1`, [user.id]);
       return u ? verifyPassword(atual ?? '', u.password_hash) : false;
     });
     if (!(await ok)) {
+      await this.anotarErroDaConta(user, ip);
       throw new UnauthorizedException(
         'A senha atual não confere. Confira e tente de novo; se você não lembra, a '
         + 'coordenação consegue enviar um novo acesso.');
@@ -154,9 +209,11 @@ export class AuthService {
     return { ok: true, aviso: 'Senha alterada. As outras sessões abertas foram encerradas.' };
   }
 
-  async reauth(user: AuthenticatedUser, password: string) {
+  async reauth(user: AuthenticatedUser, password: string, ip?: string) {
+    await this.travadoPelaConta(user);
     const { rows: [u] } = await this.db.query(`SELECT * FROM auth_find_user($1)`, [user.email]);
     if (!u || !(await verifyPassword(password, u.password_hash))) {
+      await this.anotarErroDaConta(user, ip);
       await this.audit.log({ action: 'auth.reauth_failed', actorId: user.id });
       throw new UnauthorizedException('Senha incorreta');
     }

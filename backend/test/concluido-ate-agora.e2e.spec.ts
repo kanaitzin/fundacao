@@ -14,6 +14,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -63,7 +64,7 @@ describe('Concluí tudo até agora', () => {
       .send({ nome: 'Educador do Concluído (fictício)', email, cargo: 'educador', casaId: ids.ARM3 });
     expect(r.status).toBe(201);
     ids.educador = r.body.id;
-    t.educador = await login(email, r.body.senhaInicial);
+    t.educador = await entrarPelaPrimeiraVez(http, email, r.body.senhaInicial);
 
     /* Uma criança da ARM3, para a atividade que NÃO é coletiva. */
     const { rows: [p] } = await admin.query(

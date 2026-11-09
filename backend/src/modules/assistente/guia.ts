@@ -113,7 +113,7 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 - Saúde da implantação (implantacao): o relógio, o backup, o e-mail e a fila do Drive.
 - Sugestões de melhoria (sugestoes): o que a equipe pediu para o sistema melhorar, com o nome de quem pediu.
 - Avisos (avisos): o sino, com o que precisa de alguém. Dose sem confirmação, ocorrência à espera de revisão, PIA, relatório de reavaliação ao Juízo, receita e vacinação chegando ao vencimento.
-Minha conta, no topo, tem cor e letra da tela, senha, aviso no celular e sair.
+Minha conta, no topo, tem cor e letra da tela, senha, aviso no celular e sair. A senha tem pelo menos 8 caracteres, com uma letra maiúscula e um símbolo; quem entra pela primeira vez com a senha que recebeu cria a sua antes de começar.
 Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 
 # As rotas que você pode ler (consultar_sistema, só GET; houseId é o id da casa aberta na nota mais recente; ID é o id do registro; datas AAAA-MM-DD)

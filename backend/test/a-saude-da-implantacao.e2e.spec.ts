@@ -21,6 +21,7 @@ import { Client } from 'pg';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 import { DatabaseService } from '../src/kernel/database/database.service';
 import { MailGateway } from '../src/modules/identity/mail.gateway';
 import { avaliar, avaliarArquivo, avaliarDrive } from '../src/modules/relogio/implantacao.service';
@@ -62,10 +63,10 @@ describe('A saúde da implantação', () => {
     const email = `coordenacao.geral.saude.${rodada}@paodospobres.dev`;
     const r = await request(http).post('/api/v1/staff').set({ Authorization: `Bearer ${t.gestor}` })
       .send({ nome: 'Coordenação Geral da Saúde da Implantação (fictício)', email,
-        cargo: 'coordenador', todasAsCasas: true, senhaInicial: 'senha-geral-1' });
+        cargo: 'coordenador', todasAsCasas: true, senhaInicial: 'Senha-geral-1!' });
     expect(r.status).toBe(201);
     ids.geral = r.body.id;
-    t.geral = await login(email, 'senha-geral-1');
+    t.geral = await entrarPelaPrimeiraVez(http, email, 'Senha-geral-1!');
   });
 
   afterAll(async () => {

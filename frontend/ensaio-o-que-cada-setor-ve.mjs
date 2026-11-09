@@ -79,8 +79,6 @@ async function entrar(pg, conta) {
   await pg.fill('#senha', conta.senha);
   await pg.getByRole('button', { name: /Entrar no sistema/ }).click();
   await espera(pg, 2000);
-  const adiar = pg.getByRole('button', { name: /Continuar com a senha atual/ });
-  if (await adiar.isVisible().catch(() => false)) { await adiar.click(); await espera(pg, 400); }
   return (await pg.locator('main.conteudo').count()) > 0;
 }
 

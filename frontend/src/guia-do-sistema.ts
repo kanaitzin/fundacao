@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 291, dia: '08/11/2026', aba: 'equipe',
+    texto: 'A senha passa a ter pelo menos 8 caracteres, com uma letra maiúscula e um símbolo, e a tela diz o que falta enquanto você escreve. Quem entra pela primeira vez com a senha que recebeu da coordenação cria a sua antes de começar: até criar, só aparece a folha da senha, com Sair ao lado. A senha que a Equipe gera é sorteada no formato Farol-pipa-0427, fácil de ditar. E quando muitas contas diferentes erram a senha a partir do mesmo lugar, a entrada dali espera alguns minutos; errar a senha atual na troca também conta para a sua conta.' },
   { fase: 290, dia: '08/11/2026',
     texto: 'Sem mudança nas telas: a cópia de segurança do banco passa a voltar com as permissões de cada setor. Até aqui, um banco restaurado da cópia não abria para ninguém. O ensaio da restauração, que a TI roda todo mês, agora confere também que o sistema restaurado abre e que cada setor continua vendo só o que via.' },
   { fase: 289, dia: '08/11/2026', aba: 'equipe',

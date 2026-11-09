@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { InviteService } from './invite.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-import { SessionGuard } from './session.guard';
+import { PodeAntesDeTrocarASenha, SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 
 @Controller('auth')
@@ -52,22 +52,24 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(SessionGuard)
+  @PodeAntesDeTrocarASenha()
   async logout(@CurrentUser() user: AuthenticatedUser) {
     await this.auth.logout(user);
     return { ok: true };
   }
 
-  /** Troca da própria senha — sugerida no primeiro acesso, disponível sempre. */
+  /** Troca da própria senha: obrigatória no primeiro acesso (fase 291), disponível sempre. */
   @Post('password')
   @UseGuards(SessionGuard)
+  @PodeAntesDeTrocarASenha()
   changePassword(@CurrentUser() user: AuthenticatedUser,
-                 @Body() body: { senhaAtual?: string; novaSenha: string }) {
-    return this.auth.changeOwnPassword(user, body?.senhaAtual ?? '', body?.novaSenha ?? '');
+                 @Body() body: { senhaAtual?: string; novaSenha: string }, @Req() req: Request) {
+    return this.auth.changeOwnPassword(user, body?.senhaAtual ?? '', body?.novaSenha ?? '', req.ip);
   }
 
   @Post('reauth')
   @UseGuards(SessionGuard)
-  reauth(@CurrentUser() user: AuthenticatedUser, @Body() body: { password: string }) {
-    return this.auth.reauth(user, body.password ?? '');
+  reauth(@CurrentUser() user: AuthenticatedUser, @Body() body: { password: string }, @Req() req: Request) {
+    return this.auth.reauth(user, body?.password ?? '', req.ip);
   }
 }

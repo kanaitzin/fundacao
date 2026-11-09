@@ -28,7 +28,7 @@ describe('Esqueci minha senha', () => {
   const ids: Record<string, string> = {};
   const rodada = Date.now().toString(36);
   const email = `educador.esqueci.${rodada}@paodospobres.dev`;
-  const SENHA = 'senha-antiga-1';
+  const SENHA = 'Senha-antiga-1';
   const caixa = mkdtempSync(join(tmpdir(), 'caixa-esqueci-'));
   const emailDirAntes = process.env.EMAIL_DIR;
   let coord4 = '';
@@ -96,17 +96,17 @@ describe('Esqueci minha senha', () => {
     expect(conferido.body).toMatchObject({ valido: true, email, motivo: 'esqueci' });
 
     const concluido = await request(http).post('/api/v1/auth/convite/concluir')
-      .send({ convite: token, novaSenha: 'senha-nova-123' });
+      .send({ convite: token, novaSenha: 'Senha-nova-123' });
     expect(concluido.status).toBe(201);
     expect(concluido.body.token).toBeTruthy();
 
     expect((await entrar(SENHA)).status).toBe(401);
-    expect((await entrar('senha-nova-123')).status).toBe(201);
+    expect((await entrar('Senha-nova-123')).status).toBe(201);
     expect((await request(http).get('/api/v1/users/me').set({ Authorization: `Bearer ${sessaoAntiga}` })).status).toBe(401);
 
     /* Gasto, não serve de novo. */
     const outraVez = await request(http).post('/api/v1/auth/convite/concluir')
-      .send({ convite: token, novaSenha: 'senha-outra-123' });
+      .send({ convite: token, novaSenha: 'Senha-outra-123' });
     expect(outraVez.status).toBe(410);
 
     const { rows } = await admin.query(

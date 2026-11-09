@@ -20,6 +20,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -63,7 +64,7 @@ describe('O documento inteiro do visitante, ao tocar', () => {
     const r = await request(http).post('/api/v1/staff').set(auth(tokens.coord))
       .send({ nome: 'Porteira da Conferência 277 (fictícia)', email, cargo: 'portaria', casaId: ids.AI3 });
     expect(r.status).toBe(201);
-    tokens.portaria = await login(email, r.body.senhaInicial);
+    tokens.portaria = await entrarPelaPrimeiraVez(http, email, r.body.senhaInicial);
     ({ rows: [{ id: ids.portariaId }] } = await admin.query(`SELECT id FROM app_user WHERE email = $1`, [email]));
 
     const { rows: [c] } = await admin.query(

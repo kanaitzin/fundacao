@@ -21,6 +21,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -82,11 +83,11 @@ describe('A Coordenação Geral', () => {
   it('o gestor cadastra a Coordenação Geral sem casa, e ela alcança as oito', async () => {
     const email = `coordenacao.geral.${rodada}@paodospobres.dev`;
     const r = await post(t.gestor, '/staff', { nome: 'Coordenação Geral da Suíte (fictício)',
-      email, cargo: 'coordenador', todasAsCasas: true, senhaInicial: 'senha-geral-1' });
+      email, cargo: 'coordenador', todasAsCasas: true, senhaInicial: 'Senha-geral-1!' });
     expect(r.status).toBe(201);
     ids.geral = r.body.id;
     criados.push(ids.geral);
-    t.geral = await login(email, 'senha-geral-1');
+    t.geral = await entrarPelaPrimeiraVez(http, email, 'Senha-geral-1!');
 
     const eu = await get(t.geral, '/users/me');
     expect(eu.body.todasAsCasas).toBe(true);
@@ -117,7 +118,7 @@ describe('A Coordenação Geral', () => {
     for (const casa of ['AI3', 'AI4']) {
       const r = await post(t.geral, '/staff', { nome: `Educador da ${casa} pela Geral (fictício)`,
         email: `educador.${casa.toLowerCase()}.geral.${rodada}@paodospobres.dev`, cargo: 'educador',
-        casaId: ids[casa], senhaInicial: 'senha-educ-1' });
+        casaId: ids[casa], senhaInicial: 'Senha-educ-1!' });
       expect(r.status).toBe(201);
       criados.push(r.body.id);
     }
@@ -156,11 +157,11 @@ describe('A Coordenação Geral', () => {
   it('a coordenação de uma casa promovida deixa a equipe dela, com data, e desmarcada não alcança nada', async () => {
     const email = `coord.arm2.${rodada}@paodospobres.dev`;
     const r = await post(t.gestor, '/staff', { nome: 'Coordenação da ARM2 da Suíte (fictício)',
-      email, cargo: 'coordenador', casaId: ids.ARM2, senhaInicial: 'senha-coord-1' });
+      email, cargo: 'coordenador', casaId: ids.ARM2, senhaInicial: 'Senha-coord-1!' });
     expect(r.status).toBe(201);
     ids.promovida = r.body.id;
     criados.push(ids.promovida);
-    let tk = await login(email, 'senha-coord-1');
+    let tk = await entrarPelaPrimeiraVez(http, email, 'Senha-coord-1!', 'Senha-da-coordenacao-1!');
     expect(await casasDe(tk)).toEqual(['ARM2']);
 
     const marcar = await post(t.gestor, `/staff/${ids.promovida}/coordenacao-geral`, { todas: true });
@@ -169,10 +170,10 @@ describe('A Coordenação Geral', () => {
     /* A senha de antes não acompanha a conta para as oito casas (1683): a nova vai só
        ao Gestor Geral, e a de antes deixa de entrar. */
     expect(marcar.body.senhaInicial).toBeTruthy();
-    const antiga = await request(http).post('/api/v1/auth/login').send({ email, password: 'senha-coord-1' });
+    const antiga = await request(http).post('/api/v1/auth/login').send({ email, password: 'Senha-da-coordenacao-1!' });
     expect(antiga.status).toBe(401);
     const senhaDaGeral = marcar.body.senhaInicial as string;
-    tk = await login(email, senhaDaGeral);
+    tk = await entrarPelaPrimeiraVez(http, email, senhaDaGeral, 'Senha-das-oito-casas-1!');
     expect(await casasDe(tk)).toHaveLength(8);
     const { rows: vinculos } = await admin.query(
       `SELECT valid_to FROM user_house_assignment WHERE user_id = $1`, [ids.promovida]);
@@ -182,7 +183,7 @@ describe('A Coordenação Geral', () => {
     const tirar = await post(t.gestor, `/staff/${ids.promovida}/coordenacao-geral`, { todas: false });
     expect(tirar.status).toBe(201);
     expect(tirar.body.senhaInicial).toBeUndefined();
-    tk = await login(email, senhaDaGeral);
+    tk = await login(email, 'Senha-das-oito-casas-1!');
     expect(await casasDe(tk)).toEqual([]);
   });
 
@@ -205,10 +206,10 @@ describe('A Coordenação Geral', () => {
     for (const [k, cargo] of [['educador2', 'educador'], ['tecnica2', 'equipe_tecnica']]) {
       const email = `${k}.cg.${rodada}@paodospobres.dev`;
       const r = await post(t.gestor, '/staff', { nome: `${k} da ARM2 (fictício)`, email, cargo,
-        casaId: ids.ARM2, senhaInicial: 'senha-arm2-1' });
+        casaId: ids.ARM2, senhaInicial: 'Senha-arm2-1!' });
       expect(r.status).toBe(201);
       criados.push(r.body.id);
-      t[k] = await login(email, 'senha-arm2-1');
+      t[k] = await entrarPelaPrimeiraVez(http, email, 'Senha-arm2-1!');
     }
     const chegou = await post(t.educador2, '/people/chegada', { houseId: ids.ARM2,
       nome: `Criança da Suíte ${rodada} (fictícia)`, idadeAproximada: 10,

@@ -20,6 +20,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -72,7 +73,7 @@ describe('A cozinha recebe a lista', () => {
     const r = await request(http).post('/api/v1/staff').set(auth(tokens.coord))
       .send({ nome: 'Educadora da Conferência 162 (fictícia)', email, cargo: 'educador', casaId: ids.AI3 });
     expect(r.status).toBe(201);
-    tokens.outraEducadora = await login(email, r.body.senhaInicial);
+    tokens.outraEducadora = await entrarPelaPrimeiraVez(http, email, r.body.senhaInicial);
   });
 
   afterAll(async () => { await app.close(); await admin.end(); });

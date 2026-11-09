@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import marca from '../assets/logo-marca.png';
 import { Icone } from '../icones';
+import { FRASE_DA_SENHA, oQueFaltaNaSenha, senhaAceita } from '../../../backend/src/kernel/common/senha.regra';
 
 /**
  * PRIMEIRO ACESSO PELO CONVITE (§8.2).
@@ -47,7 +48,7 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
   async function criar(e: React.FormEvent) {
     e.preventDefault();
     setErro('');
-    if (senha.length < 8) { setErro('A senha precisa de pelo menos 8 caracteres.'); return; }
+    if (!senhaAceita(senha)) { setErro(FRASE_DA_SENHA); return; }
     if (senha !== repetida) { setErro('As duas senhas não são iguais.'); return; }
 
     setOcupado(true);
@@ -96,8 +97,11 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
             <input
               id="senha" type="password" autoComplete="new-password" required autoFocus
               value={senha} onChange={(ev) => setSenha(ev.target.value)}
-              placeholder="Ao menos 8 caracteres"
+              placeholder="8 ou mais, com maiúscula e símbolo"
             />
+            {senha && oQueFaltaNaSenha(senha).length > 0 && (
+              <p className="mutetxt" aria-live="polite">Falta {oQueFaltaNaSenha(senha).join(', ')}.</p>
+            )}
 
             <label className="f" htmlFor="repetida">Repita a senha</label>
             <input

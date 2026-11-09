@@ -3810,8 +3810,8 @@ await pg.getByRole('link', { name: /Abrir o link que iria por e-mail/ }).click()
 await pg.waitForTimeout(1200);
 cobrar('o link abre a tela de criar uma senha nova, da conta certa',
   /Criar uma senha nova/.test(await corpo()) && /educador\.ai3@paodospobres\.dev/.test(await corpo()));
-await pg.locator('#senha').fill('senha-nova-do-mario');
-await pg.locator('#repetida').fill('senha-nova-do-mario');
+await pg.locator('#senha').fill('Senha-nova-do-mario!');
+await pg.locator('#repetida').fill('Senha-nova-do-mario!');
 await pg.getByRole('button', { name: 'Criar senha e entrar' }).click();
 await pg.waitForTimeout(1500);
 cobrar('a senha nova entra direto', (await pg.locator('header.appbar').count()) === 1);
@@ -3826,7 +3826,7 @@ await pg.locator('#senha').fill('senha-dev-123');
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(800);
 cobrar('a senha antiga não entra mais', /inválidos/.test(await corpo()));
-await pg.locator('#senha').fill('senha-nova-do-mario');
+await pg.locator('#senha').fill('Senha-nova-do-mario!');
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(1200);
 cobrar('e a nova entra pela tela de sempre', (await pg.locator('header.appbar').count()) === 1);

@@ -73,6 +73,7 @@ else
     falta "DATABASE_APP_URL com o mesmo usuário do dono ($dono)" "use o usuário da aplicação (rede_app): com o dono, o RLS não protege"
   else ok "o banco: dono $dono migra, $app roda (o RLS vale)"; fi
   [[ "$(val DATABASE_URL)" == *dev-only-change-me* ]] && falta "a senha do banco é a do exemplo" "troque as duas senhas do banco"
+  [[ "$(val DATABASE_APP_URL)" == *dev-only-change-me* ]] && falta "a senha do rede_app é a do exemplo" "troque a senha em DATABASE_APP_URL e no banco (ALTER ROLE rede_app PASSWORD '...')"
   base=$(val APP_BASE_URL)
   [[ "$base" == https://* ]] && ok "APP_BASE_URL em HTTPS ($base)" \
     || falta "APP_BASE_URL sem HTTPS ($base)" "o link do convite e do esqueci vai por ela; sem HTTPS, câmera e microfone não ligam"
@@ -80,7 +81,13 @@ else
     [[ "$(val "$v")" == 0 ]] && falta "$v=0 desliga o limite" "o zero é só da simulação; apague a linha ou use o valor do .env.example (§12.4.1)"
   done
   [[ -n "$(val TRUST_PROXY)" ]] && ok "TRUST_PROXY=$(val TRUST_PROXY)" \
-    || aviso "TRUST_PROXY vazio" "atrás de um proxy só, use 1 (§12.9)"
+    || falta "TRUST_PROXY vazio" "atrás do Caddy da mesma máquina, use loopback: sem isso, o endereço de todo mundo é o do servidor (§12.9)"
+  for v in LOGIN_MAX_ATTEMPTS LOGIN_MAX_POR_ENDERECO LOGIN_LOCK_MINUTES; do
+    x=$(val "$v")
+    [[ -z "$x" || "$x" =~ ^[1-9][0-9]*$ ]] || falta "$v=$x não é um número inteiro maior que zero" "o servidor usa o padrão no lugar"
+  done
+  [[ -z "$(val HOST)" || "$(val HOST)" == 127.0.0.1 || "$(val HOST)" == ::1 ]] \
+    || aviso "HOST=$(val HOST): o servidor escuta fora da máquina" "com o Caddy na mesma máquina, deixe 127.0.0.1"
   for v in ARQUIVOS_DIR ARQUIVO_DRIVE_DIR; do
     d=$(val "$v")
     if [[ -z "$d" || "$d" == ./* ]]; then falta "$v relativo ou vazio ($d)" "use um caminho absoluto, em /var/lib/rede-acolher (§12.2)"
@@ -146,7 +153,26 @@ if [[ -n "$url" ]] && command -v psql >/dev/null; then
       || falta "archive_mode=$am" "use o scripts/postgresql-do-servidor.conf (§12.4.1): perda máxima de um minuto"
     n=$(psql "$url" -Atc "select count(*) from schema_migration" 2>/dev/null || echo 0)
     [[ "$n" -gt 0 ]] && ok "$n migrações aplicadas" || aviso "nenhuma migração aplicada ainda" "o --instalar migra"
+    # As contas da semente de desenvolvimento entram com a senha do repositório e sem a troca
+    # obrigatória (fase 291): servem ao treino com o banco de demonstração, nunca ao dado real.
+    semente=$(psql "$url" -Atc "select count(*) from app_user where email like '%@paodospobres.dev'" 2>/dev/null || echo 0)
+    [[ "$semente" -gt 0 ]] && aviso "o banco tem $semente contas fictícias da semente, com a senha do repositório" \
+      "servem só ao treino; o banco do dado real começa sem elas"
   else falta "o banco não responde em DATABASE_URL" "confira o endereço, o usuário e a senha"; fi
+fi
+# A aplicação entra como rede_app, e o papel não pode aceitar a senha de desenvolvimento:
+# a migração 0010 o cria com ela quando ele ainda não existe (fase 291). A senha nunca
+# vai para a tela: o endereço é montado aqui e só se diz se entrou.
+app_url=$(val DATABASE_APP_URL)
+if [[ -n "$app_url" ]] && command -v psql >/dev/null; then
+  if PGCONNECT_TIMEOUT=5 psql "$app_url" -Atc 'select 1' >/dev/null 2>&1; then
+    ok "a aplicação entra no banco pela DATABASE_APP_URL"
+  else falta "a aplicação não entra no banco pela DATABASE_APP_URL" "confira o endereço e a senha do rede_app"; fi
+  com_a_de_exemplo=$(printf '%s' "$app_url" | sed -E 's#^([a-z]+://[^:@/]+)(:[^@]*)?@#\1:dev-only-change-me-app@#')
+  if [[ "$com_a_de_exemplo" != "$app_url" ]] \
+     && PGCONNECT_TIMEOUT=5 psql "$com_a_de_exemplo" -Atc 'select 1' >/dev/null 2>&1; then
+    falta "o rede_app aceita a senha de desenvolvimento" "ALTER ROLE rede_app PASSWORD '...' e a mesma senha na DATABASE_APP_URL (a 0010 cria o papel com ela)"
+  fi
 fi
 
 secao "4. O que roda sozinho (§12.7 e §12.4.1)"

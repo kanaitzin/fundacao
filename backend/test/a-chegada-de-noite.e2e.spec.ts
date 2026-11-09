@@ -15,6 +15,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -55,10 +56,10 @@ describe('A chegada de noite', () => {
     for (const [k, cargo] of [['educador', 'educador'], ['tecnica', 'equipe_tecnica'], ['cozinha', 'cozinha']]) {
       const email = `${k}.noite.${rodada}@paodospobres.dev`;
       const r = await post(t.gestor, '/staff', { nome: `${k} da noite (fictício)`, email, cargo,
-        casaId: ids.ARM2, senhaInicial: 'senha-da-noite-1' });
+        casaId: ids.ARM2, senhaInicial: 'Senha-da-noite-1' });
       expect(r.status).toBe(201);
       ids[k] = r.body.id;
-      t[k] = await login(email, 'senha-da-noite-1');
+      t[k] = await entrarPelaPrimeiraVez(http, email, 'Senha-da-noite-1');
     }
   });
 

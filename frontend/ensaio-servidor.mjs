@@ -151,9 +151,6 @@ for (const conta of CONTAS) {
     continue;
   }
 
-  /* A sugestão de trocar a senha provisória, no primeiro acesso, fica para depois. */
-  const adiar = pg.getByRole('button', { name: /Continuar com a senha atual/ });
-  if (await adiar.isVisible().catch(() => false)) { await adiar.click(); await pg.waitForTimeout(400); }
 
   const telas = [];
   const abas = (await pg.locator('nav.tabbar button').allInnerTexts())

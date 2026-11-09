@@ -624,7 +624,7 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
     await admin.query(
       `UPDATE user_invite SET expires_at = now() - interval '1 minute' WHERE id=$1`, [inv.id]);
     const vencido = await request(http).post('/api/v1/auth/convite/concluir')
-      .send({ convite: 'qualquer-coisa', novaSenha: 'senha-nova-123' });
+      .send({ convite: 'qualquer-coisa', novaSenha: 'Senha-nova-123' });
     expect(vencido.status).toBe(410);
 
     // Desativar não basta: o vínculo com a casa continua, e outras suítes

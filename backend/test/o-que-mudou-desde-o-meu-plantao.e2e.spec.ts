@@ -23,6 +23,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -70,10 +71,10 @@ describe('O que mudou desde o meu último plantão', () => {
     const email = `educador.mudou.${rodada}@paodospobres.dev`;
     const r = await request(http).post('/api/v1/staff').set(auth(t.coord))
       .send({ nome: 'Educador da Folha do Plantão (fictício)', email, cargo: 'educador',
-        casaId: ids.AI4, senhaInicial: 'senha-mudou-1' });
+        casaId: ids.AI4, senhaInicial: 'Senha-mudou-1!' });
     expect(r.status).toBe(201);
     ids.educador = r.body.id;
-    t.educador = await login(email, 'senha-mudou-1');
+    t.educador = await entrarPelaPrimeiraVez(http, email, 'Senha-mudou-1!');
   });
 
   afterAll(async () => {

@@ -35,6 +35,7 @@ import { NestFactory } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from '../src/app.module';
@@ -58,7 +59,7 @@ const GRANDE = Number(process.env.SIM_EQUIPE ?? 9) >= 20;
 const EDUS = GRANDE ? ['edu1', 'edu2', 'edu3', 'edu4', 'edu6', 'edu7', 'edu8', 'edu9', 'edu10', 'edu11', 'edu12'] : ['edu1', 'edu2', 'edu3', 'edu4'];
 const CAIXA = join(process.env.EMAIL_DIR ?? '/tmp/rede-acolher-email', 'caixa-de-saida.txt');
 const SENHA_SEMENTE = 'senha-dev-123';
-const SENHA_NOVA = 'minha-senha-da-casa-1';
+const SENHA_NOVA = 'Minha-senha-da-casa-1';
 const adminUrl = process.env.DATABASE_URL
   ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
 
@@ -216,6 +217,18 @@ function criarCasa(cfg: Config) {
       achar('entrada', quem, 'entrar', `${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
       throw new Error(`${quem} não entrou`);
     }
+    /* A senha inicial só abre a troca (fase 291): na primeira entrada, a pessoa cria a
+       senha dela, como faria na tela, e a simulação passa a usar essa. */
+    if (r.body.user?.mustChangePassword) {
+      const nova = `Simulada-${quem}-${randomUUID().slice(0, 8)}!`;
+      const t = await request(http).post('/api/v1/auth/password').set('Authorization', `Bearer ${r.body.token}`)
+        .send({ senhaAtual: p.senha, novaSenha: nova });
+      if (t.status !== 201) {
+        achar('entrada', quem, 'trocar a senha inicial', `${t.status} ${JSON.stringify(t.body).slice(0, 200)}`);
+        throw new Error(`${quem} não trocou a senha inicial`);
+      }
+      p.senha = nova;
+    }
     sessoes[quem] = { token: r.body.token, dia };
     return r.body.token;
   }
@@ -295,7 +308,7 @@ function criarCasa(cfg: Config) {
     if (fim.status === 201 || fim.status === 200) gente[dados.chave].senha = SENHA_NOVA;
     else achar('convite', dados.chave, 'criar a senha pelo convite', `${fim.status} ${JSON.stringify(fim.body)}`);
     /* O convite serve uma vez só. */
-    const de_novo = await request(http).post('/api/v1/auth/convite/concluir').send({ convite: tk, novaSenha: 'outra-senha-99' });
+    const de_novo = await request(http).post('/api/v1/auth/convite/concluir').send({ convite: tk, novaSenha: 'Outra-senha-99!' });
     if (de_novo.status < 400) achar('convite', dados.chave, 'convite usado duas vezes', `${de_novo.status}`);
     return true;
   }
@@ -1304,7 +1317,7 @@ function criarCasa(cfg: Config) {
   }
 
   return {
-    codigo: COD, ids, gente, fatos, criancas, ativas, presentes, internacoes, plantoes, post, get, ato, aceitar,
+    codigo: COD, ids, gente, fatos, criancas, ativas, presentes, internacoes, plantoes, post, get, ato, aceitar, token,
     nascer, acolher, escalaDoPrimeiroMes, umDia, conferir, medir, recebidas,
   };
 }
@@ -1584,11 +1597,15 @@ async function main() {
       for (const [k, p] of Object.entries(c.gente)) {
         if (k in comuns || k === 'edu2') continue;
         if (i > 0 && !['lider', 'coord'].includes(k)) continue;
+        /* Quem nunca entrou na simulação ainda está com a senha inicial: entra aqui e cria
+           a dela (fase 291), para o navegador entrar com a senha que vale. */
+        await c.token(k).catch(() => undefined);
         contas.push({ quem: `${VARIAS ? `${c.codigo} ` : ''}${k} (${p.cargo})`, email: p.email, senha: p.senha });
       }
     }
     for (const k of ['gestor', 'enfermagem', 'noturno', 'geral']) {
       const p = inst.gente[k] ?? comuns[k];
+      if (p && inst.gente[k]) await inst.token(k).catch(() => undefined);
       if (p && (VARIAS || k !== 'geral')) contas.push({ quem: `${k} (${p.cargo})`, email: p.email, senha: p.senha });
     }
     writeFileSync(join(SAIDA, 'contas.json'), JSON.stringify(contas));

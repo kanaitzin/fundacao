@@ -28,7 +28,7 @@ import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
 
 const SENHA = 'senha-dev-123';
-const NOVA = 'senha-nova-da-suite-147';
+const NOVA = 'Senha-nova-da-suite-147';
 const QUEM = 'cozinha.ai3@paodospobres.dev';
 const adminUrl = process.env.DATABASE_URL
   ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
@@ -82,7 +82,7 @@ describe('Os atos que ninguém testava', () => {
     const t = await login(QUEM);
     const curta = await trocar(t, SENHA, 'abc');
     expect(curta.status).toBe(400);
-    expect(curta.body.message).toMatch(/pelo menos 6/i);
+    expect(curta.body.message).toMatch(/pelo menos 8 caracteres, com uma letra maiúscula e um símbolo/i);
 
     const igual = await trocar(t, SENHA, SENHA);
     expect(igual.status).toBe(400);

@@ -16,6 +16,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { entrarPelaPrimeiraVez } from './setup/a-senha-dela';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -50,12 +51,12 @@ describe('O cargo da época', () => {
     const nova = await request(http).post('/api/v1/staff').set(auth(tokens.coord)).send({
       nome: 'Rosana Promovida (fictícia)',
       email: `rosana.promovida.${Date.now()}@paodospobres.dev`,
-      cargo: 'educador', casaId: ids.AI4, senhaInicial: 'senha-da-rosana',
+      cargo: 'educador', casaId: ids.AI4, senhaInicial: 'Senha-da-rosana!',
     });
     expect(nova.status).toBe(201);
     ids.rosana = nova.body.id;
     const { rows: [u] } = await admin.query(`SELECT email FROM app_user WHERE id = $1`, [ids.rosana]);
-    tokens.rosana = await login(u.email, 'senha-da-rosana');
+    tokens.rosana = await entrarPelaPrimeiraVez(http, u.email, 'Senha-da-rosana!', 'Senha-propria-da-rosana!');
 
     /* Oito dias atrás: nenhuma outra suíte abre plantão neste dia, e a ATA
        recusa DELETE (lição da 145). */
@@ -92,7 +93,7 @@ describe('O cargo da época', () => {
 
     /* O token antigo carrega o cargo antigo: ela entra de novo, como faria. */
     const { rows: [u] } = await admin.query(`SELECT email FROM app_user WHERE id = $1`, [ids.rosana]);
-    tokens.rosana = await login(u.email, 'senha-da-rosana');
+    tokens.rosana = await login(u.email, 'Senha-propria-da-rosana!');
     expect((await escrever(tokens.rosana,
       'Conferi a passagem com a equipe da tarde; nada pendente (fictício).')).status).toBe(201);
 

@@ -347,6 +347,7 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
   if (OBRIGADO.test(t)) return 'De nada! Estou por aqui quando precisar.';
   if (SENHA.test(t) && !/\b(cofre|acesso|credencia)/.test(t)) {
     return 'A sua senha se troca no botão da senha, no alto da tela; no celular, ele fica em Minha conta. '
+      + 'Ela precisa de pelo menos 8 caracteres, com uma letra maiúscula e um símbolo. '
       + 'Esqueceu a senha? Na tela de entrada há o Esqueci minha senha, e o link chega no seu e-mail.';
   }
   return null;

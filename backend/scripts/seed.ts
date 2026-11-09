@@ -6,7 +6,7 @@
 import { Client } from 'pg';
 import { hashPassword } from '../src/kernel/common/crypto';
 
-const SENHA_DEV = 'senha-dev-123'; // troca obrigatória no primeiro login (must_change_password)
+const SENHA_DEV = 'senha-dev-123'; // de desenvolvimento: as contas da semente entram sem a troca obrigatória
 
 const CASAS = [
   { code: 'AI1', name: 'Abrigo Institucional 1', kind: 'abrigo_institucional' },
@@ -69,8 +69,11 @@ async function main() {
   const hash = await hashPassword(SENHA_DEV);
   for (const [email, nome, role, casa] of USUARIOS) {
     const { rows: [u] } = await c.query(
-      `INSERT INTO app_user (institution_id, email, full_name, password_hash, role)
-       VALUES ($1,$2,$3,$4,$5)
+      /* As contas de demonstração entram sem a troca obrigatória (fase 291): a senha
+         delas é a de desenvolvimento, conhecida de todos, e a troca cobrada pelo servidor
+         travaria cada ensaio. Conta cadastrada pela Equipe nasce com a troca. */
+      `INSERT INTO app_user (institution_id, email, full_name, password_hash, role, must_change_password)
+       VALUES ($1,$2,$3,$4,$5,false)
        ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role RETURNING id`,
       [instId, email, nome, hash, role]);
     if (casa) {

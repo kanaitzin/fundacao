@@ -183,8 +183,6 @@ await pg.fill('#email', conta.email);
 await pg.fill('#senha', conta.senha);
 await pg.getByRole('button', { name: /Entrar no sistema/ }).click();
 await pg.waitForTimeout(2000);
-const adiar = pg.getByRole('button', { name: /Continuar com a senha atual/ });
-if (await adiar.isVisible().catch(() => false)) { await adiar.click(); await pg.waitForTimeout(400); }
 
 const painel = pg.locator('.acolhe-painel');
 const abrirPainel = async () => {

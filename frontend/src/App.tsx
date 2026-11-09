@@ -471,7 +471,7 @@ export function App() {
    */
   /** Recontagem dos avisos: ao entrar, ao trocar de tela e a cada dois minutos. */
   useEffect(() => {
-    if (!me) return;
+    if (!me || (me.mustChangePassword && !me.semSenha)) return;   // antes da troca, só a troca (291)
     let vivo = true;
     const contar = async () => {
       try {
@@ -497,6 +497,10 @@ export function App() {
       setMe(eu);
       definirQuemAssina(eu.fullName, eu.role);
       definirAutor(eu.id);
+      /* A SENHA INICIAL SÓ ABRE A TROCA (fase 291): o servidor recusa o resto até a pessoa
+         criar a senha dela, e a tela não pede nada antes disso. O resto carrega no
+         `depoisDaTroca`, quando a folha obrigatória termina. */
+      if (eu.mustChangePassword && !eu.semSenha) return;
       setHouses(await api<House[]>('/houses'));
       /* A fila local começa a trabalhar assim que há sessão: ela envia o que
        * ficou do turno anterior antes de a pessoa tocar em qualquer coisa
@@ -516,11 +520,24 @@ export function App() {
        * um só: duas cópias da mesma regra divergem no primeiro ajuste.
        */
       setAba(null);
-      if (eu.semSenha || eu.mustChangePassword) setSugerirSenha(true);
+      if (eu.semSenha) setSugerirSenha(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível entrar. Tente novamente.');
     } finally {
       setOcupado(false);
+    }
+  }
+
+  /** Depois da troca obrigatória da senha inicial (fase 291): carrega o que a entrada adiou. */
+  async function depoisDaTroca() {
+    if (!me) return;
+    setMe({ ...me, mustChangePassword: false, semSenha: false });
+    try {
+      setHouses(await api<House[]>('/houses'));
+      void ligarFilaAoServidor();
+      setAba(null);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Senha criada, mas não foi possível abrir o sistema. Entre de novo.');
     }
   }
 
@@ -559,6 +576,17 @@ export function App() {
       <>
         <Tarja />
         <PrimeiroAcesso convite={convite} onEntrou={(t) => { setConvite(''); entrarComToken(t); }} />
+      </>
+    );
+  }
+
+  /* A troca obrigatória vem antes de qualquer tela (fase 291). */
+  if (me && me.mustChangePassword && !me.semSenha) {
+    return (
+      <>
+        <Tarja />
+        <SenhaPessoal email={me.email} primeiroAcesso
+                      onPronto={() => { void depoisDaTroca(); }} onAdiar={() => { void sair(); }} />
       </>
     );
   }

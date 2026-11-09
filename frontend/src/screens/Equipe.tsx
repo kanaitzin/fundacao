@@ -558,8 +558,8 @@ function FormCadastro({ setores, casas, membro, ehGestor, onFechar, onSalvo, onE
 
           {!editar && (
             <div className="notice c-info">
-              O sistema gera uma <b>senha inicial</b> e mostra uma única vez. Entregue à
-              pessoa; no primeiro acesso ela é convidada a criar a sua.
+              A <b>senha inicial</b> aparece aqui uma única vez. Entregue à pessoa; no
+              primeiro acesso ela cria a sua antes de começar.
             </div>
           )}
 

@@ -38,7 +38,7 @@ const SRC = join(__dirname, '..', 'src');
 const SEM_CASA = new Set([
   /* A SESSÃO E A CONTA. O educador de plantão trabalha numa casa; a conta dele
      é da instituição, e a troca de senha dele não é ato da casa de ninguém. */
-  'auth.login', 'auth.login_failed', 'auth.login_locked', 'auth.logout',
+  'auth.login', 'auth.login_failed', 'auth.login_locked', 'auth.endereco_travado', 'auth.logout',
   'auth.reauth', 'auth.reauth_failed', 'auth.revoke_all', 'auth.password_change',
   /* O CADASTRO DA EQUIPE. Convite e cor de linha são da pessoa, e uma pessoa
      pode servir mais de uma casa — escolher uma delas seria inventar. */

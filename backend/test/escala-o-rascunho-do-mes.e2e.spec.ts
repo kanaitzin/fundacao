@@ -79,7 +79,7 @@ describe('O rascunho da escala do mês', () => {
     /* Uma pessoa que sai da Fundação entre a escala e a cópia. */
     const nova = await request(http).post('/api/v1/staff').set(auth(tokens.coord)).send({
       nome: 'Débora Que Saiu (fictícia)', email: `debora.saiu.${Date.now()}@paodospobres.dev`,
-      cargo: 'educador', casaId: ids.AI4, senhaInicial: 'senha-da-debora',
+      cargo: 'educador', casaId: ids.AI4, senhaInicial: 'Senha-da-debora!',
     });
     ids.debora = nova.body.id;
     await request(http).post('/api/v1/escala').set(auth(tokens.coord))

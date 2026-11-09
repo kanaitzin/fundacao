@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, UseGuards } from '@nestjs/common';
-import { SessionGuard } from './session.guard';
+import { PodeAntesDeTrocarASenha, SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { DatabaseService } from '../../kernel/database/database.service';
@@ -10,6 +10,7 @@ export class UsersController {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
   @Get('me')
+  @PodeAntesDeTrocarASenha()
   async me(@CurrentUser() user: AuthenticatedUser) {
     const assignments = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(

@@ -170,7 +170,7 @@ describe('O envio por SMTP', () => {
 
     /* O caminho inteiro: o link que chegou na caixa é o que abre a conta. */
     const fim = await request(http).post('/api/v1/auth/convite/concluir')
-      .send({ convite: token, novaSenha: 'senha-nova-do-email-123' });
+      .send({ convite: token, novaSenha: 'Senha-nova-do-email-123' });
     expect(fim.status).toBe(201);
 
     /* E o log disse que saiu, para quem, sem o link. */
