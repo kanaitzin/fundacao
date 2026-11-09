@@ -126,7 +126,7 @@ export class NumerosDaCriancaService {
                    FROM health_evolution h WHERE h.person_id = $1 AND h.status <> 'rascunho'
                   ORDER BY h.happened_at DESC LIMIT 1) AS ultimo,
                 min(return_deadline) FILTER (WHERE return_deadline >= app_hoje())::text AS retorno
-           FROM health_evolution WHERE person_id = $1 AND status <> 'rascunho'`) : {};
+           FROM health_evolution_legivel WHERE person_id = $1 AND status <> 'rascunho'`) : {};
       let internacoes: NumerosDaCrianca['saude']['internacoes'] = null;
       if (LE_INTERNACAO.includes(user.role) && tem.has('hospitalization')) {
         const r = await um(

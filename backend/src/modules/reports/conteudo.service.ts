@@ -258,7 +258,7 @@ export class ConteudoService {
                   CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.specialty END AS specialty,
                   CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso' ELSE he.reason END AS reason,
                   CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE he.outcome END AS outcome
-             FROM health_encounter he
+             FROM health_encounter_legivel he
             WHERE he.happened_at >= $1 AND he.happened_at < $2
               AND ($3::uuid IS NULL OR he.house_id = $3)
               AND ($4::uuid IS NULL OR he.person_id = $4)
@@ -427,7 +427,7 @@ export class ConteudoService {
              SELECT he.happened_at, 'Saúde',
                     CASE WHEN he.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso'
                          ELSE concat_ws(', ', he.kind, he.specialty, he.place) END, he.status
-               FROM health_encounter he
+               FROM health_encounter_legivel he
               WHERE he.happened_at >= $1 AND he.happened_at < $2
                 AND ($3::uuid IS NULL OR he.house_id = $3)
                 AND ($4::uuid IS NULL OR he.person_id = $4)

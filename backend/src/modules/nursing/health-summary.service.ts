@@ -97,12 +97,12 @@ export class HealthSummaryService {
                 CASE WHEN confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso' ELSE reason END AS reason,
                 CASE WHEN confidential AND NOT app_le_sigilo_de_saude() THEN NULL ELSE outcome END AS outcome,
                 status, return_on
-         FROM health_encounter WHERE person_id = $1
+         FROM health_encounter_legivel WHERE person_id = $1
          ORDER BY happened_at DESC LIMIT 5`, [personId]);
 
       const { rows: [ultimaEvolucao] } = await c.query(
         `SELECT e.kind, e.happened_at, e.state_return, e.guidance, e.restrictions, e.return_deadline
-         FROM health_evolution e
+         FROM health_evolution_legivel e
          WHERE e.person_id = $1 AND e.status = 'assinada'
            AND (NOT e.confidential OR app_le_sigilo_de_saude())
          ORDER BY e.happened_at DESC LIMIT 1`, [personId]);

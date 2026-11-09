@@ -172,7 +172,7 @@ export class NursingService {
       if (!alc?.ok) throw new NotFoundException('Acolhido não encontrado.');
       const { rows } = await c.query(
         `SELECT id, kind, happened_at, specialty, place, return_on::text AS return_on, confidential
-           FROM health_encounter
+           FROM health_encounter_legivel
           WHERE person_id = $1 AND status = 'retorno_pendente'
           ORDER BY return_on, happened_at`, [personId]);
       /* O retorno de uma consulta sigilosa não diz a especialidade nem o lugar (fase 287). */
@@ -349,10 +349,10 @@ export class NursingService {
                 -- comparação entre eles que a Enfermagem lê, e um sozinho é um
                 -- rótulo solto sobre a criança.
                 e.behavior_before, e.behavior_after,
-                (SELECT t.request_note FROM nursing_triage t
+                (SELECT t.request_note FROM nursing_triage_legivel t
                   WHERE t.evolution_id = e.id ORDER BY t.at DESC LIMIT 1) AS pedido_complemento,
                 e.confidential
-         FROM health_evolution e
+         FROM health_evolution_legivel e
          WHERE e.status <> 'assinada' AND ($1::uuid IS NULL OR e.house_id = $1)
          ORDER BY e.created_at`, [houseId ?? null]);
       return rows;
@@ -530,7 +530,7 @@ export class NursingService {
                 (return_done_in IS NOT NULL) AS retorno_feito,
                 -- O sigilo por registro (1678) e quem registrou.
                 confidential, created_by, app_user_display_name(created_by) AS por
-         FROM health_encounter WHERE person_id = $1 ORDER BY happened_at DESC LIMIT 100`, [personId]);
+         FROM health_encounter_legivel WHERE person_id = $1 ORDER BY happened_at DESC LIMIT 100`, [personId]);
       const { rows: evolucoes } = await c.query(
         `SELECT e.id, e.kind, e.happened_at, e.state_return, e.guidance, e.status,
                 app_user_display_name(e.accompanied_by) AS acompanhante,
@@ -541,10 +541,10 @@ export class NursingService {
                 -- comparação entre eles que a Enfermagem lê, e um sozinho é um
                 -- rótulo solto sobre a criança.
                 e.behavior_before, e.behavior_after,
-                (SELECT t.complement FROM nursing_triage t
+                (SELECT t.complement FROM nursing_triage_legivel t
                   WHERE t.evolution_id = e.id AND t.action = 'assinada' ORDER BY t.at DESC LIMIT 1) AS complemento,
                 e.confidential, e.accompanied_by
-         FROM health_evolution e
+         FROM health_evolution_legivel e
          WHERE e.person_id = $1 ORDER BY e.happened_at DESC LIMIT 100`, [personId]);
       const { rows: doses } = await c.query(
         `SELECT a.scheduled_at, a.state, a.administered_at, a.note, pr.medication, pr.dose,

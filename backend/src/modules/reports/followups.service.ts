@@ -299,7 +299,7 @@ export class FollowupsService {
                   CASE WHEN e.confidential AND NOT app_le_sigilo_de_saude() THEN 'Registro sigiloso'
                        ELSE e.state_return END AS state_return, e.status,
                   app_user_display_name(e.accompanied_by) AS autor
-             FROM health_evolution e
+             FROM health_evolution_legivel e
             WHERE e.person_id = $1
               AND (e.happened_at AT TIME ZONE app_fuso())::date BETWEEN $2 AND $3
             ORDER BY e.happened_at DESC LIMIT 200`, [f.person_id, f.period_start, f.period_end]);
