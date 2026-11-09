@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 297, dia: '09/11/2026',
+    texto: 'O conteúdo do registro de saúde sigiloso passa a ser escondido também pelo banco, e não só pela tela. O retorno de uma consulta sigilosa já nasce sigiloso, o relatório preenchido sozinho escreve só Registro sigiloso no lugar do conteúdo, e na Sincronização os registros sem internet que esperam decisão aparecem só para a equipe técnica e a coordenação.', aba: 'sincronizacao' },
   { fase: 296, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: o esqueci minha senha passa a ter limite. Do mesmo lugar saem no máximo dez pedidos por hora, e quando muitos e-mails de senha nova saem na mesma hora, quem já recebeu um espera; o primeiro de cada pessoa sempre sai. Se o e-mail não chegar, a coordenação continua podendo reenviar o acesso.' },
   { fase: 295, dia: '09/11/2026',
