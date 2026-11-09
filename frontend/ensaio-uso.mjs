@@ -4631,6 +4631,8 @@ console.log('\n🕒 O dia, em ordem, com legenda e mais curto (fase 210)');
   await pgD.goto(`file://${ARQUIVO}`); await esp(700);
   await pgD.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
   await pgD.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  /* Desde a 299 o Marcelo é a Coordenação Geral: a coordenação da Casa 03 é a da casa. */
+  await pgD.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(1000);
   cargoAtual = 'coordenador';
   await pgD.locator('nav.portas-lateral').getByRole('button', { name: 'O dia, em ordem' }).click(); await esp(1200);
   const t = await pgD.locator('main.conteudo').innerText();

@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 299, dia: '09/11/2026',
+    texto: 'Quem atende mais de uma casa troca de casa pela setinha no alto, ao lado do nome: um toque abre a lista das casas, com a aberta marcada, e outro toque abre a escolhida, sem passar pelas Unidades.' },
   { fase: 298, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: o que se grava fica na casa de quem grava. A estadia, a receita, a atividade, a internação, a síntese da ocorrência e o relatório não podem mais ser levados para uma criança ou uma casa que a pessoa não atende, e o que já foi encerrado não se reescreve.' },
   { fase: 297, dia: '09/11/2026',
