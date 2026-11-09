@@ -25,14 +25,11 @@ const adminUrl = process.env.DATABASE_URL
 /** A política de gravação que não pergunta pela casa, e por quê. */
 const SEM_CASA_DE_PROPOSITO: Record<string, string> = {
   'audit_event.audit_insert': 'a auditoria se escreve também sem identidade, na entrada e na recusa de senha (1679)',
-  'notification.notif_insert': 'o aviso é escrito para outra pessoa; a leitura confere quem o recebe (notif_select)',
-  'notification.notif_update': 'cada um marca como lido só o próprio aviso',
+  'notification.notif_update': 'cada um marca como lido e ciente só o próprio aviso (1704)',
   'export_log.exp_insert': 'o registro da exportação é de quem exportou; a exportação confere a casa antes',
   'offline_operation.oo_insert': 'a fila é de quem a mandou; quem grava o registro é a função de cada módulo, que confere a casa',
   'offline_operation.oo_update': 'a fila é de quem a mandou (1694)',
-  'general_night_ata.gna_insert': 'a ATA geral da noite é da instituição inteira, do Líder Noturno Geral',
-  'general_night_ata.gna_update': 'a ATA geral da noite é da instituição inteira, do Líder Noturno Geral',
-  'health_summary_issue.summary_update': 'quem emitiu o resumo marca que baixou; a emissão confere a casa',
+  'health_summary_issue.summary_update': 'quem emitiu o resumo marca só que baixou (1706); a emissão confere a casa',
 };
 
 /** O que conta como conferir o alcance na linha nova. O autor sozinho não conta. */
@@ -82,6 +79,9 @@ describe('As gravações conferem a casa', () => {
       VALUES ($1, $2, (SELECT enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
                         WHERE t.typname = 'prescription_kind' ORDER BY e.enumsortorder LIMIT 1)::prescription_kind,
               'Conferência 298', '1', 'oral') RETURNING id`, [x.kid3, x.ai3]);
+    x.tr = await um(`INSERT INTO transfer_request (person_id, episode_id, from_house_id, to_house_id, reason, requested_by, status)
+      SELECT s.person_id, s.episode_id, s.house_id, $2, 'conferência 298', $3, 'devolvida'
+        FROM house_stay s WHERE s.person_id = $1 AND s.status = 'ativa' RETURNING id`, [x.kid3, x.ai4, u.coord3]);
   });
 
   afterAll(async () => { await app.close(); await admin.end(); });
@@ -124,6 +124,14 @@ describe('As gravações conferem a casa', () => {
       ['síntese de ocorrência da Casa 03 dita da Casa 04', 'coord4',
         `INSERT INTO incident_synthesis (incident_id, house_id, author_id, body)
          VALUES ($1, $2, app_current_user(), 'x')`, [x.inc3, x.ai4]],
+      ['pedido de transferência devolvido reaberto pelo destino', 'coord4',
+        `UPDATE transfer_request SET status = 'solicitada' WHERE id = $1`, [x.tr]],
+      ['estadia reaberta por fora da readmissão', 'coord4',
+        `UPDATE house_stay SET status = 'ativa', ended_at = NULL WHERE id = $1`, [x.stay4]],
+      ['item na fila de arquivo da Casa 03', 'coord4',
+        `SELECT * FROM app_archive_enqueue($1, 'ata', 'conferencia_298', gen_random_uuid(), 'x.pdf')`, [x.ai3]],
+      ['aviso forjado para outra pessoa', 'educador4',
+        `INSERT INTO notification (user_id, safe_title, title) VALUES ($1, 'x', 'x')`, [u.coord3]],
     ];
     const passaram: string[] = [];
     for (const [caso, quem, sql, p] of casos) {
@@ -144,7 +152,9 @@ describe('As gravações conferem a casa', () => {
       `INSERT INTO work_schedule (user_id, house_id, weekday, start_time, end_time, created_by)
        VALUES (app_current_user(), $1, 1, '08:00', '20:00', app_current_user())`, [x.ai4])).toBe('passou');
     expect(await tenta('coord4',
-      `UPDATE house_stay SET end_reason = end_reason WHERE id = $1`, [x.stay4])).toBe('passou');
+      `UPDATE house_stay SET status = 'encerrada', ended_at = now(), end_reason = 'saida' WHERE id = $1`, [x.stay4])).toBe('passou');
+    expect(await tenta('coord4',
+      `SELECT * FROM app_archive_enqueue($1, 'ata', 'conferencia_298', gen_random_uuid(), 'x.pdf')`, [x.ai4])).toBe('passou');
     expect(k.kid4).toBeTruthy();
   });
 });

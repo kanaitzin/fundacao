@@ -36,8 +36,7 @@ const SEM_RLS: Record<string, string> = {
 const CHECK_ABERTO: Record<string, string> = {
   'audit_event.audit_insert':
     'a auditoria é escrita também sem identidade (entrada, recusa de senha), e a linha nunca se altera (audit_no_update)',
-  'notification.notif_insert':
-    'o aviso é escrito PARA outra pessoa; quem o lê é conferido na leitura (notif_select)',
+  /* O aviso aberto (`notif_insert`) saiu na 1704: todo aviso nasce pela função. */
 };
 const FK_SEM_INDICE_PERMITIDA = new Set(['app_user', 'institution', 'witness_option']);
 
@@ -151,7 +150,7 @@ describe('O banco com as duas travas', () => {
       }, 5000);
       const inicio = Date.now();
       await expect(db.asUser(coord, (c) => c.query(
-        `UPDATE house_stay SET end_reason = end_reason WHERE id = $1`, [p.id])))
+        `UPDATE house_stay SET status = 'encerrada', ended_at = now() WHERE id = $1`, [p.id])))
         .rejects.toMatchObject({ code: '55P03' });
       expect(Date.now() - inicio).toBeLessThan(5000);
     } finally {
