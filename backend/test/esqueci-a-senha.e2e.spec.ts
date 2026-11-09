@@ -19,6 +19,7 @@ import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { AppModule } from '../src/app.module';
+import { DatabaseService } from '../src/kernel/database/database.service';
 import * as cripto from '../src/kernel/common/crypto';
 
 const adminUrl = process.env.DATABASE_URL
@@ -143,5 +144,55 @@ describe('Esqueci minha senha', () => {
     } finally {
       espia.mockRestore();
     }
+  });
+
+  it('o mesmo endereço pede no máximo dez por hora, e o bloco /64 do IPv6 conta como um (fase 296)', async () => {
+    const pedir = (e: string, ip: string) => admin.query(
+      `SELECT * FROM auth_pedir_nova_senha($1, 'h-${rodada}-' || $2, 60, $3::inet)`, [e, `${e}-${ip}-${Math.random()}`, ip]);
+    for (let i = 0; i < 10; i++) await pedir(`inventado.${i}.${rodada}@paodospobres.dev`, '203.0.113.7');
+    /* O décimo primeiro, com o e-mail de verdade: segurado pelo endereço, sem link. */
+    const r = await pedir(email, '203.0.113.7');
+    expect(r.rows).toEqual([]);
+    const { rows: [seg] } = await admin.query(
+      `SELECT segurado FROM reset_request WHERE ip = '203.0.113.7' ORDER BY id DESC LIMIT 1`);
+    expect(seg.segurado).toBe('endereco');
+    /* Outro endereço segue livre; no IPv6, trocar o fim do endereço não abre outra conta. */
+    for (let i = 0; i < 10; i++) await pedir(`v6.${i}.${rodada}@paodospobres.dev`, `2001:db8:296::${i + 1}`);
+    await pedir(`v6.fim.${rodada}@paodospobres.dev`, '2001:db8:296::ffff');
+    const { rows: [v6] } = await admin.query(
+      `SELECT segurado FROM reset_request WHERE ip = '2001:db8:296::ffff' ORDER BY id DESC LIMIT 1`);
+    expect(v6.segurado).toBe('endereco');
+    const { rows: [livre] } = await admin.query(
+      `SELECT count(*)::int n FROM reset_request WHERE ip = '203.0.113.8'`);
+    expect(livre.n).toBe(0);
+  });
+
+  it('a instituição manda no máximo sessenta e-mails de redefinição por hora (fase 296)', async () => {
+    await admin.query(`INSERT INTO reset_request (email, ip, enviado)
+                       SELECT 'teto.' || g || '@paodospobres.dev', '198.51.100.9', true FROM generate_series(1, 60) g`);
+    try {
+      /* Uma conta de verdade, sem pedido recente: só o teto a segura. */
+      const r = await admin.query(`SELECT * FROM auth_pedir_nova_senha($1, $2, 60, '198.51.100.10'::inet)`,
+        ['educador2.ai3@paodospobres.dev', `teto-${rodada}`]);
+      expect(r.rows).toEqual([]);
+      const { rows: [seg] } = await admin.query(
+        `SELECT segurado FROM reset_request WHERE ip = '198.51.100.10' ORDER BY id DESC LIMIT 1`);
+      expect(seg.segurado).toBe('teto');
+      const { rows: [a] } = await admin.query(
+        `SELECT count(*)::int n FROM audit_event WHERE action = 'auth.reset_teto' AND at > now() - interval '1 hour'`);
+      expect(a.n).toBe(1);
+    } finally {
+      await admin.query(`DELETE FROM reset_request WHERE ip IN ('198.51.100.9', '198.51.100.10')`);
+    }
+  });
+
+  it('a rota manda o endereço, e o papel da aplicação não lê os pedidos (fase 296)', async () => {
+    const antes = (await admin.query(`SELECT count(*)::int n FROM reset_request`)).rows[0].n;
+    await esqueci(`pela.rota.${rodada}@paodospobres.dev`);
+    const { rows: [r] } = await admin.query(`SELECT ip FROM reset_request ORDER BY id DESC LIMIT 1`);
+    expect((await admin.query(`SELECT count(*)::int n FROM reset_request`)).rows[0].n).toBe(antes + 1);
+    expect(r.ip).toMatch(/127\.0\.0\.1|::1/);
+    await expect(app.get(DatabaseService).query(`SELECT * FROM reset_request LIMIT 1`))
+      .rejects.toThrow(/permission denied/);
   });
 });

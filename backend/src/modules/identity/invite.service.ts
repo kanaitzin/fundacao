@@ -133,14 +133,14 @@ export class InviteService {
    * conseguimos enviar" contaria que a conta existe. Quem cuida do servidor
    * vê a falha do e-mail na saúde da implantação.
    */
-  async esqueci(email: string) {
+  async esqueci(email: string, ip?: string) {
     const aviso = 'Se este e-mail estiver cadastrado, enviamos para ele um link para criar uma senha '
       + 'nova. O link vale uma hora e serve uma vez. Confira também a caixa de spam. Se não chegar, '
       + 'a coordenação pode reenviar o seu acesso.';
     if (!email?.trim()) throw new BadRequestException('Informe o e-mail.');
     const { token, hash } = newSessionToken();
     const { rows: [r] } = await this.db.query(
-      `SELECT * FROM auth_pedir_nova_senha($1, $2, $3)`, [email.trim(), hash, MINUTOS_ESQUECI]);
+      `SELECT * FROM auth_pedir_nova_senha($1, $2, $3, $4)`, [email.trim(), hash, MINUTOS_ESQUECI, ip ?? null]);
     /* Sem esperar o envio (fase 293): esperar o SMTP só quando a conta existe contava, pelo
        tempo, que ela existe. A falha fica na saúde da implantação. */
     if (r) {

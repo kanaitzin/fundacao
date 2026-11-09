@@ -28,8 +28,8 @@ export class AuthController {
    * dentro. Responde igual para qualquer e-mail.
    */
   @Post('esqueci-a-senha')
-  esqueci(@Body() body: { email?: string }) {
-    return this.convite.esqueci(body?.email ?? '');
+  esqueci(@Body() body: { email?: string }, @Req() req: Request) {
+    return this.convite.esqueci(body?.email ?? '', req.ip);
   }
 
   /** Confere o convite ANTES de pedir a senha nova. */
