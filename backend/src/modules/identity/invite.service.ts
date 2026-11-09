@@ -41,14 +41,14 @@ export class InviteService {
     return process.env.APP_BASE_URL ?? 'http://localhost:5173';
   }
 
-  /** Passo 1 da entrada: esta conta já tem senha? */
+  /**
+   * Passo 1 da entrada: esta conta já tem senha? A tela não usa mais este passo, e a resposta
+   * é sempre a mesma (fase 293): perguntar depois do esqueci minha senha contava quais
+   * e-mails têm conta. Quem tem convite entra pelo link, que já traz o token.
+   */
   async contaTemSenha(email: string) {
     if (!email?.trim()) throw new BadRequestException('Informe o e-mail.');
-    const { rows: [r] } = await this.db.query(
-      `SELECT app_account_has_password($1) AS tem`, [email.trim()]);
-    // Conta inexistente responde igual a conta com senha: quem digita um
-    // e-mail errado não descobre por aqui quem trabalha na Fundação.
-    return { temSenha: r.tem !== false };
+    return { temSenha: true };
   }
 
   /** A coordenação convida. O token existe por instantes neste processo. */
@@ -141,8 +141,10 @@ export class InviteService {
     const { token, hash } = newSessionToken();
     const { rows: [r] } = await this.db.query(
       `SELECT * FROM auth_pedir_nova_senha($1, $2, $3)`, [email.trim(), hash, MINUTOS_ESQUECI]);
+    /* Sem esperar o envio (fase 293): esperar o SMTP só quando a conta existe contava, pelo
+       tempo, que ela existe. A falha fica na saúde da implantação. */
     if (r) {
-      await this.mail.enviar({
+      void this.mail.enviar({
         para: r.out_email,
         assunto: 'Rede Acolher: criar uma senha nova',
         corpo: [

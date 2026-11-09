@@ -294,9 +294,11 @@ describe('A senha e a entrada', () => {
     }
   });
 
-  it('a aplicação conta os erros do endereço, mas não lê as tentativas', async () => {
+  it('a aplicação pergunta pela trava do endereço, mas não lê as tentativas', async () => {
+    /* Desde a 1688 a contagem mora só no banco: a aplicação pergunta se está travado
+       (`auth_esta_travado`), e quem conta e anota é a `auth_entrar`. */
     const { rows } = await admin.query(`
-      SELECT has_function_privilege('rede_app', 'auth_tentativas_do_endereco(inet, integer)', 'EXECUTE') AS conta,
+      SELECT has_function_privilege('rede_app', 'auth_esta_travado(text, inet, boolean, integer, integer, integer)', 'EXECUTE') AS conta,
              has_table_privilege('rede_app', 'login_attempt', 'SELECT') AS le,
              (SELECT proconfig FROM pg_proc WHERE proname = 'auth_tentativas_do_endereco') AS config`);
     expect(rows[0].conta).toBe(true);

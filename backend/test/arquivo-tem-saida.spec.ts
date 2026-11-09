@@ -323,8 +323,8 @@ describe('A conexão da aplicação não alcança as tabelas de sessão', () => 
     /* Se as funções também estivessem fechadas, o login não funcionaria e o
        teste de cima passaria por motivo errado. */
     const { rows: [r] } = await app.query(
-      `SELECT auth_tentativas_recentes('ninguem@exemplo.invalido', 15) AS n`);
-    expect(Number(r.n)).toBe(0);
+      `SELECT auth_esta_travado('ninguem@exemplo.invalido', NULL, false, 5, 20, 15) AS n`);
+    expect(r.n).toBe(false);
 
     /* Token que não existe não valida — o WHERE mora na função. */
     const { rows } = await app.query(`SELECT * FROM auth_validar_sessao($1)`, ['hash-que-nao-existe']);

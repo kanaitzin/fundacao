@@ -135,7 +135,7 @@ a trava na senha atual da troca e da reautenticação; o servidor escutando só 
 ela a `auth_find_user`, o `password_hash` que o `rede_app` lê, o `must_change_password` que a própria conta
 apaga pelo SQL, a conta e o registro da tentativa numa função só, e o tempo igual para e-mail com e sem
 conta). **Sem fase ainda:** a senha inicial que vence em 72 horas, o aviso à coordenação quando a trava
-dispara, o prazo de guarda da `login_attempt` e a guarda `<> 'gestor_geral'` da 1634.
+dispara, o prazo de guarda da `login_attempt` e a guarda `<> 'gestor_geral'` da 1634. *Feito na 293 (09/11, identity/1687 e 1688), com o tempo igual também no esqueci e no primeiro acesso, e o hash guardado como resumo da chave. Ficaram o limite de pedidos no Caddy, a senha inicial que vence, o aviso da trava, o prazo de guarda e a guarda da 1634.*
 
 *Acrescentado pela revisão de segurança da fase 288 (`auditor-seguranca-lgpd`), para o conserto do A4:*
 - **o que sobrou do A2:** o `rede_app` lê o `password_hash` (a `user_select` deixa a gestão, a coordenação e a

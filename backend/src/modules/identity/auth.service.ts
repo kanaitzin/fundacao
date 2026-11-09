@@ -53,11 +53,19 @@ export class AuthService {
      * proxy, todo mundo chega como ele) não trava pelo endereço, para um engano na
      * instalação não travar as oito casas. Na auditoria, nem o endereço nem o e-mail.
      */
-    const chave = await this.chave(email, password);
+    email = (email ?? '').trim();
+    const travaEndereco = !!ip && !daPropriaMaquina(ip);
+    /* As travas antes do scrypt (1688): um endereço sozinho não entope o servidor. A resposta
+       é a mesma para conta que existe e que não existe; a que vale é a de dentro da
+       `auth_entrar`, e o banco segura os números num teto. */
+    const { rows: [pre] } = await this.db.query(
+      `SELECT auth_esta_travado($1, $2, $3, $4, $5, $6) AS travado`,
+      [email, ip ?? null, travaEndereco, this.maxAttempts, this.maxPorEndereco, this.lockMinutes]);
+    const chave = pre.travado ? '' : await this.chave(email, password);
     const { token, hash } = newSessionToken();
     const { rows: [r] } = await this.db.query(
-      `SELECT * FROM auth_entrar($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [email, chave, ip && !daPropriaMaquina(ip) ? ip : null,
+      `SELECT * FROM auth_entrar($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [email, chave, ip ?? null, travaEndereco,
        this.maxAttempts, this.maxPorEndereco, this.lockMinutes,
        hash, this.ttlHours, userAgent ?? null]);
 

@@ -1,4 +1,4 @@
-import { randomBytes, scrypt as _scrypt, timingSafeEqual, createHash } from 'node:crypto';
+import { randomBytes, scrypt as _scrypt, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 
 const scrypt = promisify(_scrypt) as (pw: string, salt: Buffer, len: number, opts: object) => Promise<Buffer>;
@@ -8,22 +8,16 @@ const scrypt = promisify(_scrypt) as (pw: string, salt: Buffer, len: number, opt
 // de implementação isolada neste arquivo.
 const N = 2 ** 15, r = 8, p = 1, KEYLEN = 64;
 
+/**
+ * O hash guardado (fase 293, identity/1688): `scrypt2$N$r$p$tamanho$sal$sha256(chave)`. O banco
+ * guarda o sha256 da chave, e não a chave: uma cópia do banco não vale como senha. Quem
+ * compara é o banco (`auth_chave_confere`), com a chave que `chaveDaSenha` deriva.
+ */
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
   const key = await scrypt(password, salt, KEYLEN, { N, r, p, maxmem: 128 * 1024 * 1024 });
-  return `scrypt$${N}$${r}$${p}$${salt.toString('base64')}$${key.toString('base64')}`;
-}
-
-export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const parts = stored.split('$');
-  if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
-  const [, n, rr, pp, saltB64, keyB64] = parts;
-  const salt = Buffer.from(saltB64, 'base64');
-  const expected = Buffer.from(keyB64, 'base64');
-  const key = await scrypt(password, salt, expected.length, {
-    N: Number(n), r: Number(rr), p: Number(pp), maxmem: 128 * 1024 * 1024,
-  });
-  return timingSafeEqual(key, expected);
+  const resumo = createHash('sha256').update(key).digest('base64');
+  return `scrypt2$${N}$${r}$${p}$${KEYLEN}$${salt.toString('base64')}$${resumo}`;
 }
 
 /**

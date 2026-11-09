@@ -116,4 +116,48 @@ describe('A senha conferida dentro do banco', () => {
       `SELECT count(*)::int n FROM user_session WHERE user_id = $1 AND last_reauth_at IS NOT NULL`, [r.body.id]);
     expect(s.n).toBe(1);
   });
+
+  it('o e-mail com espaço ou em maiúsculas conta para a mesma trava (1688)', async () => {
+    /* O caminho que as revisões provaram na 1687: com um espaço antes do e-mail, a contagem
+       era zero e a senha podia ser tentada sem limite. */
+    const email = `espaco.${rodada}@paodospobres.dev`;
+    const formas = [` ${email}`, `${email} `, email.toUpperCase(), email];
+    const status: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      status.push((await request(http).post('/api/v1/auth/login')
+        .send({ email: formas[i % formas.length], password: `Errada-${i}!` })).status);
+    }
+    expect(status.filter((s) => s === 401)).toHaveLength(5);
+    expect(status.slice(5)).toEqual([429, 429, 429]);
+  });
+
+  it('o limite da trava não vem de quem chama: o banco segura num teto (1688)', async () => {
+    const email = `teto.${rodada}@paodospobres.dev`;
+    const tentar = async () => (await db.query(
+      `SELECT out_status FROM auth_entrar($1, 'chave-errada', NULL, false, 1000000, 1000000, 1, 'h-${rodada}', 100000, NULL)`,
+      [email])).rows[0].out_status;
+    const vistos: string[] = [];
+    for (let i = 0; i < 12; i++) vistos.push(await tentar());
+    expect(vistos.filter((s) => s === 'falhou')).toHaveLength(10);
+    expect(vistos.slice(10)).toEqual(['conta_travada', 'conta_travada']);
+  });
+
+  it('o hash guardado não vale como senha: o banco guarda o resumo da chave (1688)', async () => {
+    const { rows } = await admin.query(
+      `SELECT count(*) FILTER (WHERE password_hash LIKE 'scrypt$%')::int AS antigos,
+              count(*) FILTER (WHERE password_hash LIKE 'scrypt2$%')::int AS novos
+         FROM app_user`);
+    expect(rows[0].antigos).toBe(0);
+    expect(rows[0].novos).toBeGreaterThan(0);
+    const { rows: [g] } = await admin.query(
+      `SELECT split_part(password_hash, '$', 7) AS guardado FROM app_user WHERE email = 'gestor@paodospobres.dev'`);
+    const { rows: [r] } = await db.query(
+      `SELECT out_status FROM auth_entrar('gestor@paodospobres.dev', $1, NULL, false, 5, 20, 15, $2, 1, NULL)`,
+      [g.guardado, `h2-${rodada}`]);
+    expect(r.out_status).toBe('falhou');
+    /* E hash fora do formato não é gravado na troca da própria senha. */
+    await expect(db.query(
+      `SELECT auth_trocar_minha_senha(gen_random_uuid(), 'x', 'scrypt$1$1$1$$', NULL, 5, 15)`))
+      .rejects.toThrow(/hash_invalido/);
+  });
 });
