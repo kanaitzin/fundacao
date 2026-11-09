@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **235 migrações** | `.sql` dentro das partições |
+| **253 migrações** | `.sql` dentro das partições |
 | **155 tabelas** | `CREATE TABLE` nas migrações |
-| **177 suítes** | `backend/test/*.spec.ts` |
-| **1539 testes** | `it(` / `test(` nas suítes |
+| **178 suítes** | `backend/test/*.spec.ts` |
+| **1542 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **14 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -508,6 +508,7 @@ arqueologia.
 | 295 | **Os cabeçalhos de segurança da tela** (o M3 da análise geral de 08/11; o Node só em `127.0.0.1` e o `TRUST_PROXY=loopback` já tinham entrado na 291). A API mandava os dela, mas **a tela, servida pelo Caddy, saía sem CSP, sem HSTS e sem proibir ser posta dentro de outra página**. Hoje o `Caddyfile` tem o bloco `cabecalhos_da_tela`, importado só nos blocos da tela: CSP com script só da própria tela e o wasm da leitura do papel, trabalhador de `blob:`, foto e prévia em `data:` e `blob:`, o PDF num quadro `data:`, `frame-ancestors 'none'`, HSTS, `nosniff`, `Permissions-Policy` com câmera e microfone da tela e localização para ninguém. **O `npm run ensaio:cabecalhos` (o `frontend/ensaio-cabecalhos.mjs`) mede o que vai ao ar**: roda o próprio Caddy com o Caddyfile do repositório, trocando só o endereço e as pastas, e percorre as telas de oito cargos contra o servidor de verdade, abre a câmera, tira a foto, lê o texto de um papel e abre um PDF, anotando toda recusa do navegador; tirando cada fonte da CSP, ele reprova. **A revisão de segurança achou na primeira versão:** a CSP sem `frame-src` impedia abrir **todo PDF** (o ofício, a receita), achado que o ensaio não via porque só anexava foto; o `convite/concluir` rodava o scrypt **antes** de conferir o convite, e uns 45 pedidos por segundo com convite inventado deixavam a entrada em quatro segundos e as fotos sem abrir; e o corpo de 25 MB era lido antes de saber quem pedia. Consertados: `frame-src data:` com o estilo em atributo que o visualizador pede, e o quadro só para PDF (`QuadroDoPdf`, nos cinco lugares que abriam qualquer tipo); o convite conferido antes do hash (a `esqueci-a-senha` cobra que o hash não é chamado); corpo de até 64 KB na entrada e em todo pedido sem sessão; o arquivo da versão guardado um ano e o que sumiu como 404, a página e o trabalhador do aviso conferidos a cada abertura; e o instalador valida o Caddyfile no Caddy da máquina e avisa quando o proxy é o nginx. **O limite de pedidos por volume não está no Caddy**: o do pacote não o tem, e a trava contra adivinhar a senha mora no banco, conferida antes do scrypt (291 e 293); o volume fica com a TI (PARA-A-REUNIAO §0 A13). **Ficou para a próxima:** o esqueci minha senha sem limite por endereço nem limite geral de e-mails (pede migração). **Não provado:** Firefox e Safari, o ditado e a assinatura do aviso no celular com a CSP, e um aparelho com o app já instalado, que só recebe a CSP na primeira versão nova da página. |
 | 296 | **O esqueci minha senha com limite** (o que a revisão de segurança da 295 achou). O esqueci só segurava um pedido a cada dois minutos por conta: de um endereço só saíam até 720 e-mails por dia para cada conta, e a cota do e-mail da Fundação acabava. Hoje a `auth_pedir_nova_senha` (identity/1689 e 1690) conta, numa tabela só de metadado (`reset_request`: a conta, o bloco do endereço, se saiu e-mail), dez pedidos por hora do mesmo endereço (no IPv6, o /64 conta como um) e sessenta e-mails de redefinição por hora na instituição, e a resposta continua a mesma em todos os casos. **As revisões do banco e de segurança acharam na primeira versão (1689):** o teto derrubava o esqueci de todos com dois e-mails reais (cada conta recebia trinta por hora); a regra dos dois minutos corria fora de trava, e pedidos ao mesmo tempo passavam juntos; a linha da conta ficava presa enquanto o pedido esperava, e o tempo contava que a conta existe; todo pedido gravava o e-mail digitado sem limite de tamanho, e uma origem enchia o disco; e o teto ia à auditoria com a conta como autora. A 1690 conserta: o teto segura só quem já recebeu um na hora, todo pedido toma as travas na mesma ordem antes de ler a conta, a tabela guarda a conta e o bloco e nunca o que foi digitado, o segurado é anotado uma vez por janela, e o teto vai à auditoria sem autor e à saúde da implantação. O pedido da própria máquina não conta por endereço, como na entrada, e o instalador recusa `TRUST_PROXY` com *nao*, *false* ou *0*. A suíte `esqueci-a-senha` cobra o limite, o /64, quinze pedidos ao mesmo tempo (passam dez), o teto que só segura a repetição e a rota; sem a 1690, os quatro reprovam. **Para a pauta:** um limite de e-mails por pessoa por hora (PARA-A-REUNIAO §0 A14), e o prazo de guarda desta tabela com o das tentativas de entrada (DPO). |
 | 297 | **O sigilo de saúde também no banco** (o M4 da análise geral de 08/11). Desde a 287 o conteúdo da consulta e do atendimento sigilosos era escondido só pelo servidor: o papel da aplicação lia o motivo, o estado e o complemento da Enfermagem de qualquer registro da casa, e uma consulta nova que esquecesse a máscara entregava tudo. Hoje a aplicação lê direto nas três tabelas (`health_encounter`, `health_evolution`, `nursing_triage`) só o que diz que o registro existe, e o conteúdo pelas visões `*_legivel`, que devolvem as linhas da política de leitura e o conteúdo vazio no sigiloso para quem não o lê (nursing/1691); a escrita direta saiu. **As revisões do banco e de segurança acharam, ao lado:** o relatório preenchido sozinho guardava o conteúdo sigiloso, que o Gestor Geral lê (hoje escreve *Registro sigiloso* para todos); o retorno de uma consulta sigilosa nascia aberto (hoje herda o sigilo, 1692); marcar o sigilo ao registrar ia em outra transação; o motivo do sigilo se lia pela casa inteira; a situação do atendimento mudava sem triagem (hoje só pela `app_triar_evolucao`, 1693); o atendimento aceitava a casa que viesse (hoje a casa tem de ser uma em que a criança esteve); e **a fila sem internet e os conflitos guardavam a evolução inteira onde a cozinha lia** (hoje a fila só por quem a mandou, e o conflito só por quem o decide, sync/1694). O protótipo esconde como o servidor, e a lista do backup confere a definição das visões. A suíte `o-sigilo-de-saude-no-banco` cobra as tabelas, as visões contra a política, cada cargo, coluna nova sem classificação, o retorno, a triagem, a casa e a fila; sem a 1691, reprova inteira. **Para a pauta:** as cinco escolhas do PARA-A-REUNIAO §0 A15. |
+| 298 | **As gravações conferem a casa** (o M5 da análise geral de 08/11). Medido no catálogo e provado como o papel da aplicação com a identidade da Casa 04: **a coordenação levava a estadia de uma criança para a Casa 03, punha horário de remédio na receita de uma criança da Casa 03, gravava horário de trabalho e síntese de ocorrência na Casa 03, e o educador dava ciência numa atividade da Casa 03** (people/1696, medications/1697, identity/1698, activities/1699, incidents/1700, checks/1701). **As revisões do banco e de segurança acharam, ao lado:** a casa de destino reabria um pedido de transferência recusado e levava a criança (1702), a estadia e o episódio encerrados se reativavam e se reescreviam (1702 e 1707), a fila do arquivo aceitava a casa de outra (archive/1703), o aviso se forjava para qualquer pessoa (notifications/1704), a ATA geral da noite se fechava sem a pendência (shifts/1705), a emissão do resumo de saúde se reescrevia (nursing/1706), a atividade, a internação e o apoio escolar mudavam de criança ou de casa (1708 e 1712), a chamada, a autorização do remédio, o protocolo, a rotina, o compromisso e a designação se reescreviam direto (1708 a 1711), e o relatório entrava na ficha de criança de outra casa (reports/1713). O que a aplicação não escreve direto saiu da permissão; o que escreve ficou nas colunas que muda, e a linha nova confere a casa. A suíte `as-gravacoes-conferem-a-casa` nega por padrão pelo catálogo (a política de gravação que não confere o alcance entra numa lista, com o motivo) e prova cada tentativa; sem as migrações, reprova. **Para a pauta:** o acompanhante de internação de outra casa (PARA-A-REUNIAO §0 A16). |
 
 ---
 
@@ -555,7 +556,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-235 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+253 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -622,7 +623,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              177 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              178 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -3089,7 +3090,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 235 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 253 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

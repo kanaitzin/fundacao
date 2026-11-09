@@ -198,7 +198,7 @@ identidade, na entrada e na recusa de senha, e o aviso é escrito para outra pes
 `notif_select`). Continuam sendo onde uma aplicação comprometida forjaria aviso ou auditoria; se a Fundação quiser
 fechar, o caminho é escrever os dois por função do banco, e não fechar a política. E o resto: a suíte das
 duas travas só reprova o `true` literal. São 32 tabelas com UPDATE de todas as colunas e sem
-gatilho de guarda.
+gatilho de guarda. *Feito na 298 (09/11): as gravações provadas fechadas nas 1696 a 1713, o que a aplicação não escreve direto saiu da permissão, e a `as-gravacoes-conferem-a-casa` nega por padrão.*
 
 **M6. Não há prazo de guarda para nada.** Tentativa de entrada com IP, sessão, auditoria, CPF e RG
 de visitante: tudo fica para sempre, e não há no código o ponto onde a regra entraria. "Nada se

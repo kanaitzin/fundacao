@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 298, dia: '09/11/2026',
+    texto: 'Sem mudança nas telas: o que se grava fica na casa de quem grava. A estadia, a receita, a atividade, a internação, a síntese da ocorrência e o relatório não podem mais ser levados para uma criança ou uma casa que a pessoa não atende, e o que já foi encerrado não se reescreve.' },
   { fase: 297, dia: '09/11/2026',
     texto: 'O conteúdo do registro de saúde sigiloso passa a ser escondido também pelo banco, e não só pela tela. O retorno de uma consulta sigilosa já nasce sigiloso, o relatório preenchido sozinho escreve só Registro sigiloso no lugar do conteúdo, e na Sincronização os registros sem internet que esperam decisão aparecem só para a equipe técnica e a coordenação.', aba: 'sincronizacao' },
   { fase: 296, dia: '09/11/2026',

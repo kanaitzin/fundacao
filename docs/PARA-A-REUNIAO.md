@@ -61,6 +61,7 @@
 | A13 | **O limite de pedidos por volume, para a TI** (fase 295). A senha errada já trava no banco, por conta e por endereço, antes do cálculo pesado; o que falta é segurar quem manda pedidos em quantidade só para ocupar o servidor. O Caddy que vem no pacote não faz isso. A TI escolhe: o fail2ban lendo o log do Caddy, o `hashlimit` do firewall na porta 443, ou um Caddy compilado com o módulo de limite. Ligando o log do Caddy, o filtro de consulta precisa apagar o `convite` do endereço | §12.9 |
 | A14 | **Um limite de e-mails de senha nova por conta** (fase 296). Desde 05/10, um pedido a cada dois minutos por conta, e cada pedido novo cancela o link de antes (uma pessoa tem um link aberto por vez). Desde a 296 o mesmo endereço pede no máximo dez por hora, e a instituição manda no máximo sessenta desses e-mails por hora, sem nunca segurar o primeiro de cada pessoa. Ainda assim, quem sabe o e-mail de uma colega e usa vários endereços consegue cancelar o link dela a cada dois minutos e encher a caixa dela. Proponho no máximo três por pessoa por hora: quem pediu de verdade e não recebeu pede de novo duas vezes, e depois a coordenação reenvia o acesso | §12.1 |
 | A15 | **O sigilo de saúde, cinco escolhas que ficaram como estavam** (fase 297). Desde a 297 o banco esconde o conteúdo do registro sigiloso de quem não o lê, e restam escolhas de produto: (1) o relatório preenchido sozinho escreve *Registro sigiloso* no lugar do conteúdo, mesmo para quem lê o sigilo; se um relatório ao Judiciário puder levar o conteúdo, ele entra escrito à mão por quem assina; (2) o Gestor Geral tria e assina a evolução sigilosa sem ler o conteúdo, ou ela sai da triagem dele; (3) o tipo do atendimento (terapia, internação) continua à vista, e às vezes diz o assunto; (4) para quem lê o sigilo, a Acolhe+AI lê o conteúdo sigiloso e o manda ao modelo; (5) o ditado continua ligado no formulário marcado como sigiloso (no Chrome, o áudio vai ao Google). E um limite a dizer: a receita e a internação que nascem de uma consulta sigilosa ficam abertas na grade e no histórico, e às vezes o nome do remédio diz o diagnóstico | §8 |
+| A16 | **O acompanhante de internação de outra casa** (fase 298). Hoje quem registra a internação pode pôr como acompanhante uma pessoa de qualquer casa, e essa pessoa passa a ler a internação. Se o acompanhante é sempre da equipe da casa da criança, o banco passa a recusar o de fora; se às vezes vem de outra casa (cobertura, plantão emprestado), fica como está | §8 |
 
 ### B. Os documentos e os dados que preciso receber
 
@@ -230,7 +231,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **297 fases.** 177 suítes e 1539 testes; a suíte inteira, verde em duas condições de
+- **298 fases.** 178 suítes e 1542 testes; a suíte inteira, verde em duas condições de
   relógio na fase 290, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
