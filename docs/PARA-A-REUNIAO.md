@@ -58,6 +58,7 @@
 | A10 | **O Drive:** para o piloto basta a pasta no servidor com a cópia de segurança, ou tem de ser o Google Drive compartilhado da Fundação? O critério *o documento chega ao Drive* do piloto depende disso | §9, §13.5 |
 | A11 | **Quantas contas diferentes podem errar a senha a partir de um mesmo endereço** antes de a entrada daquele endereço esperar quinze minutos (fase 291). Cada casa sai para a internet por um endereço só: quem estiver na rede da casa, inclusive no Wi-Fi que os acolhidos usam, consegue fazer a casa inteira esperar errando de propósito em muitas contas, e até lá ninguém destrava. Deixei 20 contas diferentes em quinze minutos (o erro repetido na mesma conta conta uma vez); a TI ajusta no `.env`. Ajuda separar o Wi-Fi da equipe do dos acolhidos e dizer quem destrava | §12.1 |
 | A12 | **O e-mail de quem muda de casa** (fase 292). Quando alguém passa de uma casa para outra pela Equipe, a senha de antes já deixa de valer; mas o e-mail que a casa de antes digitou continua recebendo o esqueci minha senha. Ele também deve ficar a confirmar, pela coordenação da casa nova? Se a caixa é mesmo da pessoa, não muda nada; se a casa de antes cadastrou uma caixa compartilhada, quem a lê recebe o acesso na casa nova | §12.1 |
+| A13 | **O limite de pedidos por volume, para a TI** (fase 295). A senha errada já trava no banco, por conta e por endereço, antes do cálculo pesado; o que falta é segurar quem manda pedidos em quantidade só para ocupar o servidor. O Caddy que vem no pacote não faz isso. A TI escolhe: o fail2ban lendo o log do Caddy, o `hashlimit` do firewall na porta 443, ou um Caddy compilado com o módulo de limite. Ligando o log do Caddy, o filtro de consulta precisa apagar o `convite` do endereço | §12.9 |
 
 ### B. Os documentos e os dados que preciso receber
 
@@ -227,7 +228,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **294 fases.** 176 suítes e 1527 testes; a suíte inteira, verde em duas condições de
+- **294 fases.** 176 suítes e 1529 testes; a suíte inteira, verde em duas condições de
   relógio na fase 290, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

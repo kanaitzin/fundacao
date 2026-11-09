@@ -176,7 +176,7 @@ imagem no aparelho, ou tirar o EXIF no servidor ao gravar. *Feito na 294 (09/11)
 chegar direto fala com a API sem o Caddy, e com `TRUST_PROXY=1` escreve o IP que quiser no log de
 acesso. E o Caddyfile não manda CSP, HSTS nem `frame-ancestors` para a **tela**; a API manda, a
 tela não. *Correção:* `app.listen(PORT, '127.0.0.1')` por padrão; `TRUST_PROXY=loopback`;
-cabeçalhos no bloco `handle` da tela no Caddyfile.
+cabeçalhos no bloco `handle` da tela no Caddyfile. *Feito: o Node e o `TRUST_PROXY` na 291; os cabeçalhos da tela na 295 (09/11), medidos com o próprio Caddy.*
 
 **M4. O sigilo de saúde mora só na aplicação.** O registro sigiloso (fase 287) é escondido pelo
 serviço (`semOConteudo`) e pelas funções que leem conteúdo, e isso está bem feito: as funções do

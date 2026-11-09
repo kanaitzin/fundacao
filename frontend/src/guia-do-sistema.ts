@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 295, dia: '09/11/2026',
+    texto: 'Sem mudança nas telas: quando a casa abrir pela internet, a tela chega com as proteções do navegador ligadas (nada de fora roda dentro dela, ninguém a põe dentro de outra página, a localização fica fechada), e a câmera, a leitura do papel e o PDF continuam abrindo. Um arquivo que não é PDF nem foto passa a pedir para baixar, em vez de abrir na tela.' },
   { fase: 294, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: toda foto guardada sai sem o lugar onde foi tirada. O celular grava na foto a localização, que numa casa é o endereço dela; agora essa parte sai antes de guardar, e a foto continua em pé e do mesmo jeito.' },
   { fase: 293, dia: '09/11/2026',
