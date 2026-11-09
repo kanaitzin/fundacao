@@ -7155,8 +7155,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * operação que não é a do sistema.
    */
   if (seg[0] === 'staff' && seg[2] === 'confirm-email' && metodo === 'POST') {
-    if (!alcancoTodasAsCasas(eu) || !contaDeTodasAsCasas(seg[1])) return new Recusa(404, 'Usuário não encontrado.');
+    /* A mesma pergunta do servidor (identity/1686): só a conta que ficou a confirmar, e só
+       quem administra aquele cargo (a Coordenação Geral confirma a Enfermagem; a Coordenação
+       Geral e o Líder Noturno Geral, só o Gestor Geral). */
+    if (!alcancoTodasAsCasas(eu) || !EMAIL_A_CONFIRMAR.has(seg[1])) return new Recusa(404, 'Usuário não encontrado.');
     if (seg[1] === eu.id) return new Recusa(403, 'A sua própria conta é alterada por quem administra a equipe.');
+    if (eu.role !== 'gestor_geral' && TODAS_AS_CASAS.has(seg[1])) {
+      return new Recusa(403, 'O e-mail da Coordenação Geral é confirmado pelo Gestor Geral.');
+    }
     const email = String(b.email ?? '').trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return new Recusa(400, 'E-mail institucional inválido.');
     EMAIL_A_CONFIRMAR.delete(seg[1]);

@@ -269,7 +269,7 @@ export function Equipe({ papel }: { papel: string }) {
                     {/* O e-mail que veio da casa, na promoção para todas as casas (fase 292):
                         quem confirma é quem pode editar esta conta, o Gestor Geral ou a
                         Coordenação Geral. Até lá, o convite espera. */}
-                    {m.emailAConfirmar ? (
+                    {m.emailAConfirmar && m.ativo ? (
                       <button className="btn sm" onClick={() => setConfirmando(m)}>
                         Confirmar o e-mail
                       </button>
@@ -570,6 +570,14 @@ function FormCadastro({ setores, casas, membro, ehGestor, onFechar, onSalvo, onE
                   <option key={c.id} value={c.id}>{c.codigo} — {c.nome}</option>
                 ))}
               </select>
+              {/* A troca de casa encerra a senha e as sessões de antes (fase 292): quem
+                  está de plantão é desconectado na hora. */}
+              {membro?.casaId && casaId && casaId !== membro.casaId && (
+                <div className="notice c-warn" role="status">
+                  Ao mudar de casa, a senha de antes deixa de valer e as sessões abertas se
+                  encerram na hora. Você recebe uma senha nova para entregar à pessoa.
+                </div>
+              )}
             </>
           ) : (
             <div className="notice c-move">
