@@ -70,9 +70,11 @@ export class AuthService {
        hash, this.ttlHours, userAgent ?? null]);
 
     if (r.out_status === 'conta_travada' || r.out_status === 'endereco_travado') {
-      await this.audit.log(r.out_status === 'conta_travada'
-        ? { action: 'auth.login_locked', detail: { emailHash: hashToken(email.toLowerCase()) } }
-        : { action: 'auth.endereco_travado' });
+      if (r.out_status === 'conta_travada') {
+        await this.audit.log({ action: 'auth.login_locked', detail: { emailHash: hashToken(email.toLowerCase()) } });
+      } else {
+        await this.audit.log({ action: 'auth.endereco_travado' });
+      }
       throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
     }
     if (r.out_status !== 'ok') {
