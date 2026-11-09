@@ -20,7 +20,9 @@
  *  2. **Todo anexo volta byte por byte.** Foto e PDF de tamanho real entram por
  *     cada porta que recebe arquivo, voltam pela rota de quem abre, e o que
  *     voltou tem a mesma soma do que foi; e o arquivo está no disco do
- *     servidor, com a mesma soma (é a pergunta "o servidor guarda?").
+ *     servidor, com a mesma soma (é a pergunta "o servidor guarda?"). A foto de
+ *     câmera, com GPS, volta sem ele desde a fase 294: quem cobra isso é a
+ *     `a-foto-sem-o-lugar`; as fotos daqui não têm EXIF e voltam iguais.
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';

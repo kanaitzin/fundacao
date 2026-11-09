@@ -124,3 +124,43 @@ describe('A foto sem o lugar onde foi tirada', () => {
     expect((await guardar(png)).noDisco.equals(png)).toBe(true);
   });
 });
+
+describe('A limpeza não prende o servidor nem estraga a foto (revisão da 294)', () => {
+  it('um EXIF com milhares de entradas de GPS sai em menos de um segundo', () => {
+    const { semMetadados } = require('../src/kernel/arquivos/sem-metadados');
+    /* O ataque da revisão: 65535 entradas, cada uma dizendo que o seu valor ocupa uma área de
+       2 MB longe delas. A primeira versão zerava os 2 MB uma vez por entrada. */
+    const entradas = 65535, area = 2 * 1024 * 1024;
+    const base = 28 + entradas * 12 + 4;
+    const tiff = Buffer.alloc(base + area);
+    tiff.write('MM', 0, 'latin1'); tiff.writeUInt16BE(42, 2); tiff.writeUInt32BE(8, 4);
+    tiff.writeUInt16BE(1, 8); tiff.writeUInt16BE(0x8825, 10); tiff.writeUInt16BE(4, 12);
+    tiff.writeUInt32BE(1, 14); tiff.writeUInt32BE(26, 18);
+    tiff.writeUInt16BE(entradas, 26);
+    for (let j = 0; j < entradas; j++) {
+      const g = 28 + j * 12;
+      tiff.writeUInt16BE(2, g); tiff.writeUInt16BE(1, g + 2);
+      tiff.writeUInt32BE(area, g + 4); tiff.writeUInt32BE(base, g + 8);
+    }
+    const bloco = Buffer.alloc(8); bloco.write('EXIF', 0, 'latin1'); bloco.writeUInt32LE(tiff.length, 4);
+    const corpo = Buffer.concat([Buffer.from('WEBP', 'latin1'), bloco, tiff]);
+    const riff = Buffer.alloc(8); riff.write('RIFF', 0, 'latin1'); riff.writeUInt32LE(corpo.length, 4);
+    const inicio = Date.now();
+    semMetadados(Buffer.concat([riff, corpo]), 'image/webp');
+    expect(Date.now() - inicio).toBeLessThan(1000);
+  });
+
+  it('o XMP estendido sai sem apagar os cabeçalhos dos segmentos', async () => {
+    const { semMetadados } = require('../src/kernel/arquivos/sem-metadados');
+    const jpeg = await desenho().encode('jpeg', 90);
+    const xmp1 = Buffer.concat([Buffer.from('http://ns.adobe.com/xap/1.0/\0<x:xmpmeta>parte um', 'latin1')]);
+    const xmp2 = Buffer.concat([Buffer.from('http://ns.adobe.com/xmp/extension/\0GPSLatitude</x:xmpmeta>', 'latin1')]);
+    const com = Buffer.concat([jpeg.subarray(0, 2), segmentoJpeg(0xffe1, xmp1), segmentoJpeg(0xffe1, xmp2), jpeg.subarray(2)]);
+    const limpo: Buffer = semMetadados(com, 'image/jpeg');
+    const segundo = 2 + 4 + xmp1.length;
+    expect(limpo.readUInt16BE(segundo)).toBe(0xffe1);
+    expect(limpo.includes(Buffer.from('GPSLatitude'))).toBe(false);
+    const img = await loadImage(limpo);
+    expect([img.width, img.height]).toEqual([64, 40]);
+  });
+});

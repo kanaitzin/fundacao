@@ -19,7 +19,9 @@ import { join } from 'node:path';
  *  * **o tipo é lido da ASSINATURA, nunca da extensão.** Renomear é um toque;
  *    quem guarda documento de criança confere os primeiros bytes;
  *  * **o sha256 é calculado ANTES de gravar.** É ele que prova, depois, que o
- *    arquivo que abriu é o que entrou.
+ *    arquivo que abriu é o que foi guardado. Desde a fase 294, a imagem é guardada
+ *    sem o GPS e sem o XMP (`sem-metadados.ts`): a soma é a do que fica no disco, e
+ *    não a do original do celular.
  *
  * O que ele NÃO faz: decidir quem pode ler. Isso é do módulo dono da tabela,
  * onde o RLS e a política vivem — o kernel não conhece cargo nem casa.

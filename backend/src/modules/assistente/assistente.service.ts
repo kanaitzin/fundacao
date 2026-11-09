@@ -7,6 +7,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { MAXIMO_DE_ANEXOS_POR_MENSAGEM, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
+import { semMetadados } from '../../kernel/arquivos/sem-metadados';
 import { FERRAMENTAS, NOMES_DAS_FERRAMENTAS } from './ferramentas';
 import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa, guiaDoCargo } from './guia';
 import {
@@ -152,6 +153,14 @@ export class AssistenteService {
         const anexados = (msg.content as { type: string }[]).filter((b) => b.type === 'image' || b.type === 'document');
         if (msg.role === 'user' && anexados.length > MAXIMO_DE_ANEXOS_POR_MENSAGEM) {
           throw new BadRequestException(recusaDosAnexos(anexados.map(() => 0)) ?? '');
+        }
+        /* A foto vai ao modelo sem o lugar onde foi tirada (fase 294), pela mesma limpeza do
+           que se guarda. A limpeza dá sempre o mesmo resultado para a mesma foto, então a
+           conversa reenviada a cada pergunta continua igual para o modelo. */
+        for (const b of msg.content as { type: string; source?: { type?: string; media_type?: string; data?: string } }[]) {
+          if (b.type === 'image' && b.source?.type === 'base64' && typeof b.source.data === 'string' && b.source.media_type) {
+            b.source.data = semMetadados(Buffer.from(b.source.data, 'base64'), b.source.media_type).toString('base64');
+          }
         }
       } else {
         throw new BadRequestException('Há uma mensagem sem conteúdo na conversa.');
