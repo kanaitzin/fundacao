@@ -22,7 +22,8 @@
     "ensaio:vazio": "node ensaio-vazio.mjs",
     "fontes": "node ../scripts/gerar-fontes.mjs",
     "ensaio:acolhe": "node ensaio-acolhe.mjs",
-    "ensaio:aparelhos": "node ensaio-aparelhos.mjs"
+    "ensaio:aparelhos": "node ensaio-aparelhos.mjs",
+    "ensaio:cabecalhos": "node ensaio-cabecalhos.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/por": "1.0.0",

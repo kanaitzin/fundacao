@@ -36,6 +36,21 @@ describe('Os arquivos do servidor do Pão', () => {
       .toMatch(/handle \/api\/v1\/assistente\/conversa\/aos-poucos\s*\{\s*reverse_proxy 127\.0\.0\.1:3000\s*\{\s*flush_interval -1/);
   });
 
+  it('a tela sai com os cabeçalhos de segurança dela, e só a tela (fase 295)', () => {
+    const c = ler('scripts/servidor/Caddyfile');
+    const bloco = /\(cabecalhos_da_tela\)\s*\{([\s\S]*?)\n\}/.exec(c)?.[1] ?? '';
+    const csp = /Content-Security-Policy "([^"]+)"/.exec(bloco)?.[1] ?? '';
+    expect(csp).toMatch(/frame-ancestors 'none'/);
+    expect(csp).toMatch(/object-src 'none'/);
+    expect(csp).toMatch(/script-src 'self'/);
+    expect(csp).not.toMatch(/script-src[^;]*('unsafe-inline'|'unsafe-eval'|https?:|\*)/);
+    expect(bloco).toMatch(/Strict-Transport-Security "max-age=\d{8,}/);
+    expect(bloco).toMatch(/Permissions-Policy "[^"]*geolocation=\(\)/);
+    /* Importado no bloco da tela, e não no site inteiro: a API manda os dela. */
+    expect(c).toMatch(/handle \{\s*import cabecalhos_da_tela\s*root \* \/opt\/rede-acolher\/frontend\/dist/);
+    expect((c.match(/import cabecalhos_da_tela/g) ?? []).length).toBe(1);
+  });
+
   it('o serviço roda o compilado, com o .env, e volta sozinho se cair', () => {
     const s = ler('scripts/servidor/rede-acolher.service');
     expect(s).toMatch(/^ExecStart=\/usr\/bin\/node dist\/main\.js$/m);

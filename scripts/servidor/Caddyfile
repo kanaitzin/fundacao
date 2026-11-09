@@ -11,6 +11,33 @@
 # O limite de corpo é o mesmo do serviço, com folga: sem ele o proxy recusa a
 # foto de celular antes de o serviço ver.
 # ============================================================
+#
+# Os cabeçalhos da TELA (fase 295; o M3 da análise geral de 08/11). A API manda
+# os dela (`porta-da-internet.ts`); a tela é arquivo servido daqui, e só o proxy
+# pode mandar os dela. O `npm run ensaio:cabecalhos` lê ESTE bloco, serve a tela
+# construída com ele e percorre as telas, a câmera e a leitura do papel contra o
+# servidor de verdade: cabeçalho novo se escreve aqui e se mede lá.
+#  - script só da própria tela, e o wasm da leitura do papel (`wasm-unsafe-eval`);
+#  - o trabalhador da leitura do papel nasce de um `blob:` e lê o português de um `data:`;
+#  - foto, prévia e áudio em `data:` e `blob:`; nada de outro endereço;
+#  - ninguém põe a tela dentro de outra página (`frame-ancestors`);
+#  - câmera e microfone só da própria tela, e localização para ninguém.
+# O limite de pedidos não está aqui: o Caddy instalado pelo pacote não o tem, e
+# a trava contra adivinhar a senha mora no banco (fases 291 e 293).
+# ============================================================
+(cabecalhos_da_tela) {
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; media-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+	}
+}
+
 rede.paodospobres.com.br {
 	request_body {
 		max_size 30MB
@@ -26,6 +53,7 @@ rede.paodospobres.com.br {
 		reverse_proxy 127.0.0.1:3000
 	}
 	handle {
+		import cabecalhos_da_tela
 		root * /opt/rede-acolher/frontend/dist
 		try_files {path} /index.html
 		file_server
