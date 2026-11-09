@@ -168,10 +168,16 @@ const rotuloDoTema = () =>
  * botão está na folha da conta (fase 184), e uma folha aberta por cima da
  * outra deixava dois "Fechar" na tela. Quem abre esta fecha a da conta antes.
  */
-/** A folha da setinha da casa: as casas que a pessoa alcança, a aberta marcada. */
-function FolhaDaCasa({ casas, aberta, minha, onEscolher, onFechar }: {
-  casas: House[]; aberta: string; minha: string | null;
-  onEscolher: (h: House) => void; onFechar: () => void;
+/*
+ * A FOLHA DAS DUAS VISÕES (fase 299, plano de 06/11 e a decisão de 15/09 do §10 item 1).
+ * Quem responde por mais de uma casa escolhe aqui como quer olhar: as oito juntas
+ * (os números, ou o dia das unidades, conforme o cargo) ou uma casa por inteiro.
+ * As casas vão na ordem do código, sem número ao lado: comparar casas não é a pergunta.
+ */
+function FolhaDaCasa({ casas, aberta, minha, todas, onEscolher, onTodas, onFechar }: {
+  casas: House[]; aberta: string | null; minha: string | null;
+  todas: { titulo: string; texto: string } | null;
+  onEscolher: (h: House) => void; onTodas: () => void; onFechar: () => void;
 }) {
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); };
@@ -182,14 +188,30 @@ function FolhaDaCasa({ casas, aberta, minha, onEscolher, onFechar }: {
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-casa"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet">
-        <h3 id="t-casa">Trocar de casa</h3>
+        <h3 id="t-casa">O que você quer ver?</h3>
+        {todas && (
+          <button className="visao-todas" aria-current={aberta === null ? 'true' : undefined}
+                  onClick={onTodas}>
+            <span className="visao-icone" aria-hidden="true"><Icone nome="unidades" tamanho={26} /></span>
+            <span className="visao-texto">
+              <b>{todas.titulo}</b>
+              <span>{todas.texto}</span>
+            </span>
+            {aberta === null && <span className="pill c-info">aberta agora</span>}
+          </button>
+        )}
+        <div className="eyebrow">Uma casa por inteiro</div>
         <div className="casas-lista">
           {casas.map((h) => (
             <button key={h.id} aria-current={h.id === aberta ? 'true' : undefined}
                     onClick={() => onEscolher(h)}>
-              <b>{h.code}</b> <span>{h.name}</span>
-              {h.code === minha && <span className="mutetxt"> · sua casa</span>}
-              {h.id === aberta && <span className="mutetxt"> · aberta agora</span>}
+              <span className="casa-codigo">{h.code}</span>
+              <span className="casa-nome">{h.name}</span>
+              <span className="casa-marcas">
+                {h.kind === 'casa_lar' ? 'Casa-lar' : 'Abrigo institucional'}
+                {h.code === minha && ' · sua casa'}
+                {h.id === aberta && ' · aberta agora'}
+              </span>
             </button>
           ))}
         </div>
@@ -385,6 +407,9 @@ const CONVITE_DA_URL = (() => {
   if (t) window.history.replaceState({}, '', window.location.pathname);
   return t;
 })();
+
+/** As telas que juntam as casas: com elas abertas, o botão do alto diz *Todas as casas*. */
+const VISAO_DAS_OITO = new Set(['metricas', 'unidades', 'casas', 'impacto']);
 
 /** As telas que mostram UMA casa: quem não tem casa de trabalho precisa ver qual (fase 213). */
 const TELAS_DA_CASA = new Set(['dia', 'chamada', 'acolhidos', 'passagem', 'agenda', 'plantao',
@@ -737,6 +762,15 @@ export function App() {
   const casaAtual = (escolhida ? houses.find((h) => h.id === escolhida) : undefined)
     ?? houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
   const olhandoOutra = !!casaAtual && !!casa && casaAtual.code !== casa.code;
+  /* As duas visões (fase 299): a das oito leva à tela que junta as casas para este
+     cargo (o Painel do Gestor Geral, o dia das unidades dos outros); fora dela, uma casa. */
+  const telaDasOito = ve('metricas')
+    ? { aba: 'metricas', titulo: 'Todas as casas juntas', texto: 'Os números e os gráficos das oito, no período que você escolher.' }
+    : ve('unidades')
+      ? { aba: 'unidades', titulo: 'Todas as casas juntas', texto: 'O dia das oito casas numa tela só, em ordem.' }
+      : null;
+  const naVisaoDasOito = VISAO_DAS_OITO.has(String(abaEfetiva));
+  const primeiraDaCasa = [...TELAS_DA_CASA].find((a) => ve(a)) ?? 'casas';
   /* O protótipo tem uma cópia do servidor por casa (fase 225): ele precisa
      saber qual casa a tela abriu. No sistema de verdade não faz nada. */
   casaAbertaNaTela(casaAtual?.id ?? null);
@@ -761,15 +795,21 @@ export function App() {
           <span className="rolechip so-no-monitor">
             {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
           </span>
-          {/* A SETINHA DA CASA (plano de 06/11): quem alcança mais de uma casa troca daqui,
-              sem passar pelas Unidades. O código da casa fica à vista, a setinha diz que abre. */}
+          {/* O BOTÃO DAS DUAS VISÕES (plano de 06/11): quem alcança mais de uma casa vê
+              no alto o que está olhando, as oito juntas ou uma casa, e troca com um toque. */}
           {casaAtual && houses.length > 1 && (
-            <button className="troca-casa" aria-haspopup="dialog"
-                    aria-label={`Casa aberta: ${casaAtual.code} · ${casaAtual.name}. Trocar de casa`}
-                    title={`${casaAtual.code} · ${casaAtual.name}`}
+            <button className={`troca-casa${naVisaoDasOito ? ' todas' : ''}`} aria-haspopup="dialog"
+                    aria-label={naVisaoDasOito
+                      ? 'Vendo todas as casas. Trocar para uma casa'
+                      : `Vendo ${casaAtual.code} · ${casaAtual.name}. Trocar de casa ou ver todas`}
                     onClick={() => setFolhaCasa(true)}>
-              <span>{casaAtual.code}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none"
+              <Icone nome={naVisaoDasOito ? 'unidades' : 'casas'} tamanho={18} />
+              <span className="troca-casa-texto">
+                <small className="so-no-monitor">Vendo</small>
+                <b>{naVisaoDasOito ? 'Todas as casas' : casaAtual.code}</b>
+                {!naVisaoDasOito && <span className="so-no-monitor">{casaAtual.name}</span>}
+              </span>
+              <svg className="troca-casa-seta" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none"
                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 9l6 6 6-6" />
               </svg>
@@ -840,11 +880,21 @@ export function App() {
 
       {folhaTema && <FolhaTema onFechar={() => setFolhaTema(false)} />}
       {folhaCasa && casaAtual && (
-        <FolhaDaCasa casas={houses} aberta={casaAtual.id} minha={casa?.code ?? null}
+        <FolhaDaCasa casas={houses} aberta={naVisaoDasOito ? null : casaAtual.id} minha={casa?.code ?? null}
+                     todas={telaDasOito}
+                     onTodas={() => {
+                       if (telaDasOito) setAba(telaDasOito.aba as typeof aba);
+                       setFolhaCasa(false);
+                       window.scrollTo(0, 0);
+                       marcarChegada();
+                     }}
                      onEscolher={(h) => {
                        /* A própria casa de trabalho volta a ser a de sempre, sem marca de "olhando outra". */
                        setEscolhida(casa && h.code === casa.code ? null : h.id);
+                       /* Quem estava nas oito entra pelo dia da casa escolhida. */
+                       if (naVisaoDasOito) setAba((ve('dia') ? 'dia' : primeiraDaCasa) as typeof aba);
                        setFolhaCasa(false);
+                       window.scrollTo(0, 0);
                        marcarChegada();
                      }}
                      onFechar={() => setFolhaCasa(false)} />
@@ -1054,8 +1104,8 @@ export function App() {
         {!casa && casaAtual && TELAS_DA_CASA.has(String(abaEfetiva)) && (
           <div className="notice c-info casa-aberta" role="status">
             <span>Você está na <b>{casaAtual.code} · {casaAtual.name}</b>.</span>{' '}
-            {ve('casas') && (
-              <button className="btn sm ghost" onClick={() => setAba('casas')}>Trocar de casa</button>
+            {houses.length > 1 && (
+              <button className="btn sm ghost" onClick={() => setFolhaCasa(true)}>Trocar de casa</button>
             )}
           </div>
         )}

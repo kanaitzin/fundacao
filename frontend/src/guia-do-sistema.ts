@@ -141,7 +141,7 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
   { fase: 299, dia: '09/11/2026',
-    texto: 'Quem atende mais de uma casa troca de casa pela setinha no alto, ao lado do nome: um toque abre a lista das casas, com a aberta marcada, e outro toque abre a escolhida, sem passar pelas Unidades.' },
+    texto: 'Quem atende mais de uma casa vê no alto o que está olhando, Todas as casas ou a casa aberta. Um toque ali abre as duas visões: as oito casas juntas, com os números ou o dia de todas, e cada casa por inteiro, para entrar nela.' },
   { fase: 298, dia: '09/11/2026',
     texto: 'Sem mudança nas telas: o que se grava fica na casa de quem grava. A estadia, a receita, a atividade, a internação, a síntese da ocorrência e o relatório não podem mais ser levados para uma criança ou uma casa que a pessoa não atende, e o que já foi encerrado não se reescreve.' },
   { fase: 297, dia: '09/11/2026',
