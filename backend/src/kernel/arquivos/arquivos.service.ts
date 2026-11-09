@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { semMetadados } from './sem-metadados';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -145,11 +146,14 @@ export class ArquivosService {
         ?? 'O arquivo chegou incompleto ou danificado. Envie de novo; se repetir, '
            + 'fotografe ou digitalize outra vez.');
     }
-    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    /* A foto sem o lugar onde foi tirada (fase 294): o GPS e o XMP saem antes de gravar, e a
+       soma é a do que fica no disco. */
+    const limpos = semMetadados(bytes, tipo);
+    const sha256 = createHash('sha256').update(limpos).digest('hex');
     const chave = randomUUID();
     await mkdir(this.dir, { recursive: true });
-    await gravarNoDisco(this.dir, chave, bytes);
-    return { chave, mime: tipo, rotulo, sha256, tamanho: bytes.length };
+    await gravarNoDisco(this.dir, chave, limpos);
+    return { chave, mime: tipo, rotulo, sha256, tamanho: limpos.length };
   }
 
   /**
@@ -160,7 +164,12 @@ export class ArquivosService {
   somaDe(conteudo?: string | null): string | null {
     const limpo = String(conteudo ?? '').replace(/^data:[^;]+;base64,/, '').trim();
     if (!limpo) return null;
-    return createHash('sha256').update(Buffer.from(limpo, 'base64')).digest('hex');
+    /* A mesma soma que o `guardar` grava: a do arquivo sem o GPS (fase 294). O tipo que não
+       se reconhece fica como veio, e o `guardar` o recusa depois. */
+    const bytes = Buffer.from(limpo, 'base64');
+    let tipo = '';
+    try { tipo = this.tipoReal(bytes).tipo; } catch { /* não é imagem nem PDF */ }
+    return createHash('sha256').update(tipo ? semMetadados(bytes, tipo) : bytes).digest('hex');
   }
 
   /**
