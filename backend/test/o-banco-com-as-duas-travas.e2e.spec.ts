@@ -136,21 +136,22 @@ describe('O banco com as duas travas', () => {
   async () => {
     if (!comTemporizador) return;
     const { rows: [p] } = await admin.query(
-      `SELECT d.person_id FROM profile_detail d JOIN house_stay s ON s.person_id = d.person_id
+      /* A estadia, que a aplicação ainda atualiza na saída: desde a 1696 o perfil só muda por função. */
+      `SELECT s.id FROM house_stay s
         JOIN house h ON h.id = s.house_id AND h.code = 'AI3' WHERE s.status = 'ativa' LIMIT 1`);
     const guarda = new Client({ connectionString: adminUrl });
     await guarda.connect();
     await admin.query('BEGIN');
     let cancelar: NodeJS.Timeout | undefined;
     try {
-      await admin.query(`SELECT 1 FROM profile_detail WHERE person_id = $1 FOR UPDATE`, [p.person_id]);
+      await admin.query(`SELECT 1 FROM house_stay WHERE id = $1 FOR UPDATE`, [p.id]);
       cancelar = setTimeout(() => {
         void guarda.query(`SELECT pg_cancel_backend(pid) FROM pg_stat_activity
                             WHERE application_name = 'rede-acolher-api' AND wait_event_type = 'Lock'`);
       }, 5000);
       const inicio = Date.now();
       await expect(db.asUser(coord, (c) => c.query(
-        `UPDATE profile_detail SET notes = notes WHERE person_id = $1`, [p.person_id])))
+        `UPDATE house_stay SET end_reason = end_reason WHERE id = $1`, [p.id])))
         .rejects.toMatchObject({ code: '55P03' });
       expect(Date.now() - inicio).toBeLessThan(5000);
     } finally {
