@@ -13,20 +13,21 @@
  *  3. confere que cada cabeçalho chega;
  *  4. entra com uma conta de cada cargo, abre cada aba e cada porta, e anota toda
  *     recusa da CSP (o evento `securitypolicyviolation` e o console);
- *  5. lê o texto de um papel no aparelho e abre a câmera, os dois caminhos que
- *     a CSP mais pode quebrar.
+ *  5. abre a câmera e lê o texto de um papel no aparelho, no dossiê, os dois
+ *     caminhos que a CSP mais pode quebrar (o dossiê ganha um bilhete fictício).
  *
  * Precisa do servidor no ar (`npm run dev -w backend`, banco com a semente) e da tela
  * construída (`npm run build -w frontend`, ou `ENSAIO_DIST=pasta`).
  *
  *   node ensaio-cabecalhos.mjs
  *   ENSAIO_API=http://127.0.0.1:3000  ENSAIO_DIST=dist  ENSAIO_PORTA=4174
+ *   ENSAIO_SO_PAPEL=1  só a câmera e a leitura do papel, sem percorrer as telas
  */
 import http from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-core';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const CADDYFILE = resolve(AQUI, '../scripts/servidor/Caddyfile');
@@ -135,7 +136,7 @@ async function entrar(pg, email) {
 
 /* 4. Cada cargo, cada aba, cada porta. */
 let telas = 0;
-for (const [quem, email] of CONTAS) {
+for (const [quem, email] of process.env.ENSAIO_SO_PAPEL ? [] : CONTAS) {
   const { ctx, pg, estado } = await abrir(quem);
   if (!(await entrar(pg, email))) { anota(quem, 'entrada', 'não chegou à tela inicial'); await ctx.close(); continue; }
   await recolher(pg, quem, estado);
@@ -154,13 +155,14 @@ for (const [quem, email] of CONTAS) {
   }
   await ctx.close();
 }
-cobrar(`as telas de cada cargo abrem sem recusa da CSP (${telas} telas)`, telas > 40 && !achados.some((a) => !a.startsWith('REPROVOU')));
+if (!process.env.ENSAIO_SO_PAPEL) cobrar(`as telas de cada cargo abrem sem recusa da CSP (${telas} telas)`, telas > 40 && !achados.some((a) => !a.startsWith('REPROVOU')));
 
-/* 5. A leitura do papel e a câmera, como educador, na linha da ATA. */
+/* 5. A leitura do papel e a câmera, como técnica, no dossiê da primeira criança.
+   (A linha da ATA só existe com a ATA do turno aberta; o dossiê está sempre.) */
 {
-  const quem = 'Educador';
+  const quem = 'Equipe técnica';
   const { ctx, pg, estado } = await abrir(quem);
-  await entrar(pg, 'educador.ai3@paodospobres.dev');
+  await entrar(pg, 'tecnica.ai3@paodospobres.dev');
   const bilhete = Buffer.from(await pg.evaluate(() => {
     const c = document.createElement('canvas'); c.width = 1200; c.height = 300;
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 1200, 300);
@@ -169,39 +171,51 @@ cobrar(`as telas de cada cargo abrem sem recusa da CSP (${telas} telas)`, telas 
     g.fillText('Reunião de pais na sexta-feira.', 60, 220);
     return c.toDataURL('image/png').split(',')[1];
   }), 'base64');
-  estado.onde = 'ATA';
-  await pg.locator('nav.portas-lateral button').filter({ hasText: /^ATA|Atas/ }).first().click().catch(() => undefined);
+  estado.onde = 'dossiê';
+  await pg.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click();
   await pg.waitForTimeout(1500);
-  const campo = pg.locator('#linha-anexos-arquivo');
-  if (await campo.count()) {
-    await campo.setInputFiles({ name: 'recado.png', mimeType: 'image/png', buffer: bilhete });
-    await pg.waitForTimeout(1200);
-    await pg.locator('.anexo-cartao').first().getByRole('button', { name: 'Ver' }).click();
-    estado.onde = 'leitura do papel';
-    await pg.getByRole('button', { name: 'Ler o texto do papel' }).click();
-    await pg.locator('#ler-texto-caixa').waitFor({ timeout: 120000 }).catch(() => undefined);
-    const lido = await pg.locator('#ler-texto-caixa').inputValue().catch(() => '');
-    cobrar('a leitura do papel funciona com a CSP da tela', /Primavera/.test(lido), lido || 'nada lido');
-    await recolher(pg, quem, estado);
-    await pg.keyboard.press('Escape');
-    await pg.locator('.overlay').getByRole('button', { name: /Fechar|Ainda não/ }).last().click().catch(() => undefined);
-  } else {
-    cobrar('a ATA do educador tem onde anexar', false);
-  }
+  await pg.locator('.pessoa-cartao').first().click(); await pg.waitForTimeout(1500);
+  await pg.getByRole('tab', { name: /Documentos/ }).click(); await pg.waitForTimeout(900);
+  await pg.getByRole('button', { name: /Dossiê: documentos e vivências/ }).click(); await pg.waitForTimeout(1500);
+  await pg.locator('main.conteudo button', { hasText: 'Anexar' }).first().click(); await pg.waitForTimeout(700);
   estado.onde = 'câmera';
-  const camera = pg.getByRole('button', { name: /Tirar foto|Câmera/i }).first();
+  const camera = pg.locator('.overlay').getByRole('button', { name: /Abrir a câmera|Tirar uma foto|Tirar foto agora/ }).first();
   if (await camera.count()) {
     await camera.click().catch(() => undefined);
-    await pg.waitForTimeout(2500);
-    const videoAndando = await pg.evaluate(() => {
-      const v = document.querySelector('video');
-      return !!v && v.readyState >= 2 && v.videoWidth > 0;
-    });
+    await pg.waitForTimeout(3000);
+    const videoAndando = await pg.evaluate(() => [...document.querySelectorAll('video')]
+      .some((v) => v.readyState >= 2 && v.videoWidth > 0));
     cobrar('a câmera liga com a CSP e a Permissions-Policy da tela', videoAndando);
     await recolher(pg, quem, estado);
+    /* A foto tirada vira prévia em `data:`; depois a câmera se fecha. */
+    await pg.getByRole('button', { name: 'Fotografar' }).click().catch(() => undefined);
+    await pg.waitForTimeout(900);
+    cobrar('a foto tirada aparece na prévia', await pg.getByRole('button', { name: 'Usar esta foto' }).count() === 1);
+    await recolher(pg, quem, estado);
+    await pg.getByRole('button', { name: 'Fechar a câmera' }).click().catch(() => undefined);
+    await pg.waitForTimeout(600);
   } else {
-    cobrar('a linha da ATA oferece a câmera', false);
+    cobrar('o Anexar do dossiê oferece a câmera', false);
   }
+  estado.onde = 'leitura do papel';
+  if (!(await pg.locator('#anx-arq-arquivo').count())) {
+    await pg.locator('main.conteudo button', { hasText: 'Anexar' }).first().click().catch(() => undefined);
+    await pg.waitForTimeout(700);
+  }
+  await pg.locator('#anx-arq-arquivo').setInputFiles({ name: 'bilhete-295.png', mimeType: 'image/png', buffer: bilhete });
+  await pg.waitForTimeout(900);
+  await pg.locator('#anx-tit').fill('Bilhete da escola (ensaio dos cabeçalhos)');
+  await pg.locator('.overlay .rodape button').last().click(); await pg.waitForTimeout(1800);
+  await recolher(pg, quem, estado);
+  const botaoDoDoc = pg.getByRole('button', { name: /Conferir agora|Abrir/ });
+  await pg.locator('main.conteudo div').filter({ hasText: 'bilhete-295.png', has: botaoDoDoc })
+    .last().locator(botaoDoDoc).first().click().catch(() => undefined);
+  await pg.waitForTimeout(1500);
+  await pg.getByRole('button', { name: 'Ler o texto do papel' }).click().catch(() => undefined);
+  await pg.locator('#ler-texto-caixa').waitFor({ timeout: 120000 }).catch(() => undefined);
+  const lido = await pg.locator('#ler-texto-caixa').inputValue().catch(() => '');
+  cobrar('a leitura do papel funciona com a CSP da tela', /Primavera/.test(lido), lido || 'nada lido');
+  await recolher(pg, quem, estado);
   estado.onde = 'aviso no celular';
   const sw = await pg.evaluate(async () => !!(await navigator.serviceWorker?.getRegistration?.()));
   cobrar('o trabalhador da tela (o aviso e a casca) se registra', sw);
