@@ -186,6 +186,15 @@ export class InviteService {
     const senha = (novaSenha ?? '').trim();
     if (!senhaAceita(senha)) throw new BadRequestException(FRASE_DA_SENHA);
 
+    /* O convite conferido ANTES do scrypt (revisão de segurança da 295): o hash pesa
+       32 MiB e um quarto do servidor, e com convites inventados em fila ninguém entrava
+       nem abria foto. O banco confere de novo ao gastar, na mesma função que grava. */
+    const { rows: [vale] } = await this.db.query(
+      `SELECT 1 FROM app_check_invite($1)`, [hashToken(token.trim())]);
+    if (!vale) {
+      throw new HttpException(
+        'Convite inválido ou vencido. Peça um novo à coordenação.', HttpStatus.GONE);
+    }
     const hash = await hashPassword(senha);
     /* SEM identidade na sessão, de propósito (`db.query`, e não `asUser`): o gatilho de
        quem administra a conta (identity/1681) não confere nada sem identidade. Com a

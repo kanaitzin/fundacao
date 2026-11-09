@@ -25,7 +25,7 @@
  * retângulo cinza: um nome de arquivo não diz se a foto está tremida, se a
  * página saiu cortada, ou se é a criança certa.
  */
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { Icone, SimboloDaAcolhe } from './icones';
 import { FolhaCamera, temCameraDoSistema } from './camera';
 import { MAXIMO_DE_ANEXOS_POR_MENSAGEM, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
@@ -209,6 +209,21 @@ export function PreviaEscolhida({ arquivo, pergunta }: {
  * pessoa ter visto: baixar antes de olhar é como o documento errado sai do
  * sistema.
  */
+/**
+ * O PDF dentro da tela (fase 295). Só o PDF abre num quadro: a CSP da tela deixa o
+ * quadro abrir `data:` e `blob:`, e qualquer outro tipo nesse quadro seria uma página
+ * solta dentro da tela. O que não é PDF nem imagem se baixa.
+ */
+export function QuadroDoPdf({ src, titulo, tipo, className = 'previa-quadro', style }: {
+  src: string; titulo: string; tipo?: string; className?: string; style?: React.CSSProperties;
+}) {
+  const doEndereco = src.startsWith('data:') ? src.slice(5, src.search(/[;,]/)) : '';
+  if ((tipo || doEndereco).toLowerCase() !== 'application/pdf') {
+    return <p className="mutetxt">Este arquivo não abre aqui. Baixe para ver.</p>;
+  }
+  return <iframe src={src} title={titulo} className={className} style={style} />;
+}
+
 export function FolhaArquivo({ titulo, legenda, carregar, onFechar, onBaixar }: {
   titulo: string;
   legenda?: string;
@@ -243,7 +258,7 @@ export function FolhaArquivo({ titulo, legenda, carregar, onFechar, onBaixar }: 
 
         {arquivo && (arquivo.tipo.startsWith('image')
           ? <img src={url} alt={titulo} className="previa-img" />
-          : <iframe src={url} title={titulo} className="previa-quadro" />)}
+          : <QuadroDoPdf src={url} titulo={titulo} tipo={arquivo.tipo} />)}
 
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Fechar</button>
@@ -590,7 +605,7 @@ export function AnexosDaMensagem({ anexos, onMudar, id, aceita = 'application/pd
               ? <img src={vista.dataUrl} alt={`Ampliação de ${vista.nome}`} className="previa-img ampliada" />
               : vista.paginas?.length
                 ? <ol className="previa-paginas">{vista.paginas.map((p, k) => <li key={k}><img src={p} alt={`Página ${k + 1}`} /></li>)}</ol>
-                : <iframe src={vista.dataUrl} title={vista.nome} className="previa-quadro" />}
+                : <QuadroDoPdf src={vista.dataUrl} titulo={vista.nome} />}
             <p className="mutetxt">{vista.nome} · {tamanhoLegivel(vista.tamanho)}</p>
             {/* O texto do papel, para copiar para a mensagem (fase 234). */}
             {(vista.dataUrl.startsWith('data:image') || vista.paginas?.length) && (

@@ -47,9 +47,18 @@ else falta "Node não instalado" "instale o Node 20 ou mais novo"; fi
 for prog in psql pg_dump pg_basebackup pg_verifybackup rsync; do
   command -v "$prog" >/dev/null && ok "$prog" || falta "$prog não encontrado" "instale o cliente do PostgreSQL 16 e o rsync (§12.4.1)"
 done
-command -v caddy >/dev/null || command -v nginx >/dev/null \
-  && ok "proxy HTTPS instalado ($(command -v caddy >/dev/null && echo Caddy || echo nginx))" \
-  || falta "nenhum proxy HTTPS (Caddy ou nginx)" "§12.9; o exemplo está em scripts/servidor/Caddyfile"
+if command -v caddy >/dev/null; then
+  ok "proxy HTTPS instalado (Caddy)"
+  caddy validate --config "$RAIZ/scripts/servidor/Caddyfile" --adapter caddyfile >/dev/null 2>&1 \
+    && ok "o Caddyfile do repositório é válido para este Caddy" \
+    || falta "o Caddyfile do repositório não vale para este Caddy" "caddy validate --config scripts/servidor/Caddyfile"
+elif command -v nginx >/dev/null; then
+  # Os cabeçalhos da tela (a CSP, o HSTS, o cache) estão escritos para o Caddy (fase 295).
+  aviso "proxy HTTPS instalado (nginx), sem os cabeçalhos da tela" \
+    "copie o bloco cabecalhos_da_tela e os limites de corpo do Caddyfile (§12.9), ou use o Caddy"
+else
+  falta "nenhum proxy HTTPS (Caddy ou nginx)" "§12.9; o exemplo está em scripts/servidor/Caddyfile"
+fi
 
 secao "2. O .env (§12.1)"
 if [[ ! -f "$ENV_ARQ" ]]; then

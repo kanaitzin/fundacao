@@ -43,12 +43,26 @@ describe('Os arquivos do servidor do Pão', () => {
     expect(csp).toMatch(/frame-ancestors 'none'/);
     expect(csp).toMatch(/object-src 'none'/);
     expect(csp).toMatch(/script-src 'self'/);
-    expect(csp).not.toMatch(/script-src[^;]*('unsafe-inline'|'unsafe-eval'|https?:|\*)/);
+    expect(csp).not.toMatch(/script-src[^;]*('unsafe-inline'|'unsafe-eval'|https?:|data:|blob:|\*)/);
     expect(bloco).toMatch(/Strict-Transport-Security "max-age=\d{8,}/);
     expect(bloco).toMatch(/Permissions-Policy "[^"]*geolocation=\(\)/);
     /* Importado no bloco da tela, e não no site inteiro: a API manda os dela. */
-    expect(c).toMatch(/handle \{\s*import cabecalhos_da_tela\s*root \* \/opt\/rede-acolher\/frontend\/dist/);
-    expect((c.match(/import cabecalhos_da_tela/g) ?? []).length).toBe(1);
+    expect(csp).toMatch(/frame-src data:;/);
+    expect(csp).toMatch(/base-uri 'none'/);
+    expect(bloco).toMatch(/X-Content-Type-Options "nosniff"/);
+    /* Nos dois blocos da tela (os arquivos da versão e o resto), e nunca no da API. */
+    const blocosDaTela = c.match(/handle( \/assets\/\*)? \{\s*import cabecalhos_da_tela[\s\S]*?file_server\s*\}/g) ?? [];
+    expect(blocosDaTela).toHaveLength(2);
+    expect((c.match(/import cabecalhos_da_tela/g) ?? []).length).toBe(2);
+    expect(c).not.toMatch(/handle \/api[^{]*\{[^}]*import cabecalhos_da_tela/);
+  });
+
+  it('o corpo grande só para quem já entrou, e a versão nova chega no mesmo dia (fase 295)', () => {
+    const c = ler('scripts/servidor/Caddyfile');
+    expect(c).toMatch(/@sem_sessao \{\s*path \/api\/\*\s*not header Authorization \*\s*\}\s*request_body @sem_sessao \{\s*max_size 64KB/);
+    expect(c).toMatch(/request_body \/api\/v1\/auth\/\* \{\s*max_size 64KB/);
+    expect(c).toMatch(/handle \/assets\/\* \{[\s\S]*?Cache-Control "public, max-age=31536000, immutable"[\s\S]*?file_server\s*\}/);
+    expect(c).toMatch(/header Cache-Control "no-cache"[\s\S]*?try_files \{path\} \/index\.html/);
   });
 
   it('o serviço roda o compilado, com o .env, e volta sozinho se cair', () => {

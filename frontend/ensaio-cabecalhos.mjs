@@ -24,7 +24,9 @@
  *   ENSAIO_SO_PAPEL=1  só a câmera e a leitura do papel, sem percorrer as telas
  */
 import http from 'node:http';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
@@ -51,32 +53,56 @@ const CONTAS = [
 const caddy = readFileSync(CADDYFILE, 'utf8');
 const bloco = /\(cabecalhos_da_tela\)\s*\{\s*header\s*\{([\s\S]*?)\n\t\}/.exec(caddy)?.[1];
 if (!bloco) { console.error('O Caddyfile não tem o bloco (cabecalhos_da_tela).'); process.exit(1); }
+const semAspas = [...bloco.matchAll(/^\s*([A-Z][A-Za-z-]+)\s+[^"\s]/gm)].map((m) => m[1]);
+if (semAspas.length) { console.error(`Cabeçalho sem aspas no Caddyfile, que o ensaio não mediria: ${semAspas}`); process.exit(1); }
 const CABECALHOS = Object.fromEntries([...bloco.matchAll(/^\s*([A-Za-z-]+)\s+"([^"]*)"/gm)].map((m) => [m[1], m[2]]));
 if (!/import cabecalhos_da_tela/.test(caddy)) { console.error('O bloco existe e ninguém o importa.'); process.exit(1); }
 if (!existsSync(join(DIST, 'index.html'))) { console.error(`Sem a tela construída em ${DIST}.`); process.exit(1); }
 
-/* 2. A tela servida como o Caddy serve: arquivo, ou o index.html; a API repassada. */
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
-  '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json',
-  '.json': 'application/json', '.wasm': 'application/wasm', '.gz': 'application/gzip', '.ico': 'image/x-icon' };
-const servidor = http.createServer((req, res) => {
-  const u = new URL(req.url, 'http://x');
-  if (u.pathname.startsWith('/api/')) {
-    const ida = http.request({ host: API.hostname, port: API.port, path: req.url, method: req.method,
-      headers: { ...req.headers, host: API.host } }, (volta) => {
-      res.writeHead(volta.statusCode ?? 502, volta.headers);
-      volta.pipe(res);
-    });
-    ida.on('error', () => { res.writeHead(502); res.end(); });
-    req.pipe(ida);
-    return;
+/* 2. A tela servida pelo PRÓPRIO Caddy, quando há um na máquina (`caddy` no caminho):
+   o Caddyfile de verdade, trocando só o endereço, a pasta da tela e a porta do serviço.
+   Sem Caddy (ou com ENSAIO_SEM_CADDY=1), um servidor em Node imita o bloco da tela:
+   aí os cabeçalhos são medidos, e o limite de corpo e o cache não. */
+const comCaddy = !process.env.ENSAIO_SEM_CADDY
+  && spawnSync('caddy', ['version'], { encoding: 'utf8' }).status === 0;
+let servidor;
+if (comCaddy) {
+  const pasta = mkdtempSync(join(tmpdir(), 'caddy-da-tela-'));
+  const arquivo = join(pasta, 'Caddyfile');
+  writeFileSync(arquivo, `{\n\tadmin off\n\tauto_https off\n}\n` + caddy
+    .replace('rede.paodospobres.com.br {', `http://127.0.0.1:${PORTA} {`)
+    .replaceAll('/opt/rede-acolher/frontend/dist', DIST)
+    .replaceAll('reverse_proxy 127.0.0.1:3000', `reverse_proxy ${API.host}`));
+  servidor = spawn('caddy', ['run', '--config', arquivo, '--adapter', 'caddyfile'], { stdio: 'ignore' });
+  for (let i = 0; i < 50; i++) {
+    if (await fetch(`http://127.0.0.1:${PORTA}/`).then(() => true, () => false)) break;
+    await new Promise((ok) => setTimeout(ok, 200));
   }
-  let arq = join(DIST, decodeURIComponent(u.pathname));
-  if (!arq.startsWith(DIST) || !existsSync(arq) || statSync(arq).isDirectory()) arq = join(DIST, 'index.html');
-  res.writeHead(200, { ...CABECALHOS, 'Content-Type': TIPOS[extname(arq)] ?? 'application/octet-stream' });
-  res.end(readFileSync(arq));
-});
-await new Promise((ok) => servidor.listen(PORTA, '127.0.0.1', ok));
+} else {
+  const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
+    '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json',
+    '.json': 'application/json', '.wasm': 'application/wasm', '.gz': 'application/gzip', '.ico': 'image/x-icon' };
+  const http_ = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://x');
+    if (u.pathname.startsWith('/api/')) {
+      const ida = http.request({ host: API.hostname, port: API.port, path: req.url, method: req.method,
+        headers: { ...req.headers, host: API.host } }, (volta) => {
+        res.writeHead(volta.statusCode ?? 502, volta.headers);
+        volta.pipe(res);
+      });
+      ida.on('error', () => { res.writeHead(502); res.end(); });
+      req.pipe(ida);
+      return;
+    }
+    let arq = join(DIST, decodeURIComponent(u.pathname));
+    if (!arq.startsWith(DIST) || !existsSync(arq) || statSync(arq).isDirectory()) arq = join(DIST, 'index.html');
+    res.writeHead(200, { ...CABECALHOS, 'Content-Type': TIPOS[extname(arq)] ?? 'application/octet-stream' });
+    res.end(readFileSync(arq));
+  });
+  await new Promise((ok) => http_.listen(PORTA, '127.0.0.1', ok));
+  servidor = { kill: () => http_.close() };
+}
+console.log(comCaddy ? 'Servido pelo Caddy, com o Caddyfile do repositório.' : 'Servido pelo Node (sem Caddy nesta máquina).');
 const BASE = `http://127.0.0.1:${PORTA}`;
 
 const achados = [];
@@ -95,7 +121,27 @@ for (const [nome, valor] of Object.entries(CABECALHOS)) {
 }
 cobrar('a CSP não deixa a tela dentro de outra página', /frame-ancestors 'none'/.test(CABECALHOS['Content-Security-Policy'] ?? ''));
 cobrar('a CSP não aceita script de outro endereço nem embutido',
-  !/script-src[^;]*('unsafe-inline'|https?:|\*)/.test(CABECALHOS['Content-Security-Policy'] ?? ''));
+  !/script-src[^;]*('unsafe-inline'|'unsafe-eval'|https?:|data:|blob:|\*)/.test(CABECALHOS['Content-Security-Policy'] ?? ''));
+if (comCaddy) {
+  cobrar('a página é conferida a cada abertura', r.headers.get('Cache-Control') === 'no-cache', r.headers.get('Cache-Control'));
+  const asset = (/src="(\/assets\/[^"]+\.js)"/.exec(await r.text()) ?? [])[1];
+  const ra = await fetch(`${BASE}${asset}`);
+  cobrar('o arquivo da versão fica guardado um ano', /immutable/.test(ra.headers.get('Cache-Control') ?? ''), ra.headers.get('Cache-Control'));
+  cobrar('o arquivo de uma versão que sumiu é 404, e não a página', (await fetch(`${BASE}/assets/sumiu-123.js`)).status === 404);
+  const grande = 'x'.repeat(200 * 1024);
+  const rl = await fetch(`${BASE}/api/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'ninguem@paodospobres.dev', password: grande }) });
+  /* O Caddy 2.6 do Ubuntu corta o pedido no meio e responde 502 (o serviço anota
+     `request aborted`, sem ler o corpo); os mais novos respondem 413. Os dois servem. */
+  const cortado = (st) => st === 413 || st === 502;
+  cobrar('a entrada recusa corpo grande antes do serviço ler', cortado(rl.status), rl.status);
+  const rs = await fetch(`${BASE}/api/v1/people`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x: grande }) });
+  cobrar('o pedido sem sessão recusa corpo grande', cortado(rs.status), rs.status);
+  const rp = await fetch(`${BASE}/api/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'ninguem@paodospobres.dev', password: 'Errada-295!' }) });
+  cobrar('a entrada pequena chega ao serviço', rp.status === 401, rp.status);
+}
 cobrar('ninguém pede a localização', /geolocation=\(\)/.test(CABECALHOS['Permissions-Policy'] ?? ''));
 
 const navegador = await chromium.launch({ executablePath: EXECUTAVEL,
@@ -124,6 +170,24 @@ const recolher = async (pg, quem, estado) => {
   const rs = await pg.evaluate(() => window.__recusas.splice(0)).catch(() => []);
   for (const x of rs) anota(quem, estado.onde, x);
 };
+/** Um PDF de uma página, com texto, montado aqui (o deslocamento de cada objeto é contado). */
+function umPdf() {
+  const texto = 'BT /F1 24 Tf 72 720 Td (Oficio do ensaio dos cabecalhos) Tj ET';
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${texto.length} >>\nstream\n${texto}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let pdf = '%PDF-1.4\n';
+  const lugares = objs.map((o, i) => { const at = pdf.length; pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; return at; });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + lugares.map((l) => `${String(l).padStart(10, '0')} 00000 n \n`).join('');
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(pdf, 'latin1');
+}
+
 async function entrar(pg, email) {
   await pg.goto(BASE);
   await pg.waitForTimeout(1200);
@@ -216,6 +280,22 @@ if (!process.env.ENSAIO_SO_PAPEL) cobrar(`as telas de cada cargo abrem sem recus
   const lido = await pg.locator('#ler-texto-caixa').inputValue().catch(() => '');
   cobrar('a leitura do papel funciona com a CSP da tela', /Primavera/.test(lido), lido || 'nada lido');
   await recolher(pg, quem, estado);
+  /* O PDF abre no quadro (a CSP sem `frame-src` o recusava: revisão da 295). */
+  estado.onde = 'PDF';
+  await pg.keyboard.press('Escape').catch(() => undefined);
+  await pg.locator('.overlay').getByRole('button', { name: /Fechar|Ainda não/ }).last().click().catch(() => undefined);
+  await pg.waitForTimeout(600);
+  await pg.locator('main.conteudo button', { hasText: 'Anexar' }).first().click(); await pg.waitForTimeout(700);
+  await pg.locator('#anx-arq-arquivo').setInputFiles({ name: 'oficio-295.pdf', mimeType: 'application/pdf', buffer: umPdf() });
+  await pg.waitForTimeout(1500);
+  await pg.locator('#anx-tit').fill('Ofício (ensaio dos cabeçalhos)');
+  await pg.locator('.overlay .rodape button').last().click(); await pg.waitForTimeout(2000);
+  await pg.locator('main.conteudo div').filter({ hasText: 'oficio-295.pdf', has: botaoDoDoc })
+    .last().locator(botaoDoDoc).first().click().catch(() => undefined);
+  await pg.waitForTimeout(2500);
+  const quadro = pg.locator('.overlay iframe');
+  cobrar('o PDF abre no quadro da tela', await quadro.count() === 1);
+  await recolher(pg, quem, estado);
   estado.onde = 'aviso no celular';
   const sw = await pg.evaluate(async () => !!(await navigator.serviceWorker?.getRegistration?.()));
   cobrar('o trabalhador da tela (o aviso e a casca) se registra', sw);
@@ -224,7 +304,7 @@ if (!process.env.ENSAIO_SO_PAPEL) cobrar(`as telas de cada cargo abrem sem recus
 }
 
 await navegador.close();
-servidor.close();
+servidor.kill();
 const sobra = achados.filter((a) => !a.startsWith('REPROVOU'));
 for (const a of achados) console.log(`  · ${a}`);
 console.log(`\n${cobrancas} cobranças, ${achados.filter((a) => a.startsWith('REPROVOU')).length} reprovadas, ${sobra.length} recusas anotadas.`);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import { BotaoOlho, EscolherAnexo, Escolhido, base64De } from '../anexos';
+import { BotaoOlho, EscolherAnexo, Escolhido, QuadroDoPdf, base64De } from '../anexos';
 import { FolhaDocumento, entregarArquivo } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
@@ -2619,7 +2619,7 @@ function FolhaDocumentoGuardado({ titulo, legenda, carregar, onFechar }: {
         {!r && !erro && <p className="mutetxt">Abrindo…</p>}
         {r?.arquivo && (r.arquivo.tipo.startsWith('image')
           ? <img className="previa-img" src={url} alt={titulo} />
-          : <iframe className="previa-quadro" src={url} title={titulo} />)}
+          : <QuadroDoPdf src={url} titulo={titulo} tipo={r.arquivo.tipo} />)}
         {r && !r.arquivo && (
           <div className="bloco"><small>Onde está</small>{r.referencia ?? '—'}</div>
         )}

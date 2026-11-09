@@ -19,6 +19,7 @@ import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { AppModule } from '../src/app.module';
+import * as cripto from '../src/kernel/common/crypto';
 
 const adminUrl = process.env.DATABASE_URL
   ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
@@ -127,5 +128,20 @@ describe('Esqueci minha senha', () => {
     await admin.query(`UPDATE user_invite SET expires_at = now() - interval '1 minute'
                         WHERE user_id = $1 AND motivo = 'esqueci' AND used_at IS NULL`, [ids.educador]);
     expect((await request(http).post('/api/v1/auth/convite/conferir').send({ convite: novo })).status).toBe(410);
+  });
+
+  it('convite inventado é recusado antes do scrypt, que pesa no servidor (revisão da 295)', async () => {
+    const espia = jest.spyOn(cripto, 'hashPassword');
+    try {
+      const rs = [];
+      for (let i = 0; i < 6; i++) {
+        rs.push(await request(http).post('/api/v1/auth/convite/concluir')
+          .send({ convite: `inventado-${rodada}-${i}-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`, novaSenha: 'Senha-nova-295!' }));
+      }
+      expect(rs.map((r) => r.status)).toEqual([410, 410, 410, 410, 410, 410]);
+      expect(espia).not.toHaveBeenCalled();
+    } finally {
+      espia.mockRestore();
+    }
   });
 });

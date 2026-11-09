@@ -5,7 +5,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia, diaEHora, maisNovoEmCima } from '../rotulos';
 import { Icone } from '../icones';
-import { EscolherAnexo, LerTextoDoPapel, miniaturaDe } from '../anexos';
+import { EscolherAnexo, LerTextoDoPapel, QuadroDoPdf, miniaturaDe } from '../anexos';
 import type { Escolhido } from '../anexos';
 import { Explica } from '../explica';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
@@ -624,7 +624,7 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar, onTextoGua
         {arquivo && (arquivo.tipo.startsWith('image')
           ? <img src={arquivo.dataUrl} alt={documento.titulo}
                  style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
-          : <iframe src={arquivo.dataUrl} title={documento.titulo}
+          : <QuadroDoPdf src={arquivo.dataUrl} titulo={documento.titulo} tipo={arquivo.tipo} className=""
                     style={{ width: '100%', height: 'calc(46vh / var(--zoom-da-letra, 1))', border: 0, borderRadius: 10,
                              background: '#fff' }} />)}
 

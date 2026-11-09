@@ -20,14 +20,19 @@
 #  - script só da própria tela, e o wasm da leitura do papel (`wasm-unsafe-eval`);
 #  - o trabalhador da leitura do papel nasce de um `blob:` e lê o português de um `data:`;
 #  - foto, prévia e áudio em `data:` e `blob:`; nada de outro endereço;
+#  - o PDF abre num quadro `data:` (só o PDF: `QuadroDoPdf`), e o visualizador do
+#    navegador pede estilo em atributo (`style-src-attr`; o `<style>` segue fechado);
 #  - ninguém põe a tela dentro de outra página (`frame-ancestors`);
 #  - câmera e microfone só da própria tela, e localização para ninguém.
+# O HSTS vale para este nome e os que estão abaixo dele, nunca para o domínio da
+# Fundação: se o endereço virar o domínio inteiro, tire o `includeSubDomains`, ou
+# todo subdomínio só em HTTP (webmail antigo, impressora) some por um ano. Nunca `preload`.
 # O limite de pedidos não está aqui: o Caddy instalado pelo pacote não o tem, e
 # a trava contra adivinhar a senha mora no banco (fases 291 e 293).
 # ============================================================
 (cabecalhos_da_tela) {
 	header {
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; media-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; media-src 'self' data: blob:; worker-src 'self' blob:; frame-src data:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
@@ -42,6 +47,20 @@ rede.paodospobres.com.br {
 	request_body {
 		max_size 30MB
 	}
+	# O corpo grande (a foto em base64) só para quem já entrou: a entrada, o
+	# convite e o esqueci levam poucas palavras, e o pedido sem sessão nunca
+	# leva arquivo. Sem isto, qualquer um faria o serviço ler 25 MB por pedido
+	# antes de saber quem é (revisão de segurança da 295).
+	@sem_sessao {
+		path /api/*
+		not header Authorization *
+	}
+	request_body @sem_sessao {
+		max_size 64KB
+	}
+	request_body /api/v1/auth/* {
+		max_size 64KB
+	}
 	# A resposta da Acolhe+AI que aparece enquanto é escrita: cada pedaço
 	# passa na hora, sem o proxy juntar a resposta inteira antes.
 	handle /api/v1/assistente/conversa/aos-poucos {
@@ -52,8 +71,20 @@ rede.paodospobres.com.br {
 	handle /api/* {
 		reverse_proxy 127.0.0.1:3000
 	}
+	# Os arquivos da tela com o nome que muda a cada versão: guardados por um ano,
+	# e o que não existe é 404 (devolver a página no lugar de um script sumido
+	# deixaria a tela em branco depois de uma atualização).
+	handle /assets/* {
+		import cabecalhos_da_tela
+		header Cache-Control "public, max-age=31536000, immutable"
+		root * /opt/rede-acolher/frontend/dist
+		file_server
+	}
+	# O resto (a página, o trabalhador do aviso, o manifesto) é conferido a cada
+	# abertura: a versão nova chega no mesmo dia.
 	handle {
 		import cabecalhos_da_tela
+		header Cache-Control "no-cache"
 		root * /opt/rede-acolher/frontend/dist
 		try_files {path} /index.html
 		file_server

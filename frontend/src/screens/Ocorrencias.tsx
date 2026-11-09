@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { AnexosDaMensagem, BotaoOlho, Escolhido, paraEnviar } from '../anexos';
+import { AnexosDaMensagem, BotaoOlho, Escolhido, QuadroDoPdf, paraEnviar } from '../anexos';
 import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
@@ -944,7 +944,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
               anexoAberto.arquivo.tipo.startsWith('image')
                 ? <img className="previa-img" alt={anexoAberto.nome}
                        src={`data:${anexoAberto.arquivo.tipo};base64,${anexoAberto.arquivo.conteudo}`} />
-                : <iframe className="previa-quadro" title={anexoAberto.nome}
+                : <QuadroDoPdf titulo={anexoAberto.nome} tipo={anexoAberto.arquivo.tipo}
                           src={`data:${anexoAberto.arquivo.tipo};base64,${anexoAberto.arquivo.conteudo}`} />
             ) : (
               <div className="bloco"><small>Onde está</small>{anexoAberto.referencia}</div>
