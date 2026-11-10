@@ -4985,6 +4985,32 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   cobrar('o atendimento novo aparece, com a folha da atividade',
     /Psicopedagogia/.test(depois) && /A folha da atividade/.test(depois) && /Atendimento registrado/.test(depois), depois.slice(0, 300));
 
+  /* A barra de ações do perfil (fase 308) leva à folha do atendimento, e o atendimento
+     coletivo (fase 309) vai ao perfil de cada criança marcada, com quem mais participou. */
+  const barra = pgT.locator('.acoes-do-perfil');
+  cobrar('a técnica vê a barra de ações no perfil', (await barra.count()) > 0
+    && /Registrar atendimento/.test(await barra.innerText()) && /Anexar documento/.test(await barra.innerText()));
+  await pgT.getByRole('tab', { name: /Geral/ }).click(); await esp(500);
+  await barra.getByRole('button', { name: /^Registrar atendimento$/ }).click(); await esp(1200);
+  const fg = pgT.locator('.overlay').last();
+  cobrar('o botão da barra abre a folha do atendimento, na aba Atendimentos',
+    (await fg.count()) > 0 && /Atendimento da equipe técnica/.test(await fg.locator('h3').innerText()));
+  await fg.getByRole('button', { name: 'Psicologia' }).click();
+  await fg.getByRole('button', { name: 'Coletivo' }).click(); await esp(600);
+  await fg.locator('#at-local').fill('Sala de convivência');
+  await fg.getByRole('button', { name: /^Interno/ }).click();
+  await fg.locator('#at-relato').fill('Roda de conversa sobre os combinados do quarto (ensaio 309).');
+  cobrar('o coletivo pede outra criança antes de registrar',
+    await fg.getByRole('button', { name: 'Registrar o atendimento' }).isDisabled());
+  const outra = fg.locator('label.participante').first();
+  const nomeOutra = (await outra.innerText()).trim();
+  await outra.locator('input').check(); await esp(300);
+  await fg.getByRole('button', { name: 'Registrar o atendimento' }).click(); await esp(1300);
+  const comGrupo = await bloco.innerText();
+  cobrar('o atendimento coletivo aparece com a forma e quem mais participou',
+    /Atendimento registrado no perfil de cada uma das 2 crianças/.test(comGrupo) && /Coletivo/.test(comGrupo)
+    && comGrupo.includes(nomeOutra), comGrupo.slice(0, 300));
+
   // O educador não vê o bloco.
   cargoAtual = 'educador';
   await pgT.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);

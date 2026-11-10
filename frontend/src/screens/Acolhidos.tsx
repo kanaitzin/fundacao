@@ -5,8 +5,10 @@ import { FolhaReceitas } from './Saude';
 import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
   ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS, QUEM_REGISTRA_COMPORTAMENTAL,
+  FORMAS_DO_ATENDIMENTO, MAXIMO_DE_PARTICIPANTES,
 } from '../../../backend/src/modules/people/atendimento-tecnico.regra';
 import { api, ErroApi } from '../api';
+import { botaoQueAbre } from '../acolhe-tela';
 import { Cadastro } from './Cadastro';
 import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
 import {
@@ -925,6 +927,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </div>
       )}
 
+      <AcoesDoPerfil papel={papel} onAba={setAba} onDossie={() => setDossie(true)} />
       <AbasDoPerfil aba={aba} onAba={setAba} leAtendimento={leAtendimento} />
 
       {aba === 'geral' && (
@@ -972,7 +975,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * comentário, que "o registro dele está no perfil" — e não estava.
         */}
       {aba === 'atendimentos' && leAtendimento && (
-        <AtendimentosDaEquipeTecnica personId={p.id} nome={p.nome} papel={papel} />
+        <AtendimentosDaEquipeTecnica personId={p.id} nome={p.nome} papel={papel} houseId={houseId} />
       )}
       {aba === 'rotina' && <DiaADia houseId={houseId} personId={p.id} nome={p.nome} />}
       {aba === 'rotina' && <div id="perfil-presenca"><Presenca personId={p.id} nome={p.nome} /></div>}
@@ -1254,7 +1257,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </div>
       )}
       {comportamental && (
-        <FolhaAtendimentoTecnico personId={personId} nome={p.nome} soComportamental
+        <FolhaAtendimentoTecnico personId={personId} nome={p.nome} houseId={houseId} soComportamental
           onFechar={() => setComportamental(false)}
           onRegistrado={(msg) => { setComportamental(false); setAvisoComportamental(msg); }} />
       )}
@@ -1904,6 +1907,64 @@ function CompromissosDoAcolhido({ houseId, personId, nome }: { houseId: string; 
  * cor de estado, de autor nem de cargo: mora só na barra da aba e no desenho,
  * nunca numa pílula, e o nome da aba vem sempre escrito.
  */
+/*
+ * A BARRA DE AÇÕES DO PERFIL (fase 308, decidido em 10/11 a partir de um sistema que a Fundação
+ * mostrou): o que se registra para esta criança, num lugar só, no alto do perfil. Cada botão vai
+ * à aba do assunto e abre o MESMO formulário que já mora lá; a barra não grava nada nem tem
+ * regra própria, e só mostra a ação a quem o formulário de lá também aparece.
+ */
+type AcaoDoPerfil = { rotulo: string; icone: string; aba?: AbaDoPerfil; botao?: string; dossie?: boolean };
+function acoesDoPerfil(papel: string): AcaoDoPerfil[] {
+  const acoes: AcaoDoPerfil[] = [];
+  if (QUEM_REGISTRA_ATENDIMENTO.includes(papel)) {
+    acoes.push({ rotulo: 'Registrar atendimento', icone: 'escrever', aba: 'atendimentos', botao: 'Registrar atendimento da equipe técnica' });
+  } else if (QUEM_REGISTRA_COMPORTAMENTAL.includes(papel)) {
+    acoes.push({ rotulo: 'Atendimento comportamental', icone: 'escrever', aba: 'geral', botao: 'Registrar atendimento comportamental' });
+  }
+  if (REGISTRA_EVOLUCAO.includes(papel)) {
+    acoes.push({ rotulo: 'Atendimento de saúde', icone: 'saude_ic', aba: 'saude', botao: 'Registrar atendimento de saúde' });
+  }
+  if (['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel)) {
+    acoes.push({ rotulo: 'Anexar documento', icone: 'anexo', dossie: true });
+  }
+  if (QUEM_CADASTRA.includes(papel)) {
+    acoes.push({ rotulo: 'Acrescentar familiar', icone: 'telefone', aba: 'familia', botao: 'Acrescentar contato' });
+    acoes.push({ rotulo: 'Registrar conquista', icone: 'conquista', aba: 'vivencias', botao: 'Registrar conquista' });
+  }
+  return acoes;
+}
+function AcoesDoPerfil({ papel, onAba, onDossie }: {
+  papel: string; onAba: (a: AbaDoPerfil) => void; onDossie: () => void;
+}) {
+  const acoes = acoesDoPerfil(papel);
+  const [falta, setFalta] = useState('');
+  if (!acoes.length) return null;
+  function fazer(a: AcaoDoPerfil) {
+    setFalta('');
+    if (a.dossie) { onDossie(); return; }
+    if (a.aba) onAba(a.aba);
+    /* A aba monta o formulário dela; o botão de lá é que abre a folha, com a regra de lá. */
+    const ate = Date.now() + 2000;
+    const procurar = () => {
+      const alvo = botaoQueAbre(a.botao ?? '');
+      if (alvo) { alvo.scrollIntoView({ block: 'center' }); alvo.click(); return; }
+      if (Date.now() < ate) { window.setTimeout(procurar, 80); return; }
+      setFalta(`Abri a aba, mas o formulário de ${a.rotulo.toLowerCase()} não está aqui para o seu cargo.`);
+    };
+    window.setTimeout(procurar, 60);
+  }
+  return (
+    <div className="acoes-do-perfil" role="group" aria-label="Registrar para esta criança">
+      {acoes.map((a) => (
+        <button key={a.rotulo} type="button" className="btn sm sec" onClick={() => fazer(a)}>
+          <Icone nome={a.icone} /> {a.rotulo}
+        </button>
+      ))}
+      {falta && <p className="mutetxt" role="status" style={{ margin: 0, width: '100%' }}>{falta}</p>}
+    </div>
+  );
+}
+
 type AbaDoPerfil = 'geral' | 'familia' | 'saude' | 'rotina' | 'educacao' | 'vivencias' | 'atendimentos'
   | 'judiciario' | 'documentos';
 const ABAS_DO_PERFIL: { id: AbaDoPerfil; rotulo: string; icone: string }[] = [
@@ -6825,6 +6886,8 @@ interface AtendimentoTecnico {
   /** Fase 284: onde foi, interno ou externo, e quem atendeu quando não foi quem registrou. */
   local?: string | null; ondeFoi?: string | null; ondeFoiRotulo?: string | null;
   profissional?: string | null; podeAnexar?: boolean;
+  /** Fase 309: a forma e quem mais participou do mesmo atendimento. */
+  forma?: string | null; formaRotulo?: string | null; participantes?: string[]; participantesFora?: number;
 }
 /** O documento do dossiê como chega da rota (fase 305: só o que a linha usa). */
 interface DocumentoDoDossieNaLinha {
@@ -6843,7 +6906,7 @@ const horaLocal = (instante: string) => {
   const d = new Date(instante);
   return Number.isNaN(d.getTime()) ? '00:00' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
-function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: string; nome: string; papel: string }) {
+function AtendimentosDaEquipeTecnica({ personId, nome, papel, houseId }: { personId: string; nome: string; papel: string; houseId?: string }) {
   const [lista, setLista] = useState<AtendimentoTecnico[] | null>(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
@@ -7030,6 +7093,15 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
                       <div><dt>Data e hora</dt><dd>{dia(a.dia)}{a.hora ? ` às ${a.hora}` : ''}</dd></div>
                       <div><dt>Onde</dt><dd>{[a.ondeFoiRotulo, a.local].filter(Boolean).join(', ') || 'Não informado'}</dd></div>
                       <div><dt>Quem atendeu</dt><dd>{a.profissional ? `Atendimento por ${a.profissional}` : a.por}</dd></div>
+                      {a.formaRotulo && <div><dt>Forma</dt><dd>{a.formaRotulo}</dd></div>}
+                      {((a.participantes ?? []).length > 0 || (a.participantesFora ?? 0) > 0) && (
+                        <div><dt>Participou também</dt><dd>{[
+                          ...(a.participantes ?? []),
+                          ...((a.participantesFora ?? 0) > 0
+                            ? [quantos(a.participantesFora ?? 0, 'mais uma criança que hoje não está no seu alcance', 'mais crianças que hoje não estão no seu alcance')]
+                            : []),
+                        ].join(', ')}</dd></div>
+                      )}
                     </dl>
                     <div className="cartao-relato">
                       <div className="cartao-rotulo">Relato do atendimento</div>
@@ -7101,7 +7173,7 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
           onJuntado={async (msg) => { setJuntandoEm(null); setAviso(msg); await carregar(); }} />
       )}
       {registrando && (
-        <FolhaAtendimentoTecnico personId={personId} nome={nome} onFechar={() => setRegistrando(false)}
+        <FolhaAtendimentoTecnico personId={personId} nome={nome} houseId={houseId} onFechar={() => setRegistrando(false)}
           onRegistrado={async (msg) => { setRegistrando(false); setAviso(msg); await carregar(); }} />
       )}
       {vendo && (
@@ -7244,8 +7316,8 @@ function FolhaBaixarAtendimentos({ personId, nome, onFechar, onBaixado }: {
   );
 }
 
-function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado, soComportamental = false }: {
-  personId: string; nome: string; onFechar: () => void; onRegistrado: (aviso: string) => void;
+function FolhaAtendimentoTecnico({ personId, nome, houseId, onFechar, onRegistrado, soComportamental = false }: {
+  personId: string; nome: string; houseId?: string; onFechar: () => void; onRegistrado: (aviso: string) => void;
   /** Pelo plantão (fase 307): a área já vem escolhida, e é a única. */
   soComportamental?: boolean;
 }) {
@@ -7262,6 +7334,17 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado, soCom
   const [ondeFoi, setOndeFoi] = useState('');
   const [local, setLocal] = useState('');
   const [profissional, setProfissional] = useState('');
+  /* Fase 309: a forma, e as outras crianças da casa no mesmo atendimento. */
+  const [forma, setForma] = useState('individual');
+  const [juntas, setJuntas] = useState<string[]>([]);
+  const [daCasa, setDaCasa] = useState<{ id: string; nome: string }[] | null>(null);
+  const comOutras = forma === 'coletivo' || forma === 'familiar';
+  useEffect(() => {
+    if (!comOutras || daCasa || !houseId) return;
+    void api<Resumo[]>(`/people?houseId=${houseId}`)
+      .then((l) => setDaCasa(l.filter((k) => k.id !== personId).map((k) => ({ id: k.id, nome: k.nome }))))
+      .catch(() => setDaCasa([]));
+  }, [comOutras, daCasa, houseId, personId]);
   const [arquivos, setArquivos] = useState<Escolhido[]>([]);
   /* A legenda de cada arquivo, na mesma ordem (o desenho da família, a folha da leitura). */
   const [legendas, setLegendas] = useState<string[]>([]);
@@ -7269,6 +7352,7 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado, soCom
   const [enviando, setEnviando] = useState(false);
   const pode = !!area && /^\d{2}:\d{2}$/.test(hora) && (area !== 'outra' || areaOutra.trim().length >= 3) && relato.trim().length >= 10 && !enviando
     && !!ondeFoi && local.trim().length >= 2
+    && (forma !== 'coletivo' || juntas.length > 0)
     && !recusaDosAnexos(arquivos.map((a) => a.tamanho));
 
   async function guardar() {
@@ -7279,6 +7363,7 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado, soCom
         body: JSON.stringify({
           area, areaOutra: area === 'outra' ? areaOutra.trim() : undefined, dia: quando, hora, relato: relato.trim(),
           ondeFoi, local: local.trim(), profissional: profissional.trim() || undefined,
+          forma, participantes: comOutras ? juntas : [],
           anexos: arquivos.map((a, i) => ({ conteudo: base64De(a.dataUrl), nomeArquivo: a.nome,
                                             legenda: (legendas[i] ?? '').trim() || undefined })),
         }),
@@ -7312,6 +7397,31 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado, soCom
             <label className="f" htmlFor="at-outra">Qual área</label>
             <input id="at-outra" value={areaOutra} maxLength={60} onChange={(e) => setAreaOutra(e.target.value)} />
           </>
+        )}
+        <label className="f">A forma</label>
+        <div className="opts">
+          {FORMAS_DO_ATENDIMENTO.map((f) => (
+            <button type="button" key={f.cod} className="opt c-other" aria-pressed={forma === f.cod}
+                    onClick={() => setForma(f.cod)}>{f.label}</button>
+          ))}
+        </div>
+        {comOutras && (
+          <fieldset className="participantes">
+            <legend className="f">{forma === 'coletivo' ? 'As outras crianças do atendimento' : 'Irmãos da casa no atendimento (se houver)'}</legend>
+            {daCasa === null ? <p className="mutetxt">Carregando as crianças da casa…</p>
+              : daCasa.length === 0 ? <p className="mutetxt">Não há outras crianças na casa.</p>
+              : daCasa.map((k) => (
+                <label key={k.id} className="participante">
+                  <input type="checkbox" checked={juntas.includes(k.id)}
+                         disabled={!juntas.includes(k.id) && juntas.length >= MAXIMO_DE_PARTICIPANTES}
+                         onChange={(e) => setJuntas((js) => e.target.checked ? [...js, k.id] : js.filter((x) => x !== k.id))} />
+                  {k.nome}
+                </label>
+              ))}
+            {juntas.length > 0 && (
+              <p className="mutetxt">O atendimento vai para o perfil de {nome} e de cada criança marcada, com os mesmos arquivos.</p>
+            )}
+          </fieldset>
         )}
         <div className="busca-periodo">
           <label className="f" htmlFor="at-dia">O dia

@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 10/11/2026, fase 307
+### Onde estamos — 10/11/2026, fase 309
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -451,8 +451,10 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 305 | **a linha do perfil** (decisões de 10/11): na aba Atendimentos, cartões com a faixa da área e a data, quem cadastrou, campos em grade, o relato e os arquivos à vista com o olho; e os documentos do dossiê na mesma linha, com Ver e Baixar |
 | 306 | **o atendimento comportamental da casa** no lugar da advertência (pedido de 10/11, people/1714), e **baixar o arquivo do atendimento** depois de ver, com a auditoria do baixado |
 | 307 | **o plantão registra o atendimento comportamental** (decidido em 10/11): educador, Líder Diurno e Líder Noturno Geral, pela aba Geral do perfil, só essa área, sem passar a ler os atendimentos (people/1715) |
+| 308 | **a barra de ações no perfil** (pedido de 10/11): acima das abas, os registros da criança conforme o cargo, cada botão abrindo a aba e a folha que já existiam (`AcoesDoPerfil`); no celular, duas colunas |
+| 309 | **a forma do atendimento e o atendimento em grupo** (pedido de 10/11): individual, familiar ou coletivo; o coletivo nasce no perfil de cada criança da casa marcada, com o mesmo grupo e os mesmos arquivos (people/1716) |
 
-**Medido no fim da 307:** 255 migrações, 155 tabelas, 178 suítes, 1549 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 309:** 256 migrações, 155 tabelas, 178 suítes, 1553 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -576,6 +578,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fases 308 e 309** (§2): a barra de ações no perfil e a forma do atendimento com o atendimento em grupo, as duas coisas das telas do outro sistema que a Fundação escolheu aproveitar em 10/11. **Botão novo da barra** entra no `acoesDoPerfil` do `Acolhidos.tsx` dizendo a aba e o texto exato do botão `data-acolhe-abre` que abre a folha lá; os botões da própria barra ficam sem a marca, de propósito (a busca pelo texto acharia o da barra e ele se apertaria). **Atendimento em grupo é um registro por criança, com o mesmo `group_id`**: nada se junta nem se apaga depois, e o arquivo vai em cada registro apontando para o mesmo arquivo guardado; as outras crianças estão na mesma casa da primeira, hoje (`house_stay` ativa), e o nome delas sai pelo `app_person_display_name`, nunca por JOIN. **A casa conferida é a do dia do atendimento**, não a de hoje, e a que saiu do alcance aparece só como número (`app_criancas_do_grupo_fora_do_alcance`); o achado foi da revisão do `banco-de-dados`, e o relato que segue a criança transferida é a F44 da pauta. **Medido:** a `o-atendimento-da-equipe-tecnica` (17 de 17, com o coletivo em três perfis, a transferida, o arquivo juntado ao grupo e as recusas), as sondas no protótipo a 390 e 1366 px (cinco cargos, cada botão da barra abrindo a folha certa, nada andando para o lado; a técnica registrando um coletivo com duas crianças), e, sobre o código da 307, o do celular (388 telas, sem achado) e o de acessibilidade (1379 telas, sete temas, nenhuma violação). **Próxima:** a mesma da 301.
 
 **FEITO — fase 307** (§2): o plantão registra o atendimento comportamental da casa, decidido em 10/11 (*líderes e educadores*). **Quem registra que área** sai do `podeRegistrarAtendimento` (`atendimento-tecnico.regra.ts`), lido pelo servidor e pelo protótipo, e a política `ts_insert` repete a regra no banco (1715). **Gravação de quem não lê a tabela vai sem RETURNING**, com o id nascido no servidor; e a conferência do arquivo passa por função (`app_atendimento_que_registrei`), porque a subconsulta pela tabela usaria a leitura que o plantão não tem. **Medido:** a `o-atendimento-da-equipe-tecnica` (13 de 13, com o educador registrando com arquivo e recusado em outra área) e a sonda no protótipo a 390 px (educador e Líder Diurno registram pela Geral sem ver a aba Atendimentos; a técnica não vê o cartão), a suíte inteira nas DUAS condições de relógio (1557 de 1557 nas duas) e o `ensaio:uso` (868 cobranças, sem reprovação, com o educador registrando pela Geral). **Não rodou:** o do celular, o de acessibilidade (nenhuma cor nova), a revisão do `banco-de-dados` (a 1715 é uma política e uma função de sim ou não, provadas pela suíte com o educador anexando arquivo) e a simulação contra o servidor. **Próxima:** a mesma da 301.
 

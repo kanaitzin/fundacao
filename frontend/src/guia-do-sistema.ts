@@ -149,6 +149,10 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 309, dia: '10/11/2026',
+    texto: 'O atendimento diz a forma: individual, familiar ou coletivo. No coletivo, marque as outras crianças da casa que participaram, e o atendimento entra no perfil de cada uma, com os mesmos arquivos e quem mais estava.' },
+  { fase: 308, dia: '10/11/2026',
+    texto: 'No perfil da criança, logo acima das abas, os botões do que você registra para ela: atendimento, saúde, documento, familiar e conquista, conforme o seu cargo. Um toque abre a folha certa.' },
   { fase: 307, dia: '10/11/2026',
     texto: 'O educador, o Líder Diurno e o Líder Noturno Geral registram o atendimento comportamental da casa pela aba Geral do perfil, logo depois de conversar com a criança. Quem lê continua sendo a equipe técnica e a coordenação.' },
   { fase: 306, dia: '10/11/2026',

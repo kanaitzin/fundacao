@@ -11,6 +11,7 @@ import { TAMANHO_MAXIMO, TIPOS_DE_ARQUIVO, tituloProibido } from './dossie-exigi
 import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
   QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO, QUEM_REGISTRA_COMPORTAMENTAL, podeRegistrarAtendimento, rotuloDaArea,
+  FORMAS_DO_ATENDIMENTO, MAXIMO_DE_PARTICIPANTES, rotuloDaForma,
 } from './atendimento-tecnico.regra';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { Folha, cargoNoDocumento } from '../../kernel/documentos/folha';
@@ -54,7 +55,11 @@ export class AtendimentosTecnicosService {
     const rows = await this.db.asUser(user.id, async (c) => {
       const { rows: r } = await c.query(
         `SELECT s.id, s.area, s.area_other, s.happened_on, to_char(s.happened_time, 'HH24:MI') AS hora,
-                s.summary, s.created_at, s.place, s.setting, s.professional, s.created_by,
+                s.summary, s.created_at, s.place, s.setting, s.professional, s.created_by, s.form,
+                (SELECT coalesce(json_agg(app_person_display_name(o.person_id) ORDER BY app_person_display_name(o.person_id)), '[]'::json)
+                   FROM technical_session o
+                  WHERE s.group_id IS NOT NULL AND o.group_id = s.group_id AND o.id <> s.id) AS participantes,
+                app_criancas_do_grupo_fora_do_alcance(s.id) AS fora,
                 app_user_display_name(s.created_by) AS por,
                 (SELECT coalesce(json_agg(json_build_object(
                           'id', a.id, 'nome', a.file_name, 'tipo', a.mime,
@@ -73,6 +78,11 @@ export class AtendimentosTecnicosService {
       local: r.place ?? null, ondeFoi: r.setting ?? null,
       ondeFoiRotulo: ONDE_FOI_O_ATENDIMENTO.find((o) => o.cod === r.setting)?.label ?? null,
       profissional: r.professional ?? null,
+      /* Fase 309: a forma, e quem mais participou do mesmo atendimento. */
+      forma: r.form ?? null, formaRotulo: rotuloDaForma(r.form),
+      participantes: r.participantes ?? [],
+      /* As do mesmo atendimento que quem lê não alcança hoje (a transferida): só o número. */
+      participantesFora: r.fora ?? 0,
       /* Só quem registrou junta arquivo depois: a política da 1655 já diz isso. */
       podeAnexar: r.created_by === user.id,
     }));
@@ -81,6 +91,7 @@ export class AtendimentosTecnicosService {
   async registrar(user: AuthenticatedUser, personId: string, input: {
     area?: string; areaOutra?: string; dia?: string; hora?: string; relato?: string;
     local?: string; ondeFoi?: string; profissional?: string;
+    forma?: string; participantes?: string[];
     anexos?: { conteudo?: string; nomeArquivo?: string; legenda?: string }[];
   }) {
     if (!podeRegistrarAtendimento(user.role, input.area)) {
@@ -112,6 +123,25 @@ export class AtendimentosTecnicosService {
     if (ondeFoi && !ONDE_FOI_O_ATENDIMENTO.some((o) => o.cod === ondeFoi)) {
       throw new BadRequestException('Diga se o atendimento foi interno, na casa, ou externo, fora dela.');
     }
+    /* Fase 309: a forma e as outras crianças do mesmo atendimento. */
+    const forma = input.forma ? String(input.forma) : null;
+    if (forma && !FORMAS_DO_ATENDIMENTO.some((f) => f.cod === forma)) {
+      throw new BadRequestException('Diga a forma do atendimento: individual, familiar ou coletivo.');
+    }
+    const participantes = [...new Set((Array.isArray(input.participantes) ? input.participantes : [])
+      .map((x) => String(x)).filter((x) => x !== personId))];
+    if (participantes.some((x) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x))) {
+      throw new BadRequestException('Uma das crianças do atendimento não foi reconhecida.');
+    }
+    if (participantes.length && forma !== 'coletivo' && forma !== 'familiar') {
+      throw new BadRequestException('Atendimento individual é de uma criança só. Para mais de uma, escolha coletivo ou familiar.');
+    }
+    if (forma === 'coletivo' && !participantes.length) {
+      throw new BadRequestException('O atendimento coletivo leva ao menos mais uma criança da casa.');
+    }
+    if (participantes.length > MAXIMO_DE_PARTICIPANTES) {
+      throw new BadRequestException(`Um atendimento em grupo leva até ${MAXIMO_DE_PARTICIPANTES + 1} crianças.`);
+    }
     const local = (input.local ?? '').trim() || null;
     const profissional = (input.profissional ?? '').trim() || null;
     const anexos = Array.isArray(input.anexos) ? input.anexos : [];
@@ -136,45 +166,76 @@ export class AtendimentosTecnicosService {
                        legenda: (a.legenda ?? '').trim() || null });
     }
 
-    const id = await this.db.asUser(user.id, async (c) => {
+    const feitos = await this.db.asUser(user.id, async (c) => {
       const { rows: [h] } = await c.query(
         `SELECT $1::date > app_hoje() AS futuro,
                 ($1::date + $2::time) > (now() AT TIME ZONE app_fuso()) + interval '5 minutes' AS hora_futura`,
         [input.dia, hora]);
       if (h.futuro) throw new BadRequestException('O dia do atendimento ainda não chegou.');
       if (h.hora_futura) throw new BadRequestException('A hora do atendimento ainda não chegou.');
+      if (participantes.length) {
+        /* As outras crianças estavam na mesma casa que a primeira NO DIA do atendimento:
+           o registro de antes vale para quem saiu depois, e não para quem chegou depois. */
+        const { rows: [m] } = await c.query(
+          `SELECT count(DISTINCT o.person_id)::int AS juntas
+             FROM house_stay a JOIN house_stay o ON o.house_id = a.house_id
+            WHERE a.person_id = $1 AND o.person_id = ANY($2::uuid[])
+              AND (a.started_at AT TIME ZONE app_fuso())::date <= $3::date
+              AND (a.ended_at IS NULL OR (a.ended_at AT TIME ZONE app_fuso())::date >= $3::date)
+              AND (o.started_at AT TIME ZONE app_fuso())::date <= $3::date
+              AND (o.ended_at IS NULL OR (o.ended_at AT TIME ZONE app_fuso())::date >= $3::date)`,
+          [personId, participantes, input.dia]);
+        if (m.juntas !== participantes.length) {
+          throw new BadRequestException('O atendimento em grupo é com crianças da mesma casa. Confira quem participou.');
+        }
+      }
+      const grupo = participantes.length ? randomUUID() : null;
       /* O id nasce aqui e o INSERT vai sem RETURNING (fase 307): o plantão registra o
          atendimento comportamental e não lê a tabela, e o RETURNING pediria a leitura. */
-      const s = { id: randomUUID() };
-      try {
-        await c.query(
-          `INSERT INTO technical_session (id, person_id, area, area_other, happened_on, happened_time, summary,
-                                          place, setting, professional, created_by)
-           VALUES ($11,$1,$2,$3,$4::date,$5::time,$6,$7,$8,$9,$10)`,
-          [personId, input.area, input.area === 'outra' ? areaOutra : null, input.dia, hora, relato,
-           local, ondeFoi, profissional, user.id, s.id]);
-      } catch (e: any) {
-        if (String(e?.message ?? '').includes('row-level security')) {
-          throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
+      /* Um registro por criança, com o mesmo grupo (fase 309): cada perfil tem o seu, e
+         o arquivo vai junto em cada um, apontando para o mesmo arquivo guardado. */
+      const registros = [personId, ...participantes].map((p) => ({ id: randomUUID(), pessoa: p }));
+      for (const r of registros) {
+        try {
+          await c.query(
+            `INSERT INTO technical_session (id, person_id, area, area_other, happened_on, happened_time, summary,
+                                            place, setting, professional, created_by, form, group_id)
+             VALUES ($11,$1,$2,$3,$4::date,$5::time,$6,$7,$8,$9,$10,$12,$13)`,
+            [r.pessoa, input.area, input.area === 'outra' ? areaOutra : null, input.dia, hora, relato,
+             local, ondeFoi, profissional, user.id, r.id, forma, grupo]);
+        } catch (e: any) {
+          if (String(e?.message ?? '').includes('row-level security')) {
+            throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
+          }
+          throw e;
         }
-        throw e;
+        for (const g of guardados) {
+          await c.query(
+            `INSERT INTO technical_session_attachment (session_id, person_id, storage_key, sha256, mime,
+               file_name, size_bytes, caption, created_by)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [r.id, r.pessoa, g.chave, g.sha256, g.mime, g.nome, g.tamanho, g.legenda, user.id]);
+        }
       }
-      for (const g of guardados) {
-        await c.query(
-          `INSERT INTO technical_session_attachment (session_id, person_id, storage_key, sha256, mime,
-             file_name, size_bytes, caption, created_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [s.id, personId, g.chave, g.sha256, g.mime, g.nome, g.tamanho, g.legenda, user.id]);
-      }
-      return s.id as string;
+      return registros;
     });
-    await this.audit.log({
-      action: 'atendimento_tecnico.registrado', actorId: user.id,
-      houseId: await this.audit.casaDoAcolhido(user.id, personId),
-      entity: 'technical_session', entityId: id,
-      /* Metadado: a área e quantos arquivos, nunca o que foi trabalhado. */
-      detail: { area: input.area, anexos: guardados.length },
-    });
+    const id = feitos[0].id;
+    const casa = await this.audit.casaDoAcolhido(user.id, personId);
+    for (const f of feitos) {
+      await this.audit.log({
+        action: 'atendimento_tecnico.registrado', actorId: user.id, houseId: casa,
+        entity: 'technical_session', entityId: f.id,
+        /* Metadado: a área, a forma e quantos arquivos e crianças, nunca o que foi trabalhado. */
+        detail: { area: input.area, forma, anexos: guardados.length, criancas: feitos.length },
+      });
+    }
+    if (feitos.length > 1) {
+      return {
+        id, ids: feitos.map((f) => f.id),
+        aviso: `Atendimento registrado no perfil de cada uma das ${feitos.length} crianças`
+          + (guardados.length ? ', com os arquivos.' : '.'),
+      };
+    }
     return {
       id,
       aviso: guardados.length
@@ -232,7 +293,7 @@ export class AtendimentosTecnicosService {
       if (problema) throw new BadRequestException(problema);
     }
     const s = await this.db.asUser(user.id, async (c) => (await c.query(
-      `SELECT s.id, s.person_id, s.created_by,
+      `SELECT s.id, s.person_id, s.created_by, s.group_id,
               (SELECT count(*)::int FROM technical_session_attachment a WHERE a.session_id = s.id) AS ja
          FROM technical_session s WHERE s.id = $1`, [sessionId])).rows[0]);
     if (!s) throw new NotFoundException('Atendimento não encontrado, ou fora do seu alcance.');
@@ -248,12 +309,21 @@ export class AtendimentosTecnicosService {
                        legenda: (a.legenda ?? '').trim() || null });
     }
     await this.db.asUser(user.id, async (c) => {
-      for (const g of guardados) {
-        await c.query(
-          `INSERT INTO technical_session_attachment (session_id, person_id, storage_key, sha256, mime,
-             file_name, size_bytes, caption, created_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [s.id, s.person_id, g.chave, g.sha256, g.mime, g.nome, g.tamanho, g.legenda, user.id]);
+      /* No atendimento em grupo (fase 309), o arquivo vai a cada registro do grupo que a
+         mesma pessoa fez e ainda alcança: os registros irmãos continuam iguais. */
+      const registros: { id: string; person_id: string }[] = s.group_id
+        ? (await c.query(
+            `SELECT id, person_id FROM technical_session WHERE group_id = $1 AND created_by = $2`,
+            [s.group_id, user.id])).rows
+        : [{ id: s.id, person_id: s.person_id }];
+      for (const r of registros) {
+        for (const g of guardados) {
+          await c.query(
+            `INSERT INTO technical_session_attachment (session_id, person_id, storage_key, sha256, mime,
+               file_name, size_bytes, caption, created_by)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [r.id, r.person_id, g.chave, g.sha256, g.mime, g.nome, g.tamanho, g.legenda, user.id]);
+        }
       }
     });
     await this.audit.log({

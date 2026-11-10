@@ -30,6 +30,7 @@ import { SemConexao, ErroApi } from './api';
 import { retratoFicticio, type Feitio } from './retratos';
 import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO, QUEM_REGISTRA_COMPORTAMENTAL, podeRegistrarAtendimento,
+  FORMAS_DO_ATENDIMENTO, MAXIMO_DE_PARTICIPANTES, rotuloDaForma,
   rotuloDaArea, ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
 } from '../../backend/src/modules/people/atendimento-tecnico.regra';
 import { LEEM_O_SIGILO, MARCAM_O_SIGILO, TIRAM_O_SIGILO } from '../../backend/src/modules/nursing/sigilo-de-saude.regra';
@@ -4584,6 +4585,8 @@ interface AtendimentoMock {
   relato: string; registradoEm: string; por: string;
   /* Onde foi, o local e quem atendeu (fase 284). */
   ondeFoi?: string | null; local?: string | null; profissional?: string | null; criadoPorEmail?: string;
+  /* A forma e o grupo (fase 309). */
+  forma?: string | null; grupo?: string | null;
   anexos: { id: string; nome: string; tipo: string; tamanho: number; legenda: string | null; conteudo: string }[];
 }
 const ATENDIMENTOS_TECNICOS: AtendimentoMock[] = [];
@@ -10129,6 +10132,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         ...x, areaRotulo: rotuloDaArea(x.area, x.areaOutra),
         ondeFoi: x.ondeFoi ?? null, local: x.local ?? null, profissional: x.profissional ?? null,
         ondeFoiRotulo: ONDE_FOI_O_ATENDIMENTO.find((o) => o.cod === x.ondeFoi)?.label ?? null,
+        forma: x.forma ?? null, formaRotulo: rotuloDaForma(x.forma),
+        participantes: x.grupo ? ATENDIMENTOS_TECNICOS.filter((o) => o.grupo === x.grupo && o.id !== x.id)
+          .map((o) => todosKids().find((k) => k.id === o.personId)?.nome ?? '').filter(Boolean).sort() : [],
+        participantesFora: 0,
         /* Junta arquivo depois só quem registrou (fase 284); os semeados são da técnica. */
         podeAnexar: criadoPorEmail ? criadoPorEmail === eu.id : (eu.role === 'equipe_tecnica' && x.por === 'Tatiane Técnica'),
         anexos: anexos.map(({ conteudo: _c, ...r }) => r),
@@ -10159,7 +10166,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         tamanho: Math.round(dataUrl.length * 0.75), legenda: a.legenda ? String(a.legenda) : null,
         conteudo: `data:${tipo};base64,${dataUrl.split(',')[1] ?? ''}` });
     }
-    at.anexos.push(...novos);
+    /* No grupo (fase 309), o arquivo vai a cada registro irmão que a mesma pessoa fez. */
+    const irmaos = at.grupo ? ATENDIMENTOS_TECNICOS.filter((x) => x.grupo === at.grupo && x.criadoPorEmail === at.criadoPorEmail) : [at];
+    for (const x of irmaos) x.anexos.push(...novos.map((n) => ({ ...n, id: uid() })));
     return { ok: true, aviso: `${quantos(novos.length, 'arquivo juntado', 'arquivos juntados')} ao atendimento.` };
   }
   /* Os atendimentos de um período em Word (fase 284): técnica e coordenação, com a finalidade. */
@@ -10228,11 +10237,30 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (String(b.dia) > HOJE) return new Recusa(400, 'O dia do atendimento ainda não chegou.');
     const relato = String(b.relato ?? '').trim();
     if (relato.length < 10) return new Recusa(400, 'Escreva o que foi trabalhado no atendimento.');
+    /* A forma e as outras crianças da casa (fase 309), como o servidor. */
+    const forma = b.forma ? String(b.forma) : null;
+    if (forma && !FORMAS_DO_ATENDIMENTO.some((f) => f.cod === forma)) {
+      return new Recusa(400, 'Diga a forma do atendimento: individual, familiar ou coletivo.');
+    }
+    const juntas: string[] = [...new Set<string>((Array.isArray(b.participantes) ? b.participantes : []).map((x: unknown) => String(x)))]
+      .filter((x) => x !== seg[1]);
+    if (juntas.length && forma !== 'coletivo' && forma !== 'familiar') {
+      return new Recusa(400, 'Atendimento individual é de uma criança só. Para mais de uma, escolha coletivo ou familiar.');
+    }
+    if (forma === 'coletivo' && !juntas.length) {
+      return new Recusa(400, 'O atendimento coletivo leva ao menos mais uma criança da casa.');
+    }
+    if (juntas.length > MAXIMO_DE_PARTICIPANTES) {
+      return new Recusa(400, `Um atendimento em grupo leva até ${MAXIMO_DE_PARTICIPANTES + 1} crianças.`);
+    }
+    if (juntas.some((x) => !todosKids().some((k) => k.id === x))) {
+      return new Recusa(400, 'O atendimento em grupo é com crianças da mesma casa. Confira quem participou.');
+    }
     const lista = Array.isArray(b.anexos) ? b.anexos : [];
     if (lista.length > MAXIMO_DE_ANEXOS_DO_ATENDIMENTO) {
       return new Recusa(400, `Um atendimento leva até ${MAXIMO_DE_ANEXOS_DO_ATENDIMENTO} arquivos. O resto vai num complemento.`);
     }
-    const anexos = [];
+    const anexos: AtendimentoMock["anexos"] = [];
     for (const a of lista) {
       const dataUrl = String(a.conteudo ?? '').startsWith('data:') ? String(a.conteudo)
         : `data:application/octet-stream;base64,${a.conteudo ?? ''}`;
@@ -10242,12 +10270,22 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         tamanho: Math.round(dataUrl.length * 0.75), legenda: a.legenda ? String(a.legenda) : null,
         conteudo: `data:${tipo};base64,${dataUrl.split(',')[1] ?? ''}` });
     }
-    const id = uid();
-    ATENDIMENTOS_TECNICOS.unshift({ id, personId: String(seg[1]), area: String(b.area),
-      areaOutra: b.area === 'outra' ? String(b.areaOutra).trim() : null, dia: String(b.dia), hora: String(b.hora), relato,
-      registradoEm: new Date().toISOString(), por: eu.fullName, anexos, criadoPorEmail: eu.id,
-      ondeFoi: b.ondeFoi ? String(b.ondeFoi) : null, local: String(b.local ?? '').trim() || null,
-      profissional: String(b.profissional ?? '').trim() || null });
+    const grupo = juntas.length ? uid() : null;
+    const ids = [String(seg[1]), ...juntas].map((pessoa) => {
+      const id = uid();
+      ATENDIMENTOS_TECNICOS.unshift({ id, personId: pessoa, area: String(b.area),
+        areaOutra: b.area === 'outra' ? String(b.areaOutra).trim() : null, dia: String(b.dia), hora: String(b.hora), relato,
+        registradoEm: new Date().toISOString(), por: eu.fullName,
+        anexos: anexos.map((a) => ({ ...a, id: uid() })), criadoPorEmail: eu.id,
+        ondeFoi: b.ondeFoi ? String(b.ondeFoi) : null, local: String(b.local ?? '').trim() || null,
+        profissional: String(b.profissional ?? '').trim() || null, forma, grupo });
+      return id;
+    });
+    const id = ids[0];
+    if (ids.length > 1) {
+      return { id, ids, aviso: `Atendimento registrado no perfil de cada uma das ${ids.length} crianças`
+        + (anexos.length ? ', com os arquivos.' : '.') };
+    }
     return { id, aviso: anexos.length
       ? 'Atendimento registrado, com os arquivos. Aparece no perfil para a equipe técnica e a coordenação.'
       : 'Atendimento registrado. Aparece no perfil para a equipe técnica e a coordenação.' };

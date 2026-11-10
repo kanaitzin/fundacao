@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **255 migrações** | `.sql` dentro das partições |
+| **256 migrações** | `.sql` dentro das partições |
 | **155 tabelas** | `CREATE TABLE` nas migrações |
 | **178 suítes** | `backend/test/*.spec.ts` |
-| **1549 testes** | `it(` / `test(` nas suítes |
+| **1553 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **14 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈9487 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈9496 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -518,6 +518,8 @@ arqueologia.
 | 305 | **A linha do perfil** (pedido e decisões de 10/11, a partir de um sistema que a Fundação mostrou: *essa organização é muito boa*, *segue uma ordem linear como criamos, podendo colocar anexos*). Na aba Atendimentos, cada atendimento é um cartão ligado à linha por um ponto da cor da área: a faixa com *Atendimento · área* e a data, *Cadastrado por*, o cadeado *Equipe técnica*, os campos em grade (área, data e hora, onde, quem atendeu), o relato e os arquivos sempre à vista, cada um com o olho (antes atrás de *Ver os arquivos*). **Os documentos do dossiê entram na mesma linha** (decidido em 10/11), em ordem de data e hora: a faixa *Documento · categoria*, quem pôs, quando, a emissão e a validade, e o olho, que abre o arquivo e oferece Baixar depois de ver; o filtro ganha *Documentos*. A lista vem da rota do dossiê, que só devolve o que quem pergunta pode ver (a área restrita leva o cadeado). A cor da faixa é a da área, categoria como as do Dia, nunca estado. O arquivo do atendimento continua só para ver, como antes. Sem rota nova. |
 | 306 | **O atendimento comportamental da casa, e baixar o arquivo do atendimento** (pedido de 10/11: *a advertência vira atendimento comportamental da casa, um nome mais amigável que envolve educar*). A área nova entra na lista dos atendimentos (`atendimento-tecnico.regra.ts`, o CHECK e o rótulo do banco em people/1714), com a cor própria na linha do perfil; é registro de conversa, sem nota, ponto nem contagem que compare crianças. E o arquivo do atendimento, depois de aberto, ganha Baixar, pela rota `POST /people/technical-sessions/attachments/:anexoId/download`, anotada na auditoria como *Arquivo de atendimento baixado*, separada da abertura. Quem registra continua sendo a equipe técnica e a coordenação. |
 | 307 | **O plantão registra o atendimento comportamental** (decidido em 10/11: *líderes e educadores*). O educador, o Líder Diurno e o Líder Noturno Geral registram o atendimento comportamental da casa, e só ele, pelo cartão *Atendimento comportamental da casa* na aba Geral do perfil, com a área já escolhida e arquivo se quiser; ler continua com a equipe técnica, a coordenação e a gestão, e quem registra pelo plantão não passa a ver a aba Atendimentos. No banco, a política de gravação aceita o plantão só com a área comportamental, e a conferência do arquivo passa por uma função que responde se o atendimento é de quem anexa (people/1715); no servidor, `podeRegistrarAtendimento` (`atendimento-tecnico.regra.ts`), lido também pelo protótipo, e o registro sem RETURNING, porque quem registra pelo plantão não lê a tabela. |
+| 308 | **A barra de ações no perfil** (pedido de 10/11, a partir das telas do sistema que a Fundação mostrou). Logo acima das abas, os registros da criança num lugar só, conforme o cargo: *Registrar atendimento* (técnica e coordenação) ou *Atendimento comportamental* (o plantão), *Atendimento de saúde*, *Anexar documento*, *Acrescentar familiar* e *Registrar conquista*. Cada botão abre a aba do assunto e a folha que já existia nela; nada novo se grava por ali. No celular, em duas colunas. Sem rota nova (`AcoesDoPerfil` no `Acolhidos.tsx`). |
+| 309 | **A forma do atendimento e o atendimento em grupo** (pedido de 10/11). O atendimento diz a forma, *Individual*, *Familiar* ou *Coletivo*, e o coletivo leva as outras crianças da casa, marcadas na folha: nasce um registro no perfil de cada criança, com o mesmo grupo, os mesmos arquivos e uma linha na auditoria por criança, e o cartão diz *Participou também*. O coletivo pede ao menos mais uma criança, o individual é de uma só, e só entra criança que estava na mesma casa no dia do atendimento; o arquivo juntado depois vai a cada registro do grupo, e quando uma criança é transferida, a casa de antes lê *mais uma criança que hoje não está no seu alcance*, sem o nome (a pergunta do relato que segue a criança está no PARA-A-REUNIAO §0, F44) (people/1716: `form` e `group_id` em `technical_session`; `FORMAS_DO_ATENDIMENTO` no `atendimento-tecnico.regra.ts`, lido pelo servidor e pelo protótipo). |
 
 ---
 
@@ -565,7 +567,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-255 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+256 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -3099,7 +3101,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 255 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 256 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

@@ -134,6 +134,96 @@ describe('O atendimento da equipe técnica', () => {
     expect(outra.body.message).toMatch(/atendimento comportamental/);
   });
 
+  it('o atendimento coletivo nasce no perfil de cada criança, com o mesmo arquivo e quem mais participou (fase 309)', async () => {
+    const { rows: outras } = await admin.query(
+      `SELECT person_id FROM house_stay WHERE house_id = $1 AND status = 'ativa' AND person_id <> $2
+        ORDER BY person_id LIMIT 2`, [ids.AI3, ids.crianca]);
+    const juntas = outras.map((o: any) => o.person_id);
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
+      .send({ area: 'psicologia', forma: 'coletivo', participantes: juntas, dia: hoje, hora: '00:02',
+              relato: 'Roda de conversa sobre os combinados da casa (conferência 309).',
+              anexos: [{ conteudo: PNG, nomeArquivo: 'roda.png' }] })
+      .expect(201);
+    expect(r.body.ids).toHaveLength(3);
+    for (const pessoa of [ids.crianca, ...juntas]) {
+      const lista = (await request(http).get(`/api/v1/people/${pessoa}/technical-sessions`).set(auth(tokens.coord)).expect(200)).body;
+      const s = lista.find((x: any) => r.body.ids.includes(x.id));
+      expect(s).toMatchObject({ forma: 'coletivo', formaRotulo: 'Coletivo' });
+      expect(s.participantes).toHaveLength(2);
+      expect(s.anexos).toEqual([expect.objectContaining({ nome: 'roda.png' })]);
+    }
+    const { rows: [g] } = await admin.query(
+      `SELECT count(DISTINCT group_id)::int AS grupos, count(*)::int AS registros
+         FROM technical_session WHERE id = ANY($1::uuid[])`, [r.body.ids]);
+    expect(g).toEqual({ grupos: 1, registros: 3 });
+    const { rows: [a] } = await admin.query(
+      `SELECT count(*)::int AS linhas FROM audit_event WHERE action = 'atendimento_tecnico.registrado'
+          AND entity_id = ANY($1::uuid[]) AND house_id = $2`, [r.body.ids, ids.AI3]);
+    expect(a.linhas).toBe(3);
+  });
+
+  it('a criança do grupo transferida depois some da lista com o aviso de que está fora do alcance (fase 309)', async () => {
+    const { rows: tres } = await admin.query(
+      `SELECT person_id, id AS stay, episode_id FROM house_stay WHERE house_id = $1 AND status = 'ativa' AND person_id <> $2
+        ORDER BY person_id DESC LIMIT 2`, [ids.AI3, ids.crianca]);
+    const [y, z] = tres;
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
+      .send({ area: 'psicologia', forma: 'coletivo', participantes: [y.person_id, z.person_id], dia: hoje, hora: '00:04',
+              relato: 'Oficina de desenho em grupo (conferência 309, transferência).' })
+      .expect(201);
+    const { rows: [ai4] } = await admin.query(`SELECT id FROM house WHERE code = 'AI4'`);
+    await admin.query(`UPDATE house_stay SET status = 'encerrada', ended_at = now(), end_reason = 'transferencia' WHERE id = $1`, [y.stay]);
+    const { rows: [nova] } = await admin.query(
+      `INSERT INTO house_stay (episode_id, person_id, house_id) VALUES ($1, $2, $3) RETURNING id`, [y.episode_id, y.person_id, ai4.id]);
+    try {
+      const daCasa = (await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.coord)).expect(200)).body
+        .find((x: any) => r.body.ids.includes(x.id));
+      expect(daCasa.participantes).toHaveLength(1);
+      expect(daCasa.participantesFora).toBe(1);
+    } finally {
+      await admin.query(`DELETE FROM house_stay WHERE id = $1`, [nova.id]);
+      await admin.query(`UPDATE house_stay SET status = 'ativa', ended_at = NULL, end_reason = NULL WHERE id = $1`, [y.stay]);
+    }
+  });
+
+  it('o arquivo juntado depois vai a cada registro do grupo (fase 309)', async () => {
+    const { rows: [outra] } = await admin.query(
+      `SELECT person_id FROM house_stay WHERE house_id = $1 AND status = 'ativa' AND person_id <> $2 LIMIT 1`, [ids.AI3, ids.crianca]);
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
+      .send({ area: 'pedagogia', forma: 'coletivo', participantes: [outra.person_id], dia: hoje, hora: '00:05',
+              relato: 'Leitura em dupla (conferência 309, arquivo depois).' })
+      .expect(201);
+    await request(http).post(`/api/v1/people/technical-sessions/${r.body.id}/attachments`).set(auth(tokens.tecnica))
+      .send({ anexos: [{ conteudo: PNG, nomeArquivo: 'leitura.png' }] }).expect(201);
+    const { rows } = await admin.query(
+      `SELECT session_id FROM technical_session_attachment WHERE session_id = ANY($1::uuid[]) AND file_name = 'leitura.png'`, [r.body.ids]);
+    expect(rows.map((x: any) => x.session_id).sort()).toEqual([...r.body.ids].sort());
+  });
+
+  it('o coletivo pede outra criança, o individual é de uma só, e a criança de outra casa não entra (fase 309)', async () => {
+    const base = { area: 'psicologia', dia: hoje, hora: '00:03', relato: 'Conferência das formas do atendimento 309.' };
+    const url = `/api/v1/people/${ids.crianca}/technical-sessions`;
+    const sem = await request(http).post(url).set(auth(tokens.tecnica)).send({ ...base, forma: 'coletivo' }).expect(400);
+    expect(sem.body.message).toMatch(/mais uma criança/);
+    const { rows: [outra] } = await admin.query(
+      `SELECT person_id FROM house_stay WHERE house_id = $1 AND status = 'ativa' AND person_id <> $2 LIMIT 1`, [ids.AI3, ids.crianca]);
+    const ind = await request(http).post(url).set(auth(tokens.tecnica))
+      .send({ ...base, forma: 'individual', participantes: [outra.person_id] }).expect(400);
+    expect(ind.body.message).toMatch(/uma criança só/);
+    const { rows: [fora] } = await admin.query(
+      `SELECT s.person_id FROM house_stay s JOIN house h ON h.id = s.house_id
+        WHERE h.code = 'AI4' AND s.status = 'ativa' LIMIT 1`);
+    const antes = (await admin.query(`SELECT count(*)::int AS n FROM technical_session`)).rows[0].n;
+    const cruz = await request(http).post(url).set(auth(tokens.tecnica))
+      .send({ ...base, forma: 'coletivo', participantes: [fora.person_id] }).expect(400);
+    expect(cruz.body.message).toMatch(/mesma casa/);
+    expect((await admin.query(`SELECT count(*)::int AS n FROM technical_session`)).rows[0].n).toBe(antes);
+    await request(http).post(url).set(auth(tokens.tecnica)).send({ ...base, forma: 'em grupo' }).expect(400);
+    // Trinta e seis hífens não são uma criança: 400, e não 500.
+    await request(http).post(url).set(auth(tokens.tecnica))
+      .send({ ...base, forma: 'coletivo', participantes: ['-'.repeat(36)] }).expect(400);
+  });
+
   it('o educador não lê nem registra, e a outra casa não alcança', async () => {
     expect((await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))).status).toBe(403);
     expect((await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))

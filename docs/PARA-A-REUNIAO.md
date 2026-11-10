@@ -14,7 +14,7 @@
 > segurança da análise de 08/11 também** (fases 288 a 298). O que separa o sistema da Casa 03 agora
 > são as respostas abaixo, documentos de papel e pessoas. O resto deste arquivo é o histórico das
 > perguntas; esta seção é a que se leva para a mesa. Os números A1 a A16, C1 a C6 e F1 a F30 são os de
-> antes, para não quebrar quem os cita; A17 a A19, C7 a C9 e F31 a F43 são desta rodada. **Conferida contra o
+> antes, para não quebrar quem os cita; A17 a A19, C7 a C9 e F31 a F44 são desta rodada. **Conferida contra o
 > código em 10/11** (auditoria dos documentos): os parênteses dizem o que o código faz hoje.
 
 ### Primeiro: duas respostas que se contradizem
@@ -179,6 +179,7 @@ hoje. Os números 1 a 30 são os de 21/10; os que saíram estão no fim.
 35. Quem cadastra uma pessoa nova na Enfermagem é o Marcelo, como Coordenação Geral, ou o Gestor Geral? (os dois podem, desde a fase 289; a coordenação da casa não)
 36. As sugestões de melhoria ganham resposta (*recebida*, *vai virar mudança*, *não vai, com o motivo*, *feita*), lida por quem sugeriu? (só a lista; §4.36, item 1)
 43. O Gestor Geral continua triando a evolução de saúde que não é sigilosa? (tria, junto da Enfermagem; a sigilosa é a A15)
+44. O atendimento coletivo é copiado no perfil de cada criança, com o mesmo relato e os mesmos arquivos. Quando uma delas é transferida, o registro dela vai junto para a casa nova, com o que foi falado das outras. Fica assim, ou o relato coletivo fica só na casa onde aconteceu? (fica assim; na casa de antes, o cartão diz quantas crianças do grupo saíram do alcance, sem o nome; fase 309)
 
 **Do perfil da criança:**
 
@@ -272,7 +273,7 @@ Conferido em 10/11 contra o código, e nada disso volta à mesa:
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **307 fases.** 178 suítes e 1549 testes; a suíte inteira, verde em duas condições de
+- **309 fases.** 178 suítes e 1553 testes; a suíte inteira, verde em duas condições de
   relógio na fase 290, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

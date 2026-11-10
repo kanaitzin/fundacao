@@ -1352,6 +1352,8 @@ fotografado, a folha da atividade, o relatório digitalizado).
 people/1670; nula nos de antes), `summary` (o que foi trabalhado), `setting` (`interno` ou `externo`),
 `place` (o local) e `professional` (quem atendeu, quando não é quem registrou), os três desde a fase 284
 (people/1676; nulos nos de antes; a área `servico_social` se lê *Assistência Social*),
+`form` (`individual`, `familiar` ou `coletivo`) e `group_id` (o mesmo em todos os registros de um atendimento com mais de
+uma criança da casa), os dois desde a fase 309 (people/1716; nulos nos de antes),
 `created_by`, `created_at`. `technical_session_attachment` — `session_id`, `person_id`,
 `storage_key`, `sha256`, `mime`, `file_name`, `size_bytes`, `caption`, `created_by`,
 `created_at`. Escrevem a equipe técnica e a coordenação; leem as duas e a gestão

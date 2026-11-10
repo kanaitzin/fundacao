@@ -51,6 +51,20 @@ export const ONDE_FOI_O_ATENDIMENTO = [
 ] as const;
 
 /** Quem baixa os atendimentos de um período (fase 284): quem atende e a coordenação. */
+/**
+ * A FORMA DO ATENDIMENTO (fase 309). Individual é a criança sozinha; familiar, com a
+ * família (e, se houver, irmãos da casa); coletivo, com outras crianças da casa, e pede
+ * ao menos mais uma. Cada criança do grupo ganha o seu registro, com o mesmo grupo.
+ */
+export const FORMAS_DO_ATENDIMENTO = [
+  { cod: 'individual', label: 'Individual' },
+  { cod: 'familiar', label: 'Familiar' },
+  { cod: 'coletivo', label: 'Coletivo' },
+];
+/** Quantas crianças, além da primeira, um atendimento em grupo leva. */
+export const MAXIMO_DE_PARTICIPANTES = 20;
+export const rotuloDaForma = (cod?: string | null) => FORMAS_DO_ATENDIMENTO.find((f) => f.cod === cod)?.label ?? null;
+
 export const QUEM_BAIXA_ATENDIMENTOS = ['equipe_tecnica', 'coordenador'];
 
 export function rotuloDaArea(cod: string, outra?: string | null): string {

@@ -223,3 +223,13 @@ export async function apertarBotao(pedido: string): Promise<{ ok: boolean; frase
   await espera(250);
   return { ok: true, frase: `Apertei "${a.nome}".` };
 }
+
+/**
+ * O botão marcado que só abre um formulário, pelo texto exato dele (fase 308). A
+ * barra de ações do perfil usa este, e não um seletor próprio: quem lê as marcas
+ * mora aqui, e o teste confere quem as põe.
+ */
+export function botaoQueAbre(texto: string): HTMLButtonElement | undefined {
+  return [...document.querySelectorAll<HTMLButtonElement>('button[data-acolhe-abre]')]
+    .find((b) => b.textContent?.replace(/\s+/g, ' ').trim() === texto);
+}
