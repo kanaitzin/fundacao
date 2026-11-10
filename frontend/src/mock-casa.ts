@@ -4642,12 +4642,14 @@ const VIVENCIAS: VivenciaMock[] = [];
  */
 function semearDossie() {
   if (DOSSIE_DOCS.length) return;
+  /* Cada papel com o seu dia (fase 305): na linha do perfil, todos com a data de hoje
+     empurravam os atendimentos para baixo, e nenhuma casa recebe a pasta inteira num dia. */
   const doc = (chave: string, categoria: string, titulo: string, aceito: boolean,
-               validoAte: string | null = null): DocumentoMock => ({
+               validoAte: string | null = null, dias = 0): DocumentoMock => ({
     id: uid(), personId: 'p01', chave, categoria, titulo,
     emitidoEm: null, validoAte, origem: null,
-    anexadoEm: emHoras(9, 15), anexadoPor: 'Tatiane Técnica',
-    aceitoEm: aceito ? emHoras(9, 40) : null,
+    anexadoEm: emDias(-dias, 9, 15), anexadoPor: 'Tatiane Técnica',
+    aceitoEm: aceito ? emDias(-dias, 9, 40) : null,
     aceitoPor: aceito ? 'Marcelo Barbosa' : null,
     notaDoAceite: aceito ? 'Legível, e é a certidão dela.' : null,
     versao: 1, conteudo: jpegFicticio(titulo),
@@ -4665,33 +4667,33 @@ function semearDossie() {
    * escrita — é o que impede alguém de achar que apareceram do nada.
    */
   const espelho = (id: string, chave: string | null, titulo: string,
-                   origem: string): DocumentoMock => ({
+                   origem: string, dias = 0): DocumentoMock => ({
     id, personId: 'p01', chave, categoria: 'saude', titulo,
     emitidoEm: null, validoAte: null, origem,
-    anexadoEm: emHoras(10, 5), anexadoPor: 'Enfermeira Clara',
-    aceitoEm: emHoras(10, 5), aceitoPor: 'Enfermeira Clara',
+    anexadoEm: emDias(-dias, 10, 5), anexadoPor: 'Enfermeira Clara',
+    aceitoEm: emDias(-dias, 10, 5), aceitoPor: 'Enfermeira Clara',
     notaDoAceite: `Conferida na tela de origem, por quem anexou: ${origem}`,
     versao: 1, conteudo: jpegFicticio(titulo),
     arquivo: { nome: `${titulo}.jpg`, tipo: 'image/jpeg', tamanho: 41_000, sha256: uid() },
   });
   DOSSIE_DOCS.push(
     espelho('doc-espelho-receita', 'receita', 'Receita da consulta de oftalmologia',
-            'Receita anexada à prescrição de Colírio'),
+            'Receita anexada à prescrição de Colírio', 34),
     espelho('doc-espelho-bula', null, 'Bula do colírio',
-            'Bula anexada à prescrição de Colírio'),
+            'Bula anexada à prescrição de Colírio', 34),
     espelho('doc-espelho-laudo', null, 'Laudo da radiografia de tórax',
-            'Anexo do diário de internação'),
+            'Anexo do diário de internação', 52),
     /* O laudo da alergia ao amendoim, ligado a ela (fase 217): aparece junto da
        alergia, na aba Saúde do perfil. */
-    { ...espelho('doc-laudo-alergia', null, 'Laudo médico', 'Anexado à alergia pela Enfermagem'),
+    { ...espelho('doc-laudo-alergia', null, 'Laudo médico', 'Anexado à alergia pela Enfermagem', 96),
       condicaoId: 'h1-p01' },
-    doc('certidao_nascimento', 'pessoal', 'Certidão de nascimento', true),
-    doc('cartao_sus', 'pessoal', 'Cartão SUS', false),
-    doc('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', true, diasAtras(-120)),
-    doc('guia_acolhimento', 'judicial_socioassistencial', 'Guia de acolhimento', true),
+    doc('certidao_nascimento', 'pessoal', 'Certidão de nascimento', true, null, 168),
+    doc('cartao_sus', 'pessoal', 'Cartão SUS', false, null, 2),
+    doc('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', true, diasAtras(-120), 140),
+    doc('guia_acolhimento', 'judicial_socioassistencial', 'Guia de acolhimento', true, null, 170),
     /* O último relatório de reavaliação da Alice (fase 269), enviado há oitenta dias:
        o próximo prazo cai em dez, e a área restrita mostra o prazo chegando. */
-    { ...doc('relatorio_reavaliacao', 'judicial_socioassistencial', 'Relatório de reavaliação', true),
+    { ...doc('relatorio_reavaliacao', 'judicial_socioassistencial', 'Relatório de reavaliação', true, null, 79),
       emitidoEm: diasAtras(80) },
   );
   VIVENCIAS.push(
