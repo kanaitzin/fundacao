@@ -385,7 +385,12 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   if (texto.trim().length <= 160) {
     const cuidado = primeiroOCuidado(t, telas);
     if (cuidado) return { texto: `${aviso}${cuidado}`, cuidado: true };
-    if (OI.test(t) && !primeira) return { texto: 'Oi! Que bom te ver por aqui. Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.' };
+    /* O cumprimento é cumprimento também na primeira mensagem (fase 303): as boas-vindas já se
+       apresentaram, e o "bom dia" abria a tela do Dia. Responde com o mesmo cumprimento. */
+    if (OI.test(t)) {
+      const cumprimento = /^bom dia/.test(t) ? 'Bom dia!' : /^boa tarde/.test(t) ? 'Boa tarde!' : /^boa noite/.test(t) ? 'Boa noite!' : 'Oi!';
+      return { texto: `${aviso}${cumprimento} Que bom te ver por aqui. Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.` };
+    }
   }
 
   /* "Marcar visita da mãe do Bruno no sábado" levava à Portaria, que não marca nada:
@@ -422,6 +427,28 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     return { texto: `${aviso}Abra o documento no dossiê da criança, ou toque em Ver no anexo da mensagem, e toque em Ler o texto do papel. A leitura acontece neste aparelho, a imagem não sai dele, e ela erra letra, número e data: confira com o papel e corrija na caixa antes de usar. No dossiê, a técnica, a coordenação e a Enfermagem guardam o texto conferido, e a busca passa a achar o papel por ele.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
   }
 
+  /* Falar com uma pessoa (fase 303): "quero falar com a coordenação" recebia "não achei essa
+     tela". Aqui não há recado entre pessoas; ela diz o caminho de colega. */
+  if (/\b(falar|conversar|chamar|ligar|avisar)\b.{0,12}\b(com |pra |para )?(a |o )?(coordenac\w*|coordenador\w*|tecnic\w*|lider\w*|enfermag\w*|gestor\w*|gestao)\b/.test(t)) {
+    return { texto: `${aviso}Para falar com a coordenação, a técnica ou a Enfermagem, chame a pessoa ou ligue: por aqui eu não mando recado entre colegas. Se for urgência com uma criança, o líder do plantão primeiro. Se o assunto é para a reunião da equipe, ele vai aos Combinados; e se for uma melhoria do sistema, eu anoto como sugestão com o seu nome.${telas.some((x) => x.chave === 'alinhamentos') ? '\n\n[Abrir os Combinados](tela:alinhamentos)' : ''}` };
+  }
+
+  /* O remédio de uma criança (fase 303): "qual remédio a Gabi toma?" abria a explicação do
+     Dia. O que ela toma está no perfil, aba Saúde, e as doses de hoje no Dia e na Saúde. */
+  if (/\b(qual|quais|que)\s+(e o |sao os )?(remedios?|medicac\w*|medicamentos?)\b|\b(remedios?|medicamentos?)\b.{0,25}\btoma\b|\btoma\b.{0,25}\b(remedios?|medicamentos?)\b/.test(t)) {
+    const links = `${link(telas, 'acolhidos', 'Abrir os Acolhidos')}${link(telas, 'saude', 'Abrir a Saúde')}`.trim();
+    return { texto: `${aviso}Os remédios de cada criança, com o horário e a receita, ficam no perfil dela, na aba Saúde. As doses de hoje aparecem no Dia${telas.some((x) => x.chave === 'saude') ? ' e na Saúde' : ''}. Quem muda o esquema é a Enfermagem, pela receita.${links ? `\n\n${links}` : ''}` };
+  }
+
+  /* As outras casas (fase 303): quem alcança mais de uma casa pergunta por elas pelo nome
+     ("me leva para a Casa 01", "como estão as oito casas?") e recebia "não achei essa tela".
+     A troca de casa é o botão do alto, e a visão das oito é o Painel ou as Unidades. */
+  const variasCasas = telas.some((x) => x.chave === 'unidades' || x.chave === 'metricas' || x.chave === 'casas');
+  if (variasCasas && /\b(casa ?0?[1-8]|casa-? ?lar ?[1-4]|ai ?[1-4]|arm ?[1-4]|todas as casas|oito casas|8 casas|outras? casas?|trocar de casa|mudar de casa)\b/.test(t)) {
+    const juntas = telas.find((x) => x.chave === 'metricas') ?? telas.find((x) => x.chave === 'painel') ?? telas.find((x) => x.chave === 'unidades') ?? telas.find((x) => x.chave === 'casas');
+    return { texto: `${aviso}Para olhar outra casa, toque no botão da casa no alto da tela: ali você escolhe as oito juntas ou uma casa por inteiro, e tudo o que abrir depois é daquela casa.${juntas ? `\n\n[Abrir ${juntas.titulo}](tela:${juntas.chave})` : ''}` };
+  }
+
   /* Ir a uma tela vem antes da sugestão: "me leva para as Sugestões de melhoria"
      é ir, e não sugerir (a palavra "melhoria" enganava o guia; fase 195). */
   const telaPedida = achar(t, telas);
@@ -438,6 +465,15 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
 
   const longo = rascunhoDoPedido(texto, telas, true);
   if (longo) return comRascunho(longo);
+
+  /* A conta das doses (fase 303): "quanto é 3 doses de 5 ml por dia em 7 dias?" não tinha sinal
+     de conta e caía no Dia. Ela faz a multiplicação e lembra que quem confere é a Enfermagem. */
+  const doses = /(\d+(?:[.,]\d+)?)\s*(?:doses?|vezes|comprimidos?|capsulas?|gotas?)\s+de\s+(\d+(?:[.,]\d+)?)\s*(ml|mg|gotas?|comprimidos?)?.{0,25}?\b(?:por dia|ao dia|por dia,|cada dia)\b.{0,15}?(\d+)\s*dias?/.exec(t);
+  if (doses) {
+    const n = (x: string) => x.replace(',', '.');
+    const unidade = doses[3] ? ` em ${doses[3]}` : '';
+    return { texto: `${aviso}Fiz a conta: doses por dia, vezes a quantidade de cada dose, vezes os dias, com o total${unidade}. Confira com a receita, e a dúvida sobre a dose é com a Enfermagem.`, conta: `${n(doses[1])} * ${n(doses[2])} * ${doses[4]}` };
+  }
 
   const conta = contaDoTexto(texto);
   if (conta) return { texto: `${aviso}Fiz a conta para você.`, conta };
@@ -456,7 +492,10 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
       return { texto: `${aviso}Isso se registra como ocorrência. Se alguém se machucou, o cuidado vem antes, e o líder do plantão precisa saber agora. Quando der, escreva o que você viu, sem julgar ninguém: [Registrar ocorrência](tela:ocorrencias)`, cuidado: true };
     }
     const link = `[Abrir ${tela.titulo}](tela:${tela.chave})`;
-    const explica = tela.frase ? `${tela.titulo}: ${tela.frase}` : tela.titulo;
+    /* "O Dia da Casa: A linha do dia..." soava como verbete (fase 303): o nome, o que a tela traz e a
+       oferta de abrir, como colega. A descrição das portas tem travessão, e ela não fala com travessão. */
+    const frase = (tela.frase ?? '').replace(/\s+—\s+/g, ', ');
+    const explica = frase ? `${tela.titulo}. ${frase} Quer que eu abra?` : `${tela.titulo}. Quer que eu abra?`;
     if (QUER_IR.test(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
     if (acao(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
     return { texto: `${aviso}${explica}\n\n${link}` };
@@ -474,6 +513,14 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   /* A tabela que vira planilha (fase 300): no modo guia ela faz a conta, e a tabela pede o modelo. */
   if (/\b(tabela|planilha)\b/.test(t) && !/\b(periodo|relatorio)\b/.test(t)) {
     return { texto: `${aviso}Monto sim. Me passe os dados em linhas, por exemplo: Arroz 5 kg 23,90; Feijão 2 kg 15,80. Com a Acolhe+AI ligada, eu devolvo a tabela com a soma e o botão Baixar como planilha. Aqui no modo guia eu faço a conta; as planilhas prontas da casa saem do Período da casa.` };
+  }
+
+  /* O nome de uma parte da tela que vale para mais de uma ("me explica o painel", com o Painel do
+     plantão e o Painel das unidades): ela mostra as que têm esse nome, em vez de "não achei" (fase 303). */
+  const palavras = t.split(/[^a-z0-9]+/).filter((w) => w.length >= 5 && !/^(explica|quero|abrir|mostra|preciso|sobre|aquela|aquele|tela)$/.test(w));
+  const parecidas = telas.filter((x) => palavras.some((w) => sem(x.titulo).split(/\s+/).includes(w)));
+  if (parecidas.length) {
+    return { texto: `${aviso}${parecidas.length === 1 ? 'Achei esta tela com esse nome' : `Achei ${parecidas.length} telas com esse nome`}. Toque para abrir, ou me diga qual.\n\n${parecidas.map((x) => `[${x.titulo}](tela:${x.chave})`).join('  ')}` };
   }
 
   if (QUER_SABER.test(t) || primeira) {

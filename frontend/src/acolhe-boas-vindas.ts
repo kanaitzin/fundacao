@@ -18,6 +18,8 @@ export interface FrasePronta {
   pedido: string;
   /** A tela que a pessoa precisa alcançar para a frase fazer sentido. */
   precisa?: string;
+  /** Só para estes cargos, quando alcançar a tela não basta (o educador vê a Agenda e não marca). */
+  cargos?: string[];
 }
 
 /** Bom dia, boa tarde ou boa noite, pela hora de Porto Alegre. */
@@ -49,7 +51,9 @@ export const FRASES_PRONTAS: FrasePronta[] = [
   { rotulo: 'Me explica esta tela', pedido: 'Como funciona a tela {tela}?' },
   { rotulo: 'Me leva para a chamada', pedido: 'Me leva para a chamada', precisa: 'chamada' },
   { rotulo: 'Registrar uma ocorrência', pedido: 'Quero registrar uma ocorrência', precisa: 'ocorrencias' },
-  { rotulo: 'Marcar um compromisso', pedido: 'Quero marcar um compromisso na agenda', precisa: 'agenda' },
+  /* Quem marca é quem o `QUEM_MARCA` da Agenda deixa (fase 303: o educador tocava e ouvia um não). */
+  { rotulo: 'Marcar um compromisso', pedido: 'Quero marcar um compromisso na agenda', precisa: 'agenda',
+    cargos: ['lider_diurno', 'equipe_tecnica', 'coordenador', 'coordenacao_geral', 'gestor_geral', 'enfermagem'] },
   { rotulo: 'Ver os remédios de agora', pedido: 'Me leva para a saúde', precisa: 'saude' },
   { rotulo: 'Fazer uma conta', pedido: 'Quanto é 12,50 + 7,90 + 23,40?' },
   { rotulo: 'Ler o texto de um papel', pedido: 'Como faço para ler o texto de um papel?' },
@@ -73,6 +77,6 @@ export const COMO_CONVERSAR =
   'Pode escrever do seu jeito, com gíria e sem acento, ou tocar no microfone. Na Conversa por voz, você fala e eu respondo falando, para quando as mãos estão ocupadas.';
 
 /** As frases que a pessoa alcança, na ordem da lista. */
-export function frasesDoCargo(lista: FrasePronta[], alcanca: (tela: string) => boolean): FrasePronta[] {
-  return lista.filter((f) => !f.precisa || alcanca(f.precisa));
+export function frasesDoCargo(lista: FrasePronta[], alcanca: (tela: string) => boolean, cargo?: string): FrasePronta[] {
+  return lista.filter((f) => (!f.precisa || alcanca(f.precisa)) && (!f.cargos || !cargo || f.cargos.includes(cargo)));
 }

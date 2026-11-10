@@ -300,8 +300,51 @@ describe('o modo guia atende como colega de plantão', () => {
 
   it('agradecer, cumprimentar e perguntar da senha têm resposta', () => {
     expect(r('obrigada').texto).toMatch(/De nada/);
-    expect(r('boa noite').texto).toMatch(/^Oi!/);
+    expect(r('boa noite').texto).toMatch(/^Boa noite!/);
+    expect(r('oi').texto).toMatch(/^Oi!/);
     expect(r('como troco minha senha').texto).toMatch(/Minha conta/);
+  });
+
+  it('o cumprimento é cumprimento mesmo na primeira mensagem, e não abre o Dia (fase 303)', () => {
+    const primeira = responderPeloGuia('bom dia', TELAS, true);
+    expect(primeira.texto).toMatch(/Bom dia! Que bom te ver/);
+    expect(primeira.ir).toBeUndefined();
+  });
+
+  it('quem atende várias casas pergunta por elas pelo nome e é levado ao botão do alto (fase 303)', () => {
+    const comCasas = [...TELAS, { chave: 'unidades', titulo: 'Unidades' }, { chave: 'metricas', titulo: 'Painel' }];
+    for (const f of ['me leva para a Casa 01', 'como estão as oito casas?', 'quantas crianças tem na ARM2?']) {
+      const x = r(f, comCasas).texto;
+      expect(x).toMatch(/botão da casa no alto/);
+      expect(x).not.toMatch(/Não achei/);
+    }
+    /* Quem tem uma casa só não recebe a resposta das casas: "a rotina da casa" é tela. */
+    expect(r('me leva para a Casa 01').texto).not.toMatch(/botão da casa no alto/);
+  });
+
+  it('a tela explicada sai como fala, sem o verbete com dois-pontos nem travessão (fase 303)', () => {
+    const x = responderPeloGuia('como funciona a escala?', [{ chave: 'escala', titulo: 'A escala de plantão',
+      frase: 'Quem assume cada dia e cada turno — e o que já passou.' }], false).texto;
+    expect(x).toMatch(/^A escala de plantão\. Quem assume cada dia e cada turno, e o que já passou\. Quer que eu abra\?/);
+    expect(x).not.toMatch(/—/);
+  });
+
+  it('a conta das doses, o remédio da criança, falar com a coordenação e o nome repetido têm resposta (fase 303)', () => {
+    const doses = r('quanto é 3 doses de 5 ml por dia em 7 dias?');
+    expect(doses.conta).toBe('3 * 5 * 7');
+    expect(doses.texto).toMatch(/Enfermagem/);
+    expect(calcular(doses.conta!)).toMatchObject({ ok: true, valor: 105 });
+    const remedio = r('qual remédio a Gabi toma?');
+    expect(remedio.texto).toMatch(/aba Saúde/);
+    expect(remedio.ir).toBeUndefined();
+    const falar = r('quero falar com a coordenação');
+    expect(falar.texto).toMatch(/chame a pessoa ou ligue/);
+    expect(falar.texto).not.toMatch(/Não achei/);
+    const paineis = responderPeloGuia('me explica o painel', [{ chave: 'plantao', titulo: 'Painel do plantão' },
+      { chave: 'painel', titulo: 'Painel das unidades' }, { chave: 'unidades', titulo: 'O dia, em ordem' }], false).texto;
+    expect(paineis).toMatch(/Achei 2 telas com esse nome/);
+    expect(paineis).toMatch(/\(tela:plantao\)/);
+    expect(paineis).toMatch(/\(tela:painel\)/);
   });
 
   it('as palavras do plantão levam à tela certa', () => {

@@ -1304,6 +1304,7 @@ export function App() {
           telas que este cargo alcança, e lê o sistema por esta tela, com esta sessão. */}
       <AcolheAI
         nome={me.fullName}
+        papel={me.todasAsCasas && me.role === 'coordenador' ? 'coordenacao_geral' : me.role}
         casa={casaAtual ? { id: casaAtual.id, nome: casaAtual.name } : null}
         telaAtual={[...abasDoTurno.map((t) => ({ aba: t.aba, titulo: t.label })), ...PORTAS]
           .find((t) => t.aba === abaEfetiva)?.titulo ?? (abaEfetiva === 'avisos' ? 'Avisos' : String(abaEfetiva))}

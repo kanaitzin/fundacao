@@ -131,10 +131,12 @@ const sem = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').to
 /** No perfil, o verbo e as palavras de ligação não escolhem botão: o que escolhe é o assunto. */
 const GENERICAS = /^(quero|preciso|gostaria|registrar|registra|escrever|escreve|acrescentar|acrescenta|atualizar|atualiza|lancar|lanca|anotar|anota|cadastrar|incluir|abrir|abre|abra|perfil|ficha|dela|dele|sobre|para|crianca|fazer|nova|novo|uma|pode|leva|mostra|mostrar)$/;
 
-export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }: {
+export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, papel }: {
   casa: { id: string; nome: string } | null;
   /** O nome de quem conversa, para as boas-vindas (fase 300). */
   nome?: string;
+  /** O cargo de quem conversa, para as frases prontas que só alguns cargos usam (fase 303). */
+  papel?: string;
   telaAtual: string;
   telas: TelaDoGuia[];
   navegar: (tela: string) => void;
@@ -150,6 +152,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
   /* O botão de câmera (fase 194) abre o anexo já na câmera, no modo documento. */
   const [pelaCamera, setPelaCamera] = useState(false);
   const [ocupada, setOcupada] = useState(false);
+  /* A pergunta da licença espera resposta, e o Enviar fica parado até ela (fase 303: parecia travado). */
+  const [esperaLicenca, setEsperaLicenca] = useState(false);
   const [lendo, setLendo] = useState('');
   /* A resposta enquanto é escrita (fase 240): só para ver; a fala de verdade
      entra na conversa quando ela termina. */
@@ -237,10 +241,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
     if (licenca.current === 'sim') return Promise.resolve(true);
     if (licenca.current === 'nao') return Promise.resolve(false);
     setRecolhida(false);
+    setEsperaLicenca(true);
     acrescentar({ quem: 'acolhe', texto: '', licenca: 'aberta' });
     return new Promise((resolver) => { respostaDaLicenca.current = resolver; });
   }
   function responderLicenca(id: number, sim: boolean) {
+    setEsperaLicenca(false);
     licenca.current = sim ? 'sim' : 'nao';
     setLinhas((xs) => xs.map((l) => (l.id === id ? { ...l, licenca: sim ? 'sim' : 'nao' } : l)));
     if (sim) {
@@ -1295,7 +1301,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
             {APRESENTACAO.map((p) => <p key={p}>{p}</p>)}
             <div className="eyebrow">Para começar</div>
             <div className="acolhe-frases" role="group" aria-label="Frases prontas para começar">
-              {frasesDoCargo(FRASES_PRONTAS, alcanca).map((f) => (
+              {frasesDoCargo(FRASES_PRONTAS, alcanca, papel).map((f) => (
                 <button key={f.rotulo} type="button" className="acolhe-frase"
                         onClick={() => void enviar(f.pedido.replace('{tela}', telaAtual))}>
                   {f.rotulo}
@@ -1304,7 +1310,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
             </div>
             <div className="eyebrow">Documentos que eu monto com você</div>
             <div className="acolhe-frases" role="group" aria-label="Documentos que a Acolhe+AI monta">
-              {frasesDoCargo(DOCUMENTOS_QUE_EU_FACO, alcanca).map((f) => (
+              {frasesDoCargo(DOCUMENTOS_QUE_EU_FACO, alcanca, papel).map((f) => (
                 <button key={f.rotulo} type="button" className="acolhe-frase doc"
                         onClick={() => void enviar(f.pedido)}>
                   <Icone nome="documento" tamanho={16} /> {f.rotulo}
@@ -1407,6 +1413,9 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome }
         <textarea id="acolhe-pergunta" rows={2} value={texto} placeholder="Escreva ou fale com a Acolhe+AI"
                   onChange={(e) => setTexto(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void enviar(); } }} />
+        {esperaLicenca && (
+          <p className="acolhe-fala" role="status" aria-live="polite">Responda acima: Pode mexer ou Prefiro eu fazer. Depois a conversa segue.</p>
+        )}
         {ouvindo && (
           <p className="acolhe-fala" role="status" aria-live="polite">
             {falaProvisoria || 'Ouvindo. Fale à vontade, pausas não cortam; aperte o microfone para parar e confira antes de enviar.'}

@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 10/11/2026, fase 302
+### Onde estamos — 10/11/2026, fase 303
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -446,6 +446,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 300 | **a Acolhe+AI acolhedora, e a conversa por voz** (pedido de 09/11): ela se apresenta pelo nome e pela hora, oferece frases prontas e os documentos que monta (`acolhe-boas-vindas.ts`), cada resposta tem *Ouvir* e *Copiar* no lugar das duas caixinhas, e o botão **Conversa por voz**, ao lado do microfone, abre a tela em que ela ouve, pensa e responde falando |
 | 301 | **a pauta do Marcelo, arrumada** (sem código): o PARA-A-REUNIAO §0 refeito, com as duas respostas que se contradiziam no alto (onde o 1.0 roda e qual IA), o que as 291 a 298 deixaram para decidir num bloco só, o DPO com o plano de incidente, as escolhas soltas dos §4.34 a §4.41 no bloco F, e o respondido fora |
 | 302 | **as oito casas conferidas para o Marcelo** (pedido de 10/11): como Coordenação Geral, cada casa abre com crianças, equipe de 18, ATAs desde maio, escala, agenda e perfis com as nove abas; a Marina e o Tiago do acervo, iguais nas oito, entram na troca de nomes de cada casa |
+| 303 | **as falas da Acolhe+AI conferidas** (pedido de 10/11): o bom dia que abria o Dia, a outra casa, a conta das doses, o remédio da criança, falar com a coordenação e o painel que recebiam *não achei* ou a tela errada, a explicação em verbete, a frase pronta para quem não marca e o Enviar apagado sem dizer por quê; e o protótipo online atualizado |
 
 **Medido no fim da 298:** 253 migrações, 155 tabelas, 178 suítes, 1542 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -571,6 +572,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 303** (§2): as falas da Acolhe+AI conferidas e o protótipo online atualizado, a pedido de 10/11. **Fala nova do modo guia se confere conversando** (a sonda no scratchpad, `sonda-falas.mjs`, entra como um cargo e manda cada frase numa conversa nova; as frases prontas somem depois da primeira mensagem) e entra no `a-acolhe-conhece-o-sistema` pelo `responderPeloGuia`. **Frase pronta que só alguns cargos usam** leva `cargos` no `acolhe-boas-vindas.ts`; a Coordenação Geral chega como `coordenacao_geral` pelo `papel` do `App.tsx`. **O Enviar fica apagado enquanto ela espera o Pode mexer, de propósito**, e a frase *Responda acima* diz por quê. **Medido:** o `a-acolhe-conhece-o-sistema` (46 de 46) e as sondas como educador e Coordenação Geral; o resto no fechamento abaixo. **Próxima:** a mesma da 301.
 
 **FEITO — fase 302** (§2): as oito casas do protótipo conferidas como o Marcelo as vê, a pedido de 10/11. **Nome de criança da casa-modelo que aparece no protótipo entra no `MENINAS_DO_MODELO` ou no `MENINOS_DO_MODELO` do `casas-ficticias.ts`, sempre no fim** (no meio, mudaria o nome de todas as crianças das outras casas). **A sonda das oito casas** (entrar como Coordenação Geral, trocar pelo `.troca-casa`, ler Acolhidos, perfil, Atas do Mês mês a mês e a escala) ficou no scratchpad; a régua é a tabela da linha 302 do §2. **Medido:** a sonda nas oito casas a 1366 px, antes e depois do conserto (nenhum erro de página), o `tsc` da tela, e o que está no fechamento abaixo. **Próxima:** a mesma da 301.
 

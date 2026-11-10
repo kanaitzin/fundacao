@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 303, dia: '10/11/2026',
+    texto: 'A Acolhe+AI responde ao bom dia com bom dia, explica a tela que você pediu numa frase de colega, ajuda quem atende várias casas a trocar de casa pelo botão do alto, e avisa quando espera a sua resposta para mexer na tela. Ela também faz a conta das doses (3 doses de 5 ml por dia em 7 dias), diz onde ficam os remédios de cada criança, explica como falar com a coordenação e, quando duas telas têm o mesmo nome, mostra as duas. A frase pronta Marcar um compromisso aparece só para quem marca.' },
   { fase: 302, dia: '10/11/2026',
     texto: 'Na demonstração, as oito casas abrem cada uma com as suas crianças, a sua equipe e seis meses de ATAs, e o acervo de cada casa agora tem os nomes dela.' },
   { fase: 301, dia: '10/11/2026',
