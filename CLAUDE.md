@@ -451,7 +451,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 305 | **a linha do perfil** (decisões de 10/11): na aba Atendimentos, cartões com a faixa da área e a data, quem cadastrou, campos em grade, o relato e os arquivos à vista com o olho; e os documentos do dossiê na mesma linha, com Ver e Baixar |
 | 306 | **o atendimento comportamental da casa** no lugar da advertência (pedido de 10/11, people/1714), e **baixar o arquivo do atendimento** depois de ver, com a auditoria do baixado |
 
-**Medido no fim da 303:** 253 migrações, 155 tabelas, 178 suítes, 1546 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 306:** 254 migrações, 155 tabelas, 178 suítes, 1548 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
