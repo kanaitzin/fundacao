@@ -2318,7 +2318,10 @@ cobrar('e sem contar nada — nem acessos, nem aberturas por pessoa',
  * FORMA — se sobrar um `algo.algo_assim` na tela, é rótulo que faltou.
  */
 cobrar('e em português: nenhuma linha mostra o código cru da ação',
-  !/\b[a-z][a-z_]{2,}\.[a-z_]{3,}\b/.test(rastroDeNovo.replace(/\S+@\S+/g, '')),
+  /* O nome de arquivo (cartao_sus.jpg) não é código de ação: desde a 305 a linha do perfil mostra os
+     arquivos dos documentos, e eles saem antes da conferência. */
+  !/\b[a-z][a-z_]{2,}\.[a-z_]{3,}\b/.test(rastroDeNovo.replace(/\S+@\S+/g, '')
+    .replace(/\S+\.(jpe?g|png|pdf|heic|heif|docx?|webp)\b/gi, '')),
   rastroDeNovo.slice(0, 200));
 cobrar('inclusive a leitura excepcional, que o BANCO escreve e não o serviço',
   /Leitura excepcional de relato/.test(rastroDeNovo),
