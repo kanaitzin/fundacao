@@ -258,7 +258,7 @@ const notas = chamadas.at(-1)?.corpo.messages
 cobrar('cada pergunta começa pela nota do momento', notas.length === 3 && notas.every((t) => t.startsWith('[Nota da tela, não da pessoa.')),
   notas.map((t) => t.slice(0, 80)).join(' | '));
 cobrar('com a casa dela', notas.every((t) => casaDaNota(t) === eu?.casa), `${notas.map(casaDaNota).join(', ')} contra ${eu?.casa}`);
-cobrar('e a tela de cada momento: o Dia, depois a Chamada', /Tela aberta: Dia\./.test(notas[0] ?? '') && /Tela aberta: Chamada\./.test(notas[1] ?? ''),
+cobrar('e a tela de cada momento: o Dia, depois a Chamada', /Tela aberta: O Dia da Casa\./.test(notas[0] ?? '') && /Tela aberta: Chamada\./.test(notas[1] ?? ''),
   notas.map((t) => /Tela aberta: [^.]*/.exec(t)?.[0]).join(' | '));
 if (AGORA) {
   const hora = AGORA.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
