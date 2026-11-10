@@ -29,7 +29,7 @@ import {
 import { SemConexao, ErroApi } from './api';
 import { retratoFicticio, type Feitio } from './retratos';
 import {
-  AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
+  AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO, QUEM_REGISTRA_COMPORTAMENTAL, podeRegistrarAtendimento,
   rotuloDaArea, ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
 } from '../../backend/src/modules/people/atendimento-tecnico.regra';
 import { LEEM_O_SIGILO, MARCAM_O_SIGILO, TIRAM_O_SIGILO } from '../../backend/src/modules/nursing/sigilo-de-saude.regra';
@@ -10207,7 +10207,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[2] === 'technical-sessions' && metodo === 'POST') {
     semearAtendimentos();
-    if (!QUEM_REGISTRA_ATENDIMENTO.includes(eu.role)) {
+    /* O plantão registra o atendimento comportamental (fase 307), como o servidor. */
+    if (!podeRegistrarAtendimento(eu.role, b.area)) {
+      if (QUEM_REGISTRA_COMPORTAMENTAL.includes(eu.role)) {
+        return new Recusa(403, 'Pelo plantão se registra o atendimento comportamental da casa. Os outros atendimentos são da equipe técnica ou da coordenação.');
+      }
       return new Recusa(403, 'O atendimento é registrado pela equipe técnica ou pela coordenação.');
     }
     if (!AREAS_DO_ATENDIMENTO.some((a) => a.cod === b.area)) {

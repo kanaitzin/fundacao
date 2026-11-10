@@ -19,6 +19,18 @@ export const AREAS_DO_ATENDIMENTO = [
 export const QUEM_REGISTRA_ATENDIMENTO = ['equipe_tecnica', 'coordenador'];
 
 /**
+ * Quem registra o atendimento comportamental da casa (fase 307, decidido em 10/11): também
+ * quem estava no plantão e conversou com a criança. Só esse tipo; ler continua com quem lê.
+ */
+export const QUEM_REGISTRA_COMPORTAMENTAL = ['equipe_tecnica', 'coordenador', 'educador', 'lider_diurno', 'lider_noturno_geral'];
+
+/** Pode registrar este atendimento? A técnica e a coordenação, qualquer área; o plantão, o comportamental. */
+export function podeRegistrarAtendimento(papel: string, area?: string): boolean {
+  return QUEM_REGISTRA_ATENDIMENTO.includes(papel)
+    || (area === 'comportamental' && QUEM_REGISTRA_COMPORTAMENTAL.includes(papel));
+}
+
+/**
  * Quem lê. O atendimento e o desenho da criança ficam com quem atende e com a
  * coordenação; o plantão não lê (decisão a confirmar com a Fundação,
  * PARA-A-REUNIAO §4.24).

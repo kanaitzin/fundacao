@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 10/11/2026, fase 306
+### Onde estamos — 10/11/2026, fase 307
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -450,8 +450,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 304 | **o PDF abre no celular** (pedido de 10/11): toda prévia de PDF era um quadro do navegador, em branco no Android e parado na primeira página no iPhone; hoje o sistema desenha as páginas (`pdf-na-tela.ts`, pdf.js na própria página), com o quadro de reserva |
 | 305 | **a linha do perfil** (decisões de 10/11): na aba Atendimentos, cartões com a faixa da área e a data, quem cadastrou, campos em grade, o relato e os arquivos à vista com o olho; e os documentos do dossiê na mesma linha, com Ver e Baixar |
 | 306 | **o atendimento comportamental da casa** no lugar da advertência (pedido de 10/11, people/1714), e **baixar o arquivo do atendimento** depois de ver, com a auditoria do baixado |
+| 307 | **o plantão registra o atendimento comportamental** (decidido em 10/11): educador, Líder Diurno e Líder Noturno Geral, pela aba Geral do perfil, só essa área, sem passar a ler os atendimentos (people/1715) |
 
-**Medido no fim da 306:** 254 migrações, 155 tabelas, 178 suítes, 1548 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 307:** 255 migrações, 155 tabelas, 178 suítes, 1549 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -575,6 +576,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 307** (§2): o plantão registra o atendimento comportamental da casa, decidido em 10/11 (*líderes e educadores*). **Quem registra que área** sai do `podeRegistrarAtendimento` (`atendimento-tecnico.regra.ts`), lido pelo servidor e pelo protótipo, e a política `ts_insert` repete a regra no banco (1715). **Gravação de quem não lê a tabela vai sem RETURNING**, com o id nascido no servidor; e a conferência do arquivo passa por função (`app_atendimento_que_registrei`), porque a subconsulta pela tabela usaria a leitura que o plantão não tem. **Medido:** a `o-atendimento-da-equipe-tecnica` (13 de 13, com o educador registrando com arquivo e recusado em outra área) e a sonda no protótipo a 390 px (educador e Líder Diurno registram pela Geral sem ver a aba Atendimentos; a técnica não vê o cartão); o resto no fechamento. **Próxima:** a mesma da 301.
 
 **FEITO — fase 306** (§2): o atendimento comportamental da casa e o Baixar do arquivo do atendimento, a pedido de 10/11. **Área nova de atendimento** entra no `AREAS_DO_ATENDIMENTO`, no CHECK da `technical_session` e no `app_rotulo_da_area_do_atendimento` (migração nova, como a 1714), e na `--faixa-*` do `styles.css`; o teste *a área tem o mesmo nome no banco e na regra* cobra os dois. **Dado real**: decidido em 10/11 que o sistema recebe dado real sem censura (é para isso que ele existe, depois de instalado); o que não recebe dado real é o repositório e o protótipo, que são públicos. **Medido no fechamento das 303 a 306:** a suíte inteira nas DUAS condições de relógio (1556 de 1556 nas duas; a primeira rodada no relógio real reprovou quatro testes de hora porque o banco tinha ficado no relógio adiantado de uma rodada interrompida, e passou inteira quando o banco voltou ao relógio real), o `ensaio:uso` (866 cobranças, sem reprovação, com o PDF de duas páginas desenhado, o Baixar do atendimento, a faixa do cartão e os documentos na linha; a cobrança do código cru passou a tirar os nomes de arquivo, e a da ordem lê `.cartao-linha`), e as sondas da linha a 390 e 1366 px (nada anda para o lado). **Não rodou:** o do celular, o de acessibilidade (as faixas novas medidas à mão, todas acima de 4,9 contra o branco), o `ensaio:cabecalhos` e a simulação contra o servidor. **Próxima:** a mesma da 301.
 

@@ -116,6 +116,24 @@ describe('O atendimento da equipe técnica', () => {
     expect(lista.find((x: any) => x.id === r.body.id).areaRotulo).toBe('Atendimento comportamental da casa');
   });
 
+  it('o plantão registra o atendimento comportamental, com arquivo, e continua sem ler os atendimentos (fase 307)', async () => {
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))
+      .send({ area: 'comportamental', dia: hoje, hora: '00:03', ondeFoi: 'interno', local: 'Sala da casa',
+              relato: 'Conversa depois da briga no pátio; combinado de chamar a educadora antes (fictício).',
+              anexos: [{ conteudo: PNG, nomeArquivo: 'combinado.png', legenda: 'O combinado escrito' }] });
+    expect(r.status).toBe(201);
+    const { rows } = await admin.query(
+      `SELECT s.area, s.created_by, (SELECT count(*)::int FROM technical_session_attachment a WHERE a.session_id = s.id) AS arquivos
+         FROM technical_session s WHERE s.id = $1`, [r.body.id]);
+    expect(rows[0]).toMatchObject({ area: 'comportamental', arquivos: 1 });
+    expect((await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))).status).toBe(403);
+    const outra = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))
+      .send({ area: 'psicologia', dia: hoje, hora: '00:03', ondeFoi: 'interno', local: 'Sala da casa',
+              relato: 'Tentando registrar outra área pelo plantão (fictício).' });
+    expect(outra.status).toBe(403);
+    expect(outra.body.message).toMatch(/atendimento comportamental/);
+  });
+
   it('o educador não lê nem registra, e a outra casa não alcança', async () => {
     expect((await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))).status).toBe(403);
     expect((await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))

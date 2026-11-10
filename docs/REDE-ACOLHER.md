@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **254 migrações** | `.sql` dentro das partições |
+| **255 migrações** | `.sql` dentro das partições |
 | **155 tabelas** | `CREATE TABLE` nas migrações |
 | **178 suítes** | `backend/test/*.spec.ts` |
-| **1548 testes** | `it(` / `test(` nas suítes |
+| **1549 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **14 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -517,6 +517,7 @@ arqueologia.
 | 304 | **O PDF abre no celular** (pedido de 10/11: *fui olhar alguns atendimentos e não abre ali os PDF para visualização*). Toda prévia de PDF (o atendimento técnico, o dossiê, os anexos da mensagem, a nota fiscal, a internação) abria num quadro do navegador (`QuadroDoPdf`), que no computador mostra o PDF e no celular não: o Chrome do Android deixa a área em branco e o Safari do iPhone mostra só a primeira página, parada. Hoje o sistema desenha as páginas com o pdf.js, no próprio aparelho, e as mostra como imagens que se rolam (`frontend/src/pdf-na-tela.ts`, importado só quando alguém abre um PDF, até 40 páginas, o resto no arquivo baixado); se o desenho falhar, volta o quadro. O trabalhador do pdf.js roda na própria página: vindo de blob, com o protótipo aberto por dois cliques, ele nascia e morria calado, e o PDF ficava em *Abrindo*. O protótipo cresce de 8,0 para 9,7 MB. Sem rota nova. |
 | 305 | **A linha do perfil** (pedido e decisões de 10/11, a partir de um sistema que a Fundação mostrou: *essa organização é muito boa*, *segue uma ordem linear como criamos, podendo colocar anexos*). Na aba Atendimentos, cada atendimento é um cartão ligado à linha por um ponto da cor da área: a faixa com *Atendimento · área* e a data, *Cadastrado por*, o cadeado *Equipe técnica*, os campos em grade (área, data e hora, onde, quem atendeu), o relato e os arquivos sempre à vista, cada um com o olho (antes atrás de *Ver os arquivos*). **Os documentos do dossiê entram na mesma linha** (decidido em 10/11), em ordem de data e hora: a faixa *Documento · categoria*, quem pôs, quando, a emissão e a validade, e o olho, que abre o arquivo e oferece Baixar depois de ver; o filtro ganha *Documentos*. A lista vem da rota do dossiê, que só devolve o que quem pergunta pode ver (a área restrita leva o cadeado). A cor da faixa é a da área, categoria como as do Dia, nunca estado. O arquivo do atendimento continua só para ver, como antes. Sem rota nova. |
 | 306 | **O atendimento comportamental da casa, e baixar o arquivo do atendimento** (pedido de 10/11: *a advertência vira atendimento comportamental da casa, um nome mais amigável que envolve educar*). A área nova entra na lista dos atendimentos (`atendimento-tecnico.regra.ts`, o CHECK e o rótulo do banco em people/1714), com a cor própria na linha do perfil; é registro de conversa, sem nota, ponto nem contagem que compare crianças. E o arquivo do atendimento, depois de aberto, ganha Baixar, pela rota `POST /people/technical-sessions/attachments/:anexoId/download`, anotada na auditoria como *Arquivo de atendimento baixado*, separada da abertura. Quem registra continua sendo a equipe técnica e a coordenação. |
+| 307 | **O plantão registra o atendimento comportamental** (decidido em 10/11: *líderes e educadores*). O educador, o Líder Diurno e o Líder Noturno Geral registram o atendimento comportamental da casa, e só ele, pelo cartão *Atendimento comportamental da casa* na aba Geral do perfil, com a área já escolhida e arquivo se quiser; ler continua com a equipe técnica, a coordenação e a gestão, e quem registra pelo plantão não passa a ver a aba Atendimentos. No banco, a política de gravação aceita o plantão só com a área comportamental, e a conferência do arquivo passa por uma função que responde se o atendimento é de quem anexa (people/1715); no servidor, `podeRegistrarAtendimento` (`atendimento-tecnico.regra.ts`), lido também pelo protótipo, e o registro sem RETURNING, porque quem registra pelo plantão não lê a tabela. |
 
 ---
 
@@ -564,7 +565,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-254 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+255 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -3098,7 +3099,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 254 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 255 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

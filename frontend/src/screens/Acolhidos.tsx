@@ -4,7 +4,7 @@ import { Dossie, DocumentosDaCategoria, AnexosDoRegistroDeSaude } from './Dossie
 import { FolhaReceitas } from './Saude';
 import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
-  ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
+  ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS, QUEM_REGISTRA_COMPORTAMENTAL,
 } from '../../../backend/src/modules/people/atendimento-tecnico.regra';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
@@ -781,6 +781,9 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   /** A aba do perfil (fase 208): o perfil em partes, em vez de oito telas de rolagem.
       Desde a 221 ele abre na Geral, os dados dela; o dia de hoje fica na ATA. */
   const [aba, setAba] = useState<AbaDoPerfil>('geral');
+  /* O atendimento comportamental pelo plantão (fase 307): quem conversou com a criança registra. */
+  const [comportamental, setComportamental] = useState(false);
+  const [avisoComportamental, setAvisoComportamental] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -1235,6 +1238,26 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * desligou e por quê. Sem isto ele leria a ausência como "não há
         * telefone da escola" — e ligaria para ninguém.
         */}
+      {/* O ATENDIMENTO COMPORTAMENTAL PELO PLANTÃO (fase 307, decidido em 10/11): o educador e os
+          líderes não leem os atendimentos, mas quem conversou com a criança registra na hora. */}
+      {aba === 'geral' && !QUEM_LE_ATENDIMENTO.includes(papel) && QUEM_REGISTRA_COMPORTAMENTAL.includes(papel) && (
+        <div className="card stack">
+          <b className="ff">Atendimento comportamental da casa</b>
+          <p className="mutetxt" style={{ margin: 0 }}>
+            Conversou com {p.nome.split(' ')[0]} sobre o que aconteceu e o combinado dali para frente? Registre aqui.
+            Quem lê é a equipe técnica e a coordenação.
+          </p>
+          {avisoComportamental && <div className="notice c-ok" role="status">{avisoComportamental}</div>}
+          <button data-acolhe-abre="" className="btn sec" onClick={() => setComportamental(true)}>
+            <Icone nome="escrever" /> Registrar atendimento comportamental
+          </button>
+        </div>
+      )}
+      {comportamental && (
+        <FolhaAtendimentoTecnico personId={personId} nome={p.nome} soComportamental
+          onFechar={() => setComportamental(false)}
+          onRegistrado={(msg) => { setComportamental(false); setAvisoComportamental(msg); }} />
+      )}
       {aba === 'geral' && (p.camposDesligados ?? []).length > 0 && (
         <div className="notice c-info">
           <b>Fora da vista do plantão, por decisão da coordenação:</b>
@@ -7221,12 +7244,14 @@ function FolhaBaixarAtendimentos({ personId, nome, onFechar, onBaixado }: {
   );
 }
 
-function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
+function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado, soComportamental = false }: {
   personId: string; nome: string; onFechar: () => void; onRegistrado: (aviso: string) => void;
+  /** Pelo plantão (fase 307): a área já vem escolhida, e é a única. */
+  soComportamental?: boolean;
 }) {
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
     year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-  const [area, setArea] = useState('');
+  const [area, setArea] = useState(soComportamental ? 'comportamental' : '');
   const [areaOutra, setAreaOutra] = useState('');
   const [quando, setQuando] = useState(hoje);
   /* A hora do atendimento (fase 275): já vem com a hora de agora, para corrigir se foi antes. */
@@ -7268,14 +7293,20 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-atend"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet">
-        <h3 id="t-atend">Atendimento da equipe técnica · {nome}</h3>
-        <label className="f">A área</label>
-        <div className="opts">
-          {AREAS_DO_ATENDIMENTO.map((a) => (
-            <button type="button" key={a.cod} className="opt c-other" aria-pressed={area === a.cod}
-                    onClick={() => setArea(a.cod)}>{a.label}</button>
-          ))}
-        </div>
+        <h3 id="t-atend">{soComportamental ? 'Atendimento comportamental da casa' : 'Atendimento da equipe técnica'} · {nome}</h3>
+        {soComportamental ? (
+          <p className="mutetxt">A conversa sobre o que aconteceu e o combinado dali para frente. Só os fatos e o combinado, sem julgar a criança.</p>
+        ) : (
+          <>
+            <label className="f">A área</label>
+            <div className="opts">
+              {AREAS_DO_ATENDIMENTO.map((a) => (
+                <button type="button" key={a.cod} className="opt c-other" aria-pressed={area === a.cod}
+                        onClick={() => setArea(a.cod)}>{a.label}</button>
+              ))}
+            </div>
+          </>
+        )}
         {area === 'outra' && (
           <>
             <label className="f" htmlFor="at-outra">Qual área</label>

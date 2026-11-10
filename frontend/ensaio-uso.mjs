@@ -4994,6 +4994,18 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   cobrar('o educador não vê os atendimentos da equipe técnica',
     (await pgT.getByRole('tab', { name: /Atendimentos/ }).count()) === 0
     && (await pgT.locator('section.atendimentos-tecnicos').count()) === 0);
+  /* Mas registra o atendimento comportamental da casa, pela aba Geral (fase 307, decidido em 10/11). */
+  await pgT.getByRole('button', { name: /Registrar atendimento comportamental/ }).click(); await esp(600);
+  const fc = pgT.locator('.overlay').last();
+  cobrar('o educador abre o atendimento comportamental, com a área já escolhida',
+    /Atendimento comportamental da casa/.test(await fc.locator('h3').innerText()));
+  await fc.getByRole('button', { name: /^Interno/ }).click();
+  await fc.locator('#at-local').fill('Sala da casa');
+  await fc.locator('#at-relato').fill('Conversa depois da briga no quarto; combinado de chamar a educadora antes (ensaio 307).');
+  await fc.getByRole('button', { name: /^Registrar/ }).last().click(); await esp(1300);
+  cobrar('e registra, sem passar a ler os atendimentos',
+    /Atendimento registrado/.test(await pgT.locator('main').innerText())
+    && (await pgT.getByRole('tab', { name: /Atendimentos/ }).count()) === 0);
   cobrar('nenhuma exceção no atendimento da equipe técnica', errosT.length === 0, errosT[0]);
   await pgT.close();
 }

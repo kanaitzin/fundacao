@@ -1,7 +1,7 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
@@ -10,7 +10,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { TAMANHO_MAXIMO, TIPOS_DE_ARQUIVO, tituloProibido } from './dossie-exigido';
 import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
-  QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO, rotuloDaArea,
+  QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO, QUEM_REGISTRA_COMPORTAMENTAL, podeRegistrarAtendimento, rotuloDaArea,
 } from './atendimento-tecnico.regra';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { Folha, cargoNoDocumento } from '../../kernel/documentos/folha';
@@ -83,8 +83,10 @@ export class AtendimentosTecnicosService {
     local?: string; ondeFoi?: string; profissional?: string;
     anexos?: { conteudo?: string; nomeArquivo?: string; legenda?: string }[];
   }) {
-    if (!QUEM_REGISTRA_ATENDIMENTO.includes(user.role)) {
-      throw new ForbiddenException('O atendimento é registrado pela equipe técnica ou pela coordenação.');
+    if (!podeRegistrarAtendimento(user.role, input.area)) {
+      throw new ForbiddenException(QUEM_REGISTRA_COMPORTAMENTAL.includes(user.role)
+        ? 'Pelo plantão se registra o atendimento comportamental da casa. Os outros atendimentos são da equipe técnica ou da coordenação.'
+        : 'O atendimento é registrado pela equipe técnica ou pela coordenação.');
     }
     if (!AREAS_DO_ATENDIMENTO.some((a) => a.cod === input.area)) {
       throw new BadRequestException('Diga a área do atendimento: psicologia, psicopedagogia, Assistência Social, pedagogia ou outra.');
@@ -141,14 +143,16 @@ export class AtendimentosTecnicosService {
         [input.dia, hora]);
       if (h.futuro) throw new BadRequestException('O dia do atendimento ainda não chegou.');
       if (h.hora_futura) throw new BadRequestException('A hora do atendimento ainda não chegou.');
-      let s: any;
+      /* O id nasce aqui e o INSERT vai sem RETURNING (fase 307): o plantão registra o
+         atendimento comportamental e não lê a tabela, e o RETURNING pediria a leitura. */
+      const s = { id: randomUUID() };
       try {
-        ({ rows: [s] } = await c.query(
-          `INSERT INTO technical_session (person_id, area, area_other, happened_on, happened_time, summary,
+        await c.query(
+          `INSERT INTO technical_session (id, person_id, area, area_other, happened_on, happened_time, summary,
                                           place, setting, professional, created_by)
-           VALUES ($1,$2,$3,$4::date,$5::time,$6,$7,$8,$9,$10) RETURNING id`,
+           VALUES ($11,$1,$2,$3,$4::date,$5::time,$6,$7,$8,$9,$10)`,
           [personId, input.area, input.area === 'outra' ? areaOutra : null, input.dia, hora, relato,
-           local, ondeFoi, profissional, user.id]));
+           local, ondeFoi, profissional, user.id, s.id]);
       } catch (e: any) {
         if (String(e?.message ?? '').includes('row-level security')) {
           throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');

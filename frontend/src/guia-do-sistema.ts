@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 307, dia: '10/11/2026',
+    texto: 'O educador, o Líder Diurno e o Líder Noturno Geral registram o atendimento comportamental da casa pela aba Geral do perfil, logo depois de conversar com a criança. Quem lê continua sendo a equipe técnica e a coordenação.' },
   { fase: 306, dia: '10/11/2026',
     texto: 'O atendimento ganhou a área Atendimento comportamental da casa: a conversa com a criança sobre o que aconteceu e o combinado dali para frente, no lugar da advertência. E o arquivo do atendimento, depois de aberto, também se baixa.' },
   { fase: 305, dia: '10/11/2026',
