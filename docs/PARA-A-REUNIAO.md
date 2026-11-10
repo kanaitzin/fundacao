@@ -2,47 +2,61 @@
 
 > Gerado em 13/09/2026 na fase 104, revisto em 15/09 na fase 120, em 19/09 na
 > fase 126, em **20/09**, quando quatro perguntas foram respondidas de uma vez
-> (§4.5 e §5), e em **21/10**, depois da fase 232, com a pauta do §0.
+> (§4.5 e §5), em **21/10**, depois da fase 232, com a pauta do §0, e em **10/11**, depois da fase 300, com a
+> pauta refeita.
 
 ---
 
-## 0. A pauta de 21/10, para a conversa com o Marcelo
+## 0. A pauta de 10/11, para a conversa com o Marcelo
 
-> Refeita em 21/10, depois da fase 232, conferindo cada item do resto deste documento, do §10,
-> do §11 e do §12.0 contra o código. **O código do piloto está pronto.** O que separa o sistema
-> da Casa 03 agora são as respostas abaixo, documentos de papel e pessoas. O resto deste
-> arquivo é o histórico das perguntas; esta seção é a que se leva para a mesa.
+> Refeita em 10/11, depois da fase 300, a partir da de 21/10, conferindo cada item contra o código
+> e contra o que as fases 233 a 300 decidiram. **O código do piloto está pronto, e os consertos de
+> segurança da análise de 08/11 também** (fases 288 a 298). O que separa o sistema da Casa 03 agora
+> são as respostas abaixo, documentos de papel e pessoas. O resto deste arquivo é o histórico das
+> perguntas; esta seção é a que se leva para a mesa. Os números A1 a A16 e C1 a C6 são os de antes,
+> para não quebrar quem os cita.
 
-> **Conferido em 08/11 (análise geral, `docs/historico/analise-geral-08-11.md`): duas respostas
-> deste documento se contradizem, e precisam virar uma só antes da mesa.**
-> - **Onde o sistema roda.** O item 1 abaixo diz *servidor próprio do Pão, decidido em 14/10*; o
->   plano combinado em 06/11 (CLAUDE.md) diz *servidor alugado e domínio próprio* para o 1.0.
-> - **Qual IA.** O A8 e o C3 abaixo falam da chave da Anthropic; o item 29 do bloco F diz *só o
->   computador do Pão, decidido em 23/10*; o plano de 06/11 diz *o 1.0 em modo guia, sem modelo, e
->   no 2.0 o Claude com chave ou o computador do Pão*.
->
-> **E três assuntos para o DPO** que a análise acrescentou: o ditado também nas caixas restritas
-> (área restrita do Judiciário, relato, ocorrência, atendimento técnico, saúde sigilosa), que hoje
-> manda o áudio ao Google no Chrome (C4); **o prazo de guarda** do CPF e do RG de visitante, das
-> tentativas de entrada com o IP e das sessões, que hoje ficam para sempre (C1); e um plano de
-> incidente (quem é avisado, em quanto tempo, o que se comunica).
+### Primeiro: duas respostas que se contradizem
+
+Cada uma tem duas respostas escritas em dias diferentes, e o resto da pauta depende de qual vale.
+Não escolhi: as duas são defensáveis.
+
+**1. Onde o 1.0 roda.**
+
+| | Servidor próprio do Pão (decidido em 14/10) | Servidor alugado e domínio próprio (plano de 06/11) |
+|---|---|---|
+| Quem cuida | a TI do Pão | quem alugar, com o passo a passo da sessão |
+| O que falta | a máquina, os dois discos espelhados, o endereço, o certificado (A1 a A4) | a conta no provedor, o domínio e quem paga |
+| O e-mail | o do `paodospobres.com.br` (A5) | o Gmail institucional com senha de app (fase 179) |
+| O dado real | fica no prédio | fica no provedor, e o DPO confere o contrato |
+
+As duas cabem no que está pronto (`scripts/instalar.sh`, §12.0). **A pergunta:** o 1.0 de um mês com a
+Casa 03 vai para o servidor alugado e o definitivo para o do Pão, ou vai direto para o do Pão?
+
+**2. Qual IA a Acolhe+AI usa.** Em 08/10 a Fundação aprovou o Claude pela chave da Anthropic (o A8 e
+o C3 de antes); em 23/10, *só o computador do Pão, sem custo e sem limite por pessoa* (o código é a
+fase 239, e falta a máquina com placa de vídeo); e o plano de 06/11 diz *o 1.0 em modo guia, sem
+modelo, e o modelo no 2.0*. O modo guia funciona hoje, sem custo, e desde a fase 300 se apresenta,
+oferece frases prontas e conversa por voz. **A pergunta:** o 1.0 começa em modo guia (proposta), e
+para o 2.0 vale o computador do Pão (23/10) ou a chave? Se for a chave, quem abre a conta, quem paga
+e qual o limite por mês.
 
 ### Se só der tempo para cinco
 
-1. **Onde o sistema roda.** O servidor próprio do Pão está decidido (14/10). Falta saber
-   que máquina é, quem da TI cuida dela, o endereço (por exemplo `rede.paodospobres.com.br`)
-   e quem emite o certificado. Sem isso nenhum passo da instalação começa (§12.0, etapa 1).
-2. **O e-mail institucional.** Qual é o provedor do `paodospobres.com.br`, qual endereço
-   manda os convites, quem mexe no DNS, e se cada pessoa da Casa 03 tem e-mail próprio.
-   Sem e-mail não há primeiro acesso nem *esqueci minha senha* (§12.8).
-3. **Quem é o encarregado da LGPD (o DPO).** Seis assuntos estão esperando por ele (bloco C
-   abaixo), e a regra da casa é que dado real só entra depois disso.
-4. **A folha real de administração de medicamentos**, a de papel que a Casa 03 usa hoje. É o
-   único módulo desenhado pelo documento e não pelo papel, e é onde o erro custa mais.
-5. **As datas e as pessoas**: quem da Casa 03 faz o roteiro, quando começa o treino e quando
-   começa o piloto de quatro semanas.
+1. **As duas perguntas acima.** Sem elas nenhum passo da instalação começa.
+2. **O e-mail.** Qual endereço manda os convites, quem mexe no DNS, e se cada pessoa da Casa 03 tem
+   e-mail próprio. Sem e-mail não há primeiro acesso nem *esqueci minha senha* (§12.8).
+3. **Quem é o encarregado da LGPD (o DPO).** Sete assuntos estão esperando por ele (bloco C), e a
+   regra da casa é que dado real só entra depois disso.
+4. **A folha real de administração de medicamentos**, a de papel que a Casa 03 usa hoje. É o único
+   módulo desenhado pelo documento e não pelo papel, e é onde o erro custa mais.
+5. **As datas e as pessoas**: quem da Casa 03 faz o roteiro, quando começa o treino e quando começa o
+   piloto de quatro semanas.
 
 ### A. Para ir ao ar: perguntas para o Gestor Geral e a TI
+
+Valem para o servidor que for escolhido na pergunta 1; no alugado, A3 e A4 viram *o que o provedor
+garante*.
 
 | # | Pergunta | Onde está |
 |---|---|---|
@@ -53,15 +67,24 @@
 | A5 | O e-mail: provedor, remetente (uma conta ou apelido que não seja de ninguém), quem administra o DNS (SPF, DKIM, DMARC), e se a equipe abre e-mail no celular ou só no computador | §12.8 |
 | A6 | A **conta do relógio**: uma conta de serviço, e não de pessoa, para o que o sistema gera sozinho (as doses do dia às 5h, os avisos). E quem recebe o aviso quando ele falha | §12.7 |
 | A7 | Um **lugar à parte para o treino**, com o banco de demonstração das oito casas fictícias, separado do de produção | §12.0, etapa 3 |
-| A8 | **A Acolhe+AI com a chave:** liga no piloto? Quem abre a conta na Anthropic, quem paga, e qual o limite de gasto por mês. Sem a chave ela funciona como guia, sem conversar | §12.12 |
+| A8 | **A IA:** é a pergunta 2 do alto | §12.12 |
 | A9 | **O aviso no celular:** liga no piloto? Precisa de duas chaves geradas na instalação e da saída do servidor para os serviços de aviso do Google e da Apple | §12.11 |
 | A10 | **O Drive:** para o piloto basta a pasta no servidor com a cópia de segurança, ou tem de ser o Google Drive compartilhado da Fundação? O critério *o documento chega ao Drive* do piloto depende disso | §9, §13.5 |
-| A11 | **Quantas contas diferentes podem errar a senha a partir de um mesmo endereço** antes de a entrada daquele endereço esperar quinze minutos (fase 291). Cada casa sai para a internet por um endereço só: quem estiver na rede da casa, inclusive no Wi-Fi que os acolhidos usam, consegue fazer a casa inteira esperar errando de propósito em muitas contas, e até lá ninguém destrava. Deixei 20 contas diferentes em quinze minutos (o erro repetido na mesma conta conta uma vez); a TI ajusta no `.env`. Ajuda separar o Wi-Fi da equipe do dos acolhidos e dizer quem destrava | §12.1 |
-| A12 | **O e-mail de quem muda de casa** (fase 292). Quando alguém passa de uma casa para outra pela Equipe, a senha de antes já deixa de valer; mas o e-mail que a casa de antes digitou continua recebendo o esqueci minha senha. Ele também deve ficar a confirmar, pela coordenação da casa nova? Se a caixa é mesmo da pessoa, não muda nada; se a casa de antes cadastrou uma caixa compartilhada, quem a lê recebe o acesso na casa nova | §12.1 |
-| A13 | **O limite de pedidos por volume, para a TI** (fase 295). A senha errada já trava no banco, por conta e por endereço, antes do cálculo pesado; o que falta é segurar quem manda pedidos em quantidade só para ocupar o servidor. O Caddy que vem no pacote não faz isso. A TI escolhe: o fail2ban lendo o log do Caddy, o `hashlimit` do firewall na porta 443, ou um Caddy compilado com o módulo de limite. Ligando o log do Caddy, o filtro de consulta precisa apagar o `convite` do endereço | §12.9 |
-| A14 | **Um limite de e-mails de senha nova por conta** (fase 296). Desde 05/10, um pedido a cada dois minutos por conta, e cada pedido novo cancela o link de antes (uma pessoa tem um link aberto por vez). Desde a 296 o mesmo endereço pede no máximo dez por hora, e a instituição manda no máximo sessenta desses e-mails por hora, sem nunca segurar o primeiro de cada pessoa. Ainda assim, quem sabe o e-mail de uma colega e usa vários endereços consegue cancelar o link dela a cada dois minutos e encher a caixa dela. Proponho no máximo três por pessoa por hora: quem pediu de verdade e não recebeu pede de novo duas vezes, e depois a coordenação reenvia o acesso | §12.1 |
-| A15 | **O sigilo de saúde, cinco escolhas que ficaram como estavam** (fase 297). Desde a 297 o banco esconde o conteúdo do registro sigiloso de quem não o lê, e restam escolhas de produto: (1) o relatório preenchido sozinho escreve *Registro sigiloso* no lugar do conteúdo, mesmo para quem lê o sigilo; se um relatório ao Judiciário puder levar o conteúdo, ele entra escrito à mão por quem assina; (2) o Gestor Geral tria e assina a evolução sigilosa sem ler o conteúdo, ou ela sai da triagem dele; (3) o tipo do atendimento (terapia, internação) continua à vista, e às vezes diz o assunto; (4) para quem lê o sigilo, a Acolhe+AI lê o conteúdo sigiloso e o manda ao modelo; (5) o ditado continua ligado no formulário marcado como sigiloso (no Chrome, o áudio vai ao Google). E um limite a dizer: a receita e a internação que nascem de uma consulta sigilosa ficam abertas na grade e no histórico, e às vezes o nome do remédio diz o diagnóstico | §8 |
-| A16 | **O acompanhante de internação de outra casa** (fase 298). Hoje quem registra a internação pode pôr como acompanhante uma pessoa de qualquer casa, e essa pessoa passa a ler a internação. Se o acompanhante é sempre da equipe da casa da criança, o banco passa a recusar o de fora; se às vezes vem de outra casa (cobertura, plantão emprestado), fica como está | §8 |
+| A11 | **Quantas contas diferentes podem errar a senha a partir de um mesmo endereço** antes de a entrada daquele endereço esperar quinze minutos (fase 291). Cada casa sai para a internet por um endereço só: quem estiver na rede da casa, inclusive no Wi-Fi que os acolhidos usam, consegue fazer a casa inteira esperar errando de propósito em muitas contas. Deixei 20 contas diferentes em quinze minutos; a TI ajusta no `.env`. Ajuda separar o Wi-Fi da equipe do dos acolhidos e dizer quem destrava | §12.1 |
+| A13 | **O limite de pedidos por volume** (fase 295). A senha errada já trava no banco; o que falta é segurar quem manda pedidos em quantidade só para ocupar o servidor. A TI escolhe: o fail2ban lendo o log do Caddy, o `hashlimit` do firewall na porta 443, ou um Caddy com o módulo de limite. Ligando o log do Caddy, o filtro de consulta precisa apagar o `convite` do endereço | §12.9 |
+
+### A.2 O que os consertos de segurança deixaram para decidir (fases 291 a 298)
+
+São escolhas de produto que o código deixou como estavam, cada uma de uma linha:
+
+| # | Pergunta | Onde está |
+|---|---|---|
+| A12 | **O e-mail de quem muda de casa** (fase 292). Quem passa de uma casa para outra já perde a senha de antes, mas o e-mail que a casa de antes digitou continua recebendo o *esqueci minha senha*. Fica a confirmar pela coordenação da casa nova? Se a caixa é da pessoa, não muda nada; se é compartilhada, quem a lê recebe o acesso | §12.1 |
+| A14 | **No máximo três e-mails de senha nova por pessoa por hora** (fase 296). Hoje o limite é por endereço e pela instituição, e quem sabe o e-mail de uma colega e usa vários endereços consegue cancelar o link dela a cada dois minutos. Proponho três por pessoa por hora; depois a coordenação reenvia o acesso | §12.1 |
+| A15 | **O sigilo de saúde, cinco escolhas** (fase 297): (1) o relatório preenchido sozinho escreve *Registro sigiloso* no lugar do conteúdo, mesmo para quem lê o sigilo; (2) o Gestor Geral tria a evolução sigilosa sem ler o conteúdo, ou ela sai da triagem dele; (3) o tipo do atendimento (terapia, internação) continua à vista; (4) para quem lê o sigilo, a Acolhe+AI lê o conteúdo e o manda ao modelo; (5) o ditado continua ligado no formulário sigiloso. E um limite a dizer: a receita e a internação que nascem de uma consulta sigilosa ficam abertas na grade, e às vezes o nome do remédio diz o diagnóstico | §8 |
+| A16 | **O acompanhante de internação de outra casa** (fase 298). Hoje pode ser pessoa de qualquer casa, e ela passa a ler a internação. Se é sempre da equipe da casa da criança, o banco passa a recusar o de fora | §8 |
+| A17 | **A senha inicial que vence** (sobra da fase 291). Hoje a senha que a coordenação entrega vale até a pessoa entrar e trocar, sem prazo. Proponho 72 horas, e depois a coordenação gera outra | §12.1 |
+| A18 | **Quem fica sabendo quando a entrada trava** (sobra da fase 291). Hoje ninguém é avisado; a pessoa espera os quinze minutos. Proponho avisar a coordenação da casa quando a trava pelo endereço disparar | §12.1 |
 
 ### B. Os documentos e os dados que preciso receber
 
@@ -74,55 +97,56 @@ tapados ou em branco**: só o modelo, nunca o preenchido):
 4. O modelo de passagem de plantão individual, se existir (a do sistema é uma proposta).
 5. Os formulários de ocorrência e de contenção.
 6. Um exemplo de escala 12x36, com os horários da técnica e da Enfermagem.
-7. **Os protocolos da casa** para fuga, emergência de saúde, violência, pessoa no portão
-   dizendo ser da família e telefonema da família. A Acolhe+AI responde a essas situações
-   com frases que eu escrevi (§4.17 e §4.19), e elas têm de dizer o que o protocolo diz.
+7. **Os protocolos da casa** para fuga, emergência de saúde, violência, pessoa no portão dizendo ser
+   da família e telefonema da família. A Acolhe+AI responde a essas situações com frases que eu
+   escrevi (§4.17 e §4.19), e elas têm de dizer o que o protocolo diz.
 
-**Os nomes das casas** (para trocar os provisórios AI1 a AI4 e ARM1 a ARM4): o código, o nome,
-o tipo (o protótipo já disse *Acolhimento Republicano Masculino*), o público (crianças,
-adolescentes ou jovens), o endereço e o número de vagas de cada uma (§4.29).
+**Os nomes das casas** (para trocar os provisórios AI1 a AI4 e ARM1 a ARM4): o código, o nome, o tipo,
+o público (crianças, adolescentes ou jovens), o endereço e o número de vagas de cada uma (§4.29).
 
 **Os dados de partida da Casa 03**, só para a implantação e só depois do bloco C:
 
 - a equipe, com nome, cargo e e-mail de cada pessoa;
 - a escala 12x36 vigente;
-- **quanto do histórico em papel entra** (só o que está valendo, ou os últimos meses também).
-  O cadastro das vinte crianças é feito pela equipe técnica, na tela, dois por dia (§13.2), e
-  não por planilha.
+- **quanto do histórico em papel entra** (só o que está valendo, ou os últimos meses também). O
+  cadastro das vinte crianças é feito pela equipe técnica, na tela, dois por dia (§13.2), e não por
+  planilha.
 
 ### C. Para o DPO: o que ele precisa ver antes de o dado real entrar
 
 | # | O assunto | Onde está |
 |---|---|---|
-| C1 | Quem responde formalmente pela LGPD, **por quanto tempo se guarda cada coisa** e o que se apaga quando alguém pede | §11, item 10 |
-| C2 | A **folha da portaria** com CPF e foto 3×4 de familiares impressos, que fica na guarita, e o CPF e o RG mascarados na tela da portaria | §11, item 12; §4.9 |
-| C3 | A **Acolhe+AI**: o texto da conversa e os anexos vão à Anthropic (aprovado pela Fundação em 08/10; falta o registro) | §12.12 |
-| C4 | O **ditado**: no Chrome, o áudio vai ao Google. A tela avisa no primeiro uso | §12.12 |
+| C1 | Quem responde formalmente pela LGPD, **por quanto tempo se guarda cada coisa** (o CPF e o RG de visitante, as tentativas de entrada com o endereço, as sessões, as fotos e os documentos: hoje nada se apaga) e o que se apaga quando alguém pede | §11, item 10 |
+| C2 | **O documento de visitante na Portaria**: na tela, escondido na lista e inteiro ao toque, com cada abertura na auditoria (decidido em 05/11, fase 277); na **folha impressa da guarita**, inteiro, com a foto 3×4, sem registro de quem a lê | §4.41 |
+| C3 | **A Acolhe+AI com modelo**, quando ligar: com a chave, o texto da conversa e os anexos vão à Anthropic; no computador do Pão, não saem do prédio | §12.12 |
+| C4 | **O ditado**: no Chrome, o áudio vai ao Google, e a tela avisa no primeiro uso. Hoje ele está também nas caixas restritas (área restrita do Judiciário, relato, ocorrência, atendimento técnico, saúde sigilosa) e na Conversa por voz da Acolhe+AI (fase 300). Fica em todas, ou sai das restritas? | §12.12 |
 | C5 | **O sistema no celular pessoal**: o que se registra sem sinal fica guardado no aparelho sem cifra até o sinal voltar. Precisa de uma política de uso do celular pessoal, ou de aparelhos da casa | §9 |
 | C6 | O **reconhecimento de rosto nas fotos não foi feito** (é dado biométrico de criança). Se a Fundação quiser, a conversa começa por ele | §4.22 |
+| C7 | **O plano de incidente**: se um dado vazar ou uma conta for tomada, quem é avisado, em quanto tempo, e o que se comunica às famílias e à ANPD | análise de 08/11 |
+| C8 | **As folhas que saem da instituição com a criança** (fase 270): a de transição leva as condições de saúde, além das alergias, e nada da área restrita | §4.39 |
 
 ### D. Para assinar, antes do piloto
 
-- **Os critérios do §13.5** do documento: passagem assinada, ATA fechada no dia, dose
-  confirmada na hora, o registro mais rápido que o WhatsApp, e a equipe preferindo o sistema
-  ao papel no fim das quatro semanas. Falta a Fundação dizer que são esses.
-- **Os relatórios obrigatórios** do piloto: quais a casa precisa tirar do sistema desde a
-  primeira semana (§11, item 7).
+- **Os critérios do §13.5** do documento: passagem assinada, ATA fechada no dia, dose confirmada na
+  hora, o registro mais rápido que o WhatsApp, e a equipe preferindo o sistema ao papel no fim das
+  quatro semanas. Falta a Fundação dizer que são esses.
+- **Os relatórios obrigatórios** do piloto: quais a casa precisa tirar do sistema desde a primeira
+  semana (§11, item 7).
 
 ### E. As pessoas
 
-- Quem da Casa 03 faz o **roteiro** (56 tarefas, `docs/roteiro-marcelo.docx`), uma pessoa de
-  cada cargo, com alguém que pede a tarefa e anota sem explicar.
-- **Duas pessoas para o teste cronometrado**: quanto tempo leva registrar uma dose, uma
-  ocorrência e uma passagem (é a condição de sucesso do piloto).
-- **Um Android e um iPhone de verdade** para as cinco tarefas da §4.27 (ditado, câmera,
-  documento, galeria, aviso), já no servidor com HTTPS.
+- Quem da Casa 03 faz o **roteiro** (56 tarefas, `docs/roteiro-marcelo.docx`), uma pessoa de cada
+  cargo, com alguém que pede a tarefa e anota sem explicar.
+- **Duas pessoas para o teste cronometrado**: quanto tempo leva registrar uma dose, uma ocorrência e
+  uma passagem (é a condição de sucesso do piloto).
+- **Um Android e um iPhone de verdade** para as tarefas da §4.27 (ditado, câmera, documento, galeria,
+  aviso) e, desde a fase 300, a **Conversa por voz** da Acolhe+AI, já no servidor com HTTPS.
 - Quem da coordenação lê o **Guia do sistema** uma vez e diz o que ficou difícil (§4.31).
 
 ### F. As decisões de produto que continuam abertas
 
-Nenhuma trava o piloto. Cada uma é uma linha de código, e o que está entre parênteses é o que
-vale hoje.
+Nenhuma trava o piloto. Cada uma é uma linha de código, e o que está entre parênteses é o que vale
+hoje. Os números 1 a 30 são os de 21/10; os que saíram estão no fim.
 
 **Da rotina da casa:**
 
@@ -133,6 +157,9 @@ vale hoje.
 5. Travar o acesso fora do horário do plantão: liga? (desligado; ligar no piloto bloquearia trabalho legítimo; §11, item 2)
 6. O diário da internação com campos fixos: quais campos e quais obrigatórios? (texto livre por tipo)
 7. A lista de origens do remédio: compra, doação, farmácia pública, família, hospital e outro. Falta alguma? (§4.10)
+31. A chamada da vez marcada com *agora*? (a lista sem destaque; §4.35, item 2)
+32. O retorno médico desmarcado, com o motivo, pela Enfermagem? (só a consulta fecha o retorno; §4.36, item 2)
+33. Juntar o Painel do plantão ao Dia da Casa? Muda a tela de entrada dos líderes (à parte; §4.41)
 
 **De quem faz o quê:**
 
@@ -144,16 +171,9 @@ vale hoje.
 13. O educador fica sabendo que houve atendimento técnico, sem o conteúdo? (não; §4.24)
 14. O educador vê os compromissos da casa na agenda? (§3, pergunta 7)
 15. A Acolhe+AI abre algum dos formulários que ficaram de fora (remédio, relato da própria pessoa, decisão sobre a criança, contenção)? (não; §1)
-
-~~**E uma de segurança, que a fase 288 deixou em aberto de propósito:** a coordenação e a técnica de uma casa
-criavam conta de Enfermagem, ou passavam alguém da casa para Enfermagem, e essa conta alcança as oito casas.~~
-✅ **Respondida pelo dono do projeto em 08/11, e feita na fase 289:** criar conta de cargo que atende todas as
-casas (Enfermagem, Líder Noturno Geral, Gestor Geral, Coordenação Geral), ou passar alguém para um desses cargos,
-é só do Gestor Geral e da Coordenação Geral. A coordenação e a técnica de uma casa seguem cadastrando a equipe da
-casa. Quem passa alguém da casa para a Enfermagem ou para a coordenação, ou marca uma coordenação como
-Coordenação Geral, recebe uma senha nova para entregar, e a senha, as sessões e os convites de antes deixam de
-valer, porque quem cadastrou a conta na casa sabia a senha. **Para o Marcelo conferir:** quando a casa precisar de uma pessoa nova na
-Enfermagem, quem cadastra é ele, como Coordenação Geral, ou o Gestor Geral.
+34. O Gestor Geral cobre casa sem coordenação, montando a escala ou fechando a ATA? (não; quem cobre é a Coordenação Geral; §4.34)
+35. Quem cadastra uma pessoa nova na Enfermagem é o Marcelo, como Coordenação Geral, ou o Gestor Geral? (os dois podem, desde a fase 289; a coordenação da casa não)
+36. As sugestões de melhoria ganham resposta (*recebida*, *vai virar mudança*, *não vai, com o motivo*, *feita*), lida por quem sugeriu? (só a lista; §4.36, item 1)
 
 **Do perfil da criança:**
 
@@ -162,29 +182,45 @@ Enfermagem, quem cadastra é ele, como Coordenação Geral, ou o Gestor Geral.
 18. A foto de identificação continua sem botão de baixar? (sem baixar; §4.5, pergunta 3)
 19. Uma segunda lista na portaria, de quem não entra, só com nome e foto? (não existe; com o DPO; §3, pergunta 6)
 20. O estatuto da casa: existe assembleia das crianças? (o estatuto é escrito pela coordenação; §3, pergunta 8)
+37. A referência familiar escrita no cadastro aparece também na Geral e na Família e visitas, enquanto não houver contato? (só no Judiciário; §4.37)
+38. O prazo da reavaliação ao Juízo: três meses, aviso quinze dias antes, o prazo passado sem aviso, os dezoito meses como informação? (assim; §4.38)
+39. A saída: o livro da vida só com fotos autorizadas e com as conquistas de todo o tempo, preparado pela técnica, pela coordenação e pela gestão? (assim; §4.39)
+40. O tempo sem visita da família: sem cor nem limite, o serviço da rede fora da conta, sem lista entre crianças? Se a técnica quiser a lista, só em ordem de nome (assim; §4.40)
 
 **Da tela, depois de a equipe usar:**
 
 21. A portaria ganha o Guia do sistema? (sem o Guia; §4.31)
-22. Se a tela ainda parecer cheia: o histórico recolhido, as ações num botão só, ou os avisos e ajustes juntos? (só a explicação recolhida; §4.30)
-23. A resposta da Acolhe+AI aparecendo enquanto é escrita: é a próxima melhoria que eu faria (§4.28)
+22. Se a tela ainda parecer cheia: o histórico recolhido, as ações num botão só, ou os avisos e ajustes juntos? (só a explicação recolhida; §4.30 e §4.35, item 3)
 24. Quartos e camas no sistema: é útil no plantão? (não existe; §4.29)
 25. Os anexos da mensagem: 15 MB por envio, o mesmo tipo para os anexos de uma ocorrência, o nome neutro na ATA? (como está; §4.32)
+41. A Portaria em ordem de chegada, com *quem pode vir hoje* no alto e os outros recolhidos por criança? (a lista inteira aberta; §4.35, item 1)
+42. A direção visual, os retratos com rosto ou em silhueta, e as cores novas dos cargos (fase 254, página das três direções)? (o visual de hoje)
 
 **Do que veio da comparação com o andamento de outra IA (22 e 23/10, §4.33):**
 
-26. O protótipo com a leitura do papel embutida pesa 7,6 MB: fica assim, ou a leitura fica só no sistema instalado? (fica embutida; §4.33)
-27. A planilha também nos outros relatórios (cozinha, remédios, visitas), com o DPO? (só no período da casa; §4.33)
-28. A árvore da família entre gerações, com irmãos em outras casas e retornos? (não existe; com o DPO; §4.33)
-29. A IA num computador do Pão (modelo local), em vez do Claude pela chave institucional? (**respondido em 23/10: só o computador do Pão, sem custo e sem limite por pessoa**; o código é a fase 239; falta a máquina com placa de vídeo; quando ela vier, o `instalar.sh` confere se responde e se tem o modelo (fase 247); §4.33)
-30. Prazo de guarda das fotos e documentos, e o depósito e as finanças da casa no sistema? (nada se apaga; não existem; §4.33)
+26. O protótipo com a leitura do papel embutida pesa 7,6 MB: fica assim, ou a leitura fica só no sistema instalado? (fica embutida)
+27. A planilha também nos outros relatórios (cozinha, remédios, visitas), com o DPO? (só no período da casa)
+28. A árvore da família entre gerações, com irmãos em outras casas e retornos? (não existe; com o DPO)
+30. O depósito e as finanças da casa no sistema? (não existem; o Pão tem financeiro próprio)
 
-### O que já foi respondido e este documento ainda perguntava
+### O que já foi respondido e esta pauta ainda perguntava
 
-Conferido em 21/10 contra o código: o prazo do convite (continua 24 horas, 08/10), a
-Coordenação Geral receber os graves (fase 178), o PIA, a receita e a vacinação avisando antes
-(fases 178 e 191), a barra no pé e o topo compacto no celular (fase 184) e o painel do Gestor
-contando o conceito escolar (fase 137). Nada disso volta à mesa.
+Conferido em 10/11 contra o código, e nada disso volta à mesa:
+
+- o prazo do convite (24 horas, 08/10); a Coordenação Geral recebendo os graves (fase 178); o PIA, a
+  receita e a vacinação avisando antes (fases 178 e 191); a barra no pé e o topo compacto no celular
+  (fase 184); o painel do Gestor contando o conceito escolar (fase 137);
+- **F23**, a resposta da Acolhe+AI aparecendo enquanto é escrita: feita na fase 240;
+- **F29**, a IA no computador do Pão: respondida em 23/10, e virou parte da pergunta 2 do alto;
+- **F30**, o prazo de guarda das fotos e documentos: foi para o C1, que é do DPO;
+- **o CPF na Portaria** (o C2 de antes): decidido em 05/11, feito na fase 277, e o DPO só confere;
+- **quem cria conta que alcança as oito casas**: decidido pelo dono em 08/11, feito na fase 289;
+- **a senha de 8 com maiúscula e símbolo e a troca obrigatória no primeiro acesso**: decididas pelo
+  dono em 08/11, feitas na fase 291; **o e-mail a confirmar na promoção**: decidido em 09/11, fase 292;
+- **o 4 e o 5 do pedido de 03/11** (o peso do turno e a prestação de contas): recusados pela pessoa
+  da Fundação;
+- **o botão de trocar de casa no alto, com as duas visões** (plano de 06/11, item 2): feito na fase
+  299, e no protótipo o Marcelo já entra como Coordenação Geral das oito casas.
 
 ---
 

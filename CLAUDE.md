@@ -272,14 +272,15 @@ tinham fechado sem o relógio adiantado).
 - ~~**M2** EXIF e GPS das fotos~~ ✅ **294**; ~~**M3** o Node em todas as interfaces e a tela sem CSP e HSTS no
   Caddy~~ ✅ **295** (o limite de pedidos por volume ficou com a TI, PARA-A-REUNIAO §0 A13); ~~**M4** o sigilo de saúde sem segunda camada no banco~~ ✅ **297** (com a fila sem internet e a triagem, achadas ao lado); ~~**M5** dezoito políticas de escrita
   que não conferem a casa~~ ✅ **298** (com a transferência, o arquivo, o aviso e as colunas que a aplicação não muda).
-- **Para a pauta** (já anotado no PARA-A-REUNIAO §0): os documentos discordam sobre onde o sistema
-  roda e sobre qual IA (M7); o ditado nas caixas restritas (M1) e o prazo de guarda (M6) são do DPO.
+- **Para a pauta** (posto no PARA-A-REUNIAO §0 na fase 301): onde o sistema roda e qual IA (M7) são as
+  duas perguntas do alto; o ditado nas caixas restritas (M1, C4), o prazo de guarda (M6, C1) e o plano de
+  incidente (C7) são do DPO.
 
 **A ordem proposta** (seção 7 da análise): os consertos A2 (feito, 288 e 289), A3 (feito, 290), A4 (291 a 293 feitas; sobras anotadas), M2 a M5, uma fase cada; a
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 09/11/2026, fase 300
+### Onde estamos — 10/11/2026, fase 301
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -443,6 +444,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 298 | **as gravações conferem a casa** (M5): pelo papel da aplicação, **a coordenação da Casa 04 levava a estadia de uma criança para a Casa 03, punha horário de remédio na receita, horário de trabalho e síntese de ocorrência na Casa 03**, e o educador dava ciência em atividade de lá (1696 a 1701); **as revisões acharam a transferência reaberta pelo destino, a estadia encerrada reativada, a fila do arquivo, o aviso forjado, a ATA geral fechada sem pendência, e a atividade, a internação, o apoio escolar e o relatório levados para criança de outra casa**, fechados nas 1702 a 1713 |
 | 299 | **o botão das duas visões** (plano de 06/11, item 2, e o §10 item 1): quem alcança mais de uma casa vê no alto *Todas as casas* ou a casa aberta, e um toque escolhe entre as oito juntas (o Painel do gestor, o dia das unidades dos outros) e uma casa por inteiro (`FolhaDaCasa`); e **o Marcelo passa a ser a Coordenação Geral das oito casas no protótipo**, com a *Coordenação da casa* (a Carla, da Casa 03) no seletor |
 | 300 | **a Acolhe+AI acolhedora, e a conversa por voz** (pedido de 09/11): ela se apresenta pelo nome e pela hora, oferece frases prontas e os documentos que monta (`acolhe-boas-vindas.ts`), cada resposta tem *Ouvir* e *Copiar* no lugar das duas caixinhas, e o botão **Conversa por voz**, ao lado do microfone, abre a tela em que ela ouve, pensa e responde falando |
+| 301 | **a pauta do Marcelo, arrumada** (sem código): o PARA-A-REUNIAO §0 refeito, com as duas respostas que se contradiziam no alto (onde o 1.0 roda e qual IA), o que as 291 a 298 deixaram para decidir num bloco só, o DPO com o plano de incidente, as escolhas soltas dos §4.34 a §4.41 no bloco F, e o respondido fora |
 
 **Medido no fim da 298:** 253 migrações, 155 tabelas, 178 suítes, 1542 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -548,10 +550,11 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
-**A pauta de 21/10** (sem fase, sem código): tudo o que espera o Pão, conferido contra o código e
-posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam, o que a TI precisa
-responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
-decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
+**A pauta de 10/11** (fase 301, sem código): tudo o que espera o Pão, conferido contra o código e
+posto em ordem no **PARA-A-REUNIAO §0**: as duas respostas que se contradiziam (onde o 1.0 roda e
+qual IA), as cinco perguntas que mais destravam, o que a TI precisa responder (A), o que os consertos
+de segurança deixaram para decidir (A.2), os documentos de papel e os dados a receber, o que o DPO vê
+(C1 a C8), o que se assina e as decisões de produto abertas (F, de 1 a 42). **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
 
 **O PLANO COMBINADO EM 06/11** (com a pessoa da Fundação, para a reunião no Pão):
@@ -567,6 +570,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 301** (§2): a pauta do Marcelo arrumada, sem código. **Os números A1 a A18, C1 a C8 e F1 a F42 ficam**: quem responde ou cita um item usa o número, e o item respondido sai para *O que já foi respondido*, no fim do §0, com a fase que o fez. **Pergunta nova para a Fundação** entra no bloco do §0 em que ela se decide, com o que vale hoje entre parênteses; o §4.x guarda só o porquê. **As duas perguntas do alto** (onde o 1.0 roda e qual IA) não se decidem daqui: as duas respostas são defensáveis e foram escritas pela Fundação em dias diferentes. **Medido:** o `numeros-da-documentacao` e o `o-guia-do-sistema`. **Próxima:** levar a pauta à reunião; com a resposta das duas perguntas do alto, o 1.0, só quando a pessoa da Fundação pedir (é deploy), com o agente `implantacao`.
 
 **FEITO — fase 300** (§2): a Acolhe+AI acolhedora e a conversa por voz, a pedido de 09/11. **Frase pronta nova** entra no `acolhe-boas-vindas.ts` com o `precisa` da tela que ela pede, e se confere mandando o pedido ao `responderPeloGuia`: nenhuma pode cair em *não reconheci*. **A leitura em voz alta mora na resposta** (*Ouvir*, que vira *Parar*), e **as mãos ocupadas são a Conversa por voz**, com tela própria (`acolhe-voz-modo`), o mesmo `ligarMaos` da 242 por baixo; quem mexer no microfone continua nunca religando com a leitura tocando. **Medido:** junto da 299, abaixo; e a sonda da Acolhe+AI a 390 e 1366 px (as treze frases, o *Ouvir* que vira *Parar*, o *Copiado*, a conversa por voz falando e o *Encerrar* fechando, sem erro). **Não testado daqui:** a voz de um celular de verdade na conversa por voz. **Próxima:** a pauta arrumada para o Marcelo; depois o 1.0, só quando a pessoa da Fundação pedir.
 

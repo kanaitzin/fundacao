@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 301, dia: '10/11/2026',
+    texto: 'Sem mudança nas telas: as perguntas que esperam a Fundação foram postas em ordem para a reunião com o Marcelo, com as duas que se contradiziam no alto, onde o sistema roda e qual inteligência artificial a Acolhe+AI usa.' },
   { fase: 300, dia: '09/11/2026',
     texto: 'A Acolhe+AI agora se apresenta pelo seu nome e oferece frases prontas e os documentos que monta com você, de um toque. Cada resposta tem Ouvir e Copiar, e ao lado do microfone fica a Conversa por voz: você fala, ela responde falando e volta a ouvir.' },
   { fase: 299, dia: '09/11/2026',
