@@ -444,6 +444,9 @@ for (const conta of CONTAS) {
           await pg.waitForTimeout(600);
           const folha = pg.locator('.overlay');
           await folha.getByRole('button', { name: 'Psicopedagogia' }).click();
+          /* Desde a 284, onde foi e o local são obrigatórios; a hora já vem com a de agora (275). */
+          await folha.getByRole('button', { name: 'Interno, na casa' }).click();
+          await folha.locator('#at-local').fill('Sala da equipe técnica');
           await folha.locator('#at-relato').fill(relato);
           await pg.locator('#at-arq-arquivo').setInputFiles({ name: 'atividade.png', mimeType: 'image/png', buffer: png });
           await pg.waitForTimeout(700);

@@ -207,7 +207,8 @@ const irPara = async (nome) => {
   await pg.waitForTimeout(900);
 };
 
-await irPara('Dia');
+/* Desde a 277 a aba se chama O Dia da Casa (Dia da Casa na barra do pé). */
+await irPara('(O )?Dia( da Casa)?');
 await abrirPainel();
 cobrar('com a chave, a Acolhe+AI não está no modo guia', !/modo guia/i.test(await painel.innerText()));
 await perguntar('quem está na casa hoje?', /Hoje são \d+ crianças/);
