@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 10/11/2026, fase 304
+### Onde estamos — 10/11/2026, fase 305
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -448,6 +448,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 302 | **as oito casas conferidas para o Marcelo** (pedido de 10/11): como Coordenação Geral, cada casa abre com crianças, equipe de 18, ATAs desde maio, escala, agenda e perfis com as nove abas; a Marina e o Tiago do acervo, iguais nas oito, entram na troca de nomes de cada casa |
 | 303 | **as falas da Acolhe+AI conferidas** (pedido de 10/11): o bom dia que abria o Dia, a outra casa, a conta das doses, o remédio da criança, falar com a coordenação e o painel que recebiam *não achei* ou a tela errada, a explicação em verbete, a frase pronta para quem não marca e o Enviar apagado sem dizer por quê; e o protótipo online atualizado |
 | 304 | **o PDF abre no celular** (pedido de 10/11): toda prévia de PDF era um quadro do navegador, em branco no Android e parado na primeira página no iPhone; hoje o sistema desenha as páginas (`pdf-na-tela.ts`, pdf.js na própria página), com o quadro de reserva |
+| 305 | **a linha do perfil** (decisões de 10/11): na aba Atendimentos, cartões com a faixa da área e a data, quem cadastrou, campos em grade, o relato e os arquivos à vista com o olho; e os documentos do dossiê na mesma linha, com Ver e Baixar |
 
 **Medido no fim da 303:** 253 migrações, 155 tabelas, 178 suítes, 1546 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -573,6 +574,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 305** (§2): a linha do perfil, decidida em 10/11 a partir de um sistema que a Fundação mostrou. **Cartão novo na linha** usa as classes `cartao-linha`, `cartao-faixa faixa-<área>` e `cartao-campos` do `styles.css`; **cor de faixa é de categoria** (`--faixa-*`), nunca a família de estado. **Os documentos vêm da rota do dossiê** (`/people/:id/dossie`), que só devolve o que quem pergunta lê; ensaio que conta o primeiro atendimento usa `li.linha-atendimento`, porque um documento pode estar mais em cima. **Capturas de sistema de fora com dado real não entram no repositório**: só a forma. **Medido:** no fechamento abaixo. **Próxima:** a mesma da 301.
 
 **FEITO — fase 304** (§2): o PDF abre no celular, a pedido de 10/11. **PDF novo na tela passa pelo `QuadroDoPdf`** (`anexos.tsx`), que hoje desenha as páginas pelo `pdf-na-tela.ts` e só cai no quadro do navegador se o desenho falhar; **nunca um `<iframe>` de PDF solto**. **O trabalhador do pdf.js roda na página** (`import 'pdfjs-dist/build/pdf.worker.min.mjs'`): de blob, no `file://`, ele morre calado. **Medido:** a sonda no protótipo (a técnica junta um PDF de duas páginas ao atendimento e abre: duas páginas desenhadas, nenhum erro), o bloco novo do `ensaio:uso`, e o resto no fechamento abaixo. **Não provado daqui:** um Android e um iPhone de verdade, e o `ensaio:cabecalhos` (pede o Caddy), cuja cobrança do PDF foi reescrita. **Para decidir com a Fundação:** a forma dos cartões de atendimento inspirada no sistema que a Fundação mostrou (faixa com tipo e data, cadeado do sigilo, anexos com olho e baixar). **Próxima:** a mesma da 301.
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FolhaDocumento, entregarArquivo } from '../documentos';
+import { FolhaDocumento, baixarArquivo, entregarArquivo } from '../documentos';
 import { Dossie, DocumentosDaCategoria, AnexosDoRegistroDeSaude } from './Dossie';
 import { FolhaReceitas } from './Saude';
 import {
@@ -6803,14 +6803,32 @@ interface AtendimentoTecnico {
   local?: string | null; ondeFoi?: string | null; ondeFoiRotulo?: string | null;
   profissional?: string | null; podeAnexar?: boolean;
 }
+/** O documento do dossiê como chega da rota (fase 305: só o que a linha usa). */
+interface DocumentoDoDossieNaLinha {
+  id: string; titulo: string; anexadoEm: string; anexadoPor: string;
+  emitidoEm: string | null; validoAte: string | null; arquivo: { nome: string } | null;
+}
+interface DocumentoNaLinha {
+  id: string; titulo: string; categoria: string; restrita: boolean; dia: string; em: string; por: string;
+  arquivo: string; emitidoEm: string | null; validoAte: string | null;
+}
+type ItemDaLinha =
+  | { tipo: 'atendimento'; id: string; dia: string; chave: string; a: AtendimentoTecnico }
+  | { tipo: 'documento'; id: string; dia: string; chave: string; d: DocumentoNaLinha };
+/** A hora do instante no fuso de quem olha, para a ordem da linha. */
+const horaLocal = (instante: string) => {
+  const d = new Date(instante);
+  return Number.isNaN(d.getTime()) ? '00:00' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
 function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: string; nome: string; papel: string }) {
   const [lista, setLista] = useState<AtendimentoTecnico[] | null>(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [registrando, setRegistrando] = useState(false);
   const [vendo, setVendo] = useState<{ id: string; nome: string } | null>(null);
-  /* Fase 284: os arquivos de cada atendimento abertos no toque, juntar o que faltou, e baixar. */
-  const [arquivosDe, setArquivosDe] = useState<string | null>(null);
+  /* Fase 305: os documentos do dossiê na mesma linha, e o que está aberto deles. */
+  const [docs, setDocs] = useState<DocumentoNaLinha[]>([]);
+  const [vendoDoc, setVendoDoc] = useState<{ id: string; nome: string } | null>(null);
   const [juntandoEm, setJuntandoEm] = useState<AtendimentoTecnico | null>(null);
   const [baixando, setBaixando] = useState(false);
   /** O filtro por área: a psicopedagoga lê os dela sem perder os outros de vista. */
@@ -6826,6 +6844,25 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir os atendimentos.'); }
   }, [personId]);
   useEffect(() => { void carregar(); }, [carregar]);
+  /* O dossiê devolve só o que quem pergunta pode ver: a área restrita não chega a quem não a lê. */
+  useEffect(() => {
+    api<{ categorias: { label: string; restrita: boolean; itens: { documentos: DocumentoDoDossieNaLinha[] }[] }[];
+          avulsos: DocumentoDoDossieNaLinha[] }>(`/people/${personId}/dossie`)
+      .then((d) => {
+        const vistos = new Set<string>();
+        const lista: DocumentoNaLinha[] = [];
+        const por = (x: DocumentoDoDossieNaLinha, categoria: string, restrita: boolean) => {
+          if (!x.arquivo || vistos.has(x.id)) return;
+          vistos.add(x.id);
+          lista.push({ id: x.id, titulo: x.titulo, categoria, restrita, dia: x.anexadoEm.slice(0, 10), em: x.anexadoEm,
+            por: x.anexadoPor, arquivo: x.arquivo.nome, emitidoEm: x.emitidoEm, validoAte: x.validoAte });
+        };
+        for (const c of d.categorias) for (const it of c.itens) for (const x of it.documentos) por(x, c.label, c.restrita);
+        for (const x of d.avulsos) por(x, 'Outros documentos', false);
+        setDocs(lista);
+      })
+      .catch(() => setDocs([]));
+  }, [personId]);
 
   /* O relatório é LINEAR: o mais novo em cima, e quem lê desce no tempo. O
      servidor já devolve nesta ordem; a tela garante, porque é o contrato. No
@@ -6844,6 +6881,15 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
       const texto = semAcento([a.relato, a.areaRotulo, a.por, a.local ?? '', a.profissional ?? '', ...a.anexos.map((x) => `${x.nome} ${x.legenda ?? ''}`)].join(' '));
       return palavras.every((p) => texto.includes(p));
     });
+  /* A linha inteira (fase 305): os atendimentos filtrados e os documentos, pela data e pela hora. O filtro
+     por área esconde os documentos, que não são de área; o de Documentos mostra só eles. */
+  const docsMostrados = area && area !== 'documentos' ? [] : docs
+    .filter((d) => (!de || d.dia >= de) && (!ate || d.dia <= ate))
+    .filter((d) => !palavras.length || palavras.every((p) => semAcento(`${d.titulo} ${d.categoria} ${d.por} ${d.arquivo}`).includes(p)));
+  const linha: ItemDaLinha[] = [
+    ...(area === 'documentos' ? [] : mostrados).map((a) => ({ tipo: 'atendimento' as const, id: a.id, dia: a.dia, chave: `${a.dia}T${a.hora ?? '00:00'}|${a.registradoEm ?? ''}`, a })),
+    ...docsMostrados.map((d) => ({ tipo: 'documento' as const, id: d.id, dia: d.dia, chave: `${d.dia}T${horaLocal(d.em)}|${d.em}`, d })),
+  ].sort((x, y) => y.chave.localeCompare(x.chave));
   const hoje = hojeISO();
   const ultimo = todos[0];
   const desdeUltimo = ultimo
@@ -6909,7 +6955,7 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
             )}
           </div>
         )}
-        {porArea.length > 1 && (
+        {porArea.length + (docs.length ? 1 : 0) > 1 && (
           <div className="opts" role="group" aria-label="Mostrar os atendimentos de">
             <button type="button" className="opt c-other" aria-pressed={!area} onClick={() => setArea('')}>
               Todas as áreas
@@ -6920,63 +6966,100 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
                 {a.label} · {a.n}
               </button>
             ))}
+            {docs.length > 0 && (
+              <button type="button" className="opt c-other" aria-pressed={area === 'documentos'}
+                      onClick={() => setArea(area === 'documentos' ? '' : 'documentos')}>
+                Documentos · {docs.length}
+              </button>
+            )}
           </div>
         )}
         {lista && lista.length === 0 && (
           <p className="mutetxt" style={{ margin: 0 }}>Nenhum atendimento da equipe técnica registrado com {nome} ainda.</p>
         )}
-        {lista && lista.length > 0 && mostrados.length === 0 && (
+        {lista && lista.length > 0 && linha.length === 0 && (
           <p className="mutetxt" style={{ margin: 0 }}>Nenhum atendimento com essa busca. Tente outra palavra ou outro período.</p>
         )}
-        <ol className="relatorio-tecnico">
-          {mostrados.map((a, i) => (
-            <li key={a.id}>
-              {(i === 0 || mesDe(mostrados[i - 1].dia) !== mesDe(a.dia)) && (
-                <div className="relatorio-mes">{mesDe(a.dia)}</div>
+        {/* A LINHA DO PERFIL (fase 305, pedido de 10/11): o atendimento e o documento posto no dossiê
+            na mesma linha, o mais novo em cima, cada um num cartão com a faixa do que é e da data,
+            quem cadastrou, os campos em grade, o relato e os arquivos à vista com o olho. */}
+        <ol className="relatorio-tecnico linha-do-perfil">
+          {linha.map((item, i) => (
+            <li key={`${item.tipo}-${item.id}`} className={item.tipo === 'atendimento' ? 'linha-atendimento' : 'linha-documento'}>
+              {(i === 0 || mesDe(linha[i - 1].dia) !== mesDe(item.dia)) && (
+                <div className="relatorio-mes">{mesDe(item.dia)}</div>
               )}
-              <article className={`relatorio-item area-${a.area}`}>
-                <span className="oc-quando">
-                  <b>{dia(a.dia).slice(0, 5)}</b>
-                  <span>{a.hora ?? a.dia.slice(0, 4)}</span>
+              <div className="linha-passo">
+                <span className={`linha-ponto faixa-${item.tipo === 'atendimento' ? item.a.area : 'documento'}`} aria-hidden="true">
+                  <Icone nome={item.tipo === 'atendimento' ? 'pessoa' : 'documento'} />
                 </span>
-                <div className="grow">
-                  <b className="ff">{a.areaRotulo}</b>
-                  {/* A data e a hora por extenso (fase 275), e quando foi registrado. */}
-                  <div className="mutetxt">
-                    {dia(a.dia)}{a.hora ? ` às ${a.hora}` : ''} · {a.por}
-                  </div>
-                  {(a.ondeFoiRotulo || a.local) && (
-                    <div className="mutetxt">{[a.ondeFoiRotulo, a.local].filter(Boolean).join(', ')}</div>
-                  )}
-                  {a.profissional && <div className="mutetxt">Atendimento por {a.profissional}</div>}
-                  {a.registradoEm && (
-                    <div className="mutetxt">Registrado em {diaEHora(a.registradoEm)}</div>
-                  )}
-                  <div className="relatorio-texto">{a.relato}</div>
-                  {/* Os arquivos à vista no cartão (fase 284): quantos são, e o toque abre a lista. */}
-                  <div className="row atendimento-arquivos">
-                    <span className={`pill ${a.anexos.length ? 'c-info' : 'c-mute'}`}>
-                      <Icone nome="anexo" /> {a.anexos.length ? quantos(a.anexos.length, 'arquivo', 'arquivos') : 'Sem arquivo'}
-                    </span>
-                    {a.anexos.length > 0 && (
-                      <button type="button" className="btn sm ghost" aria-expanded={arquivosDe === a.id}
-                              onClick={() => setArquivosDe(arquivosDe === a.id ? null : a.id)}>
-                        {arquivosDe === a.id ? 'Esconder os arquivos' : 'Ver os arquivos'}
-                      </button>
-                    )}
-                    {a.podeAnexar && (
-                      <button type="button" className="btn sm ghost" onClick={() => setJuntandoEm(a)}>Juntar arquivo</button>
-                    )}
-                  </div>
-                  {arquivosDe === a.id && a.anexos.map((x) => (
-                    <div key={x.id} className="row" style={{ gap: 8, marginTop: 4 }}>
-                      <span className="mutetxt grow"><Icone nome="anexo" /> {x.legenda || x.nome}</span>
-                      <button className="btn sm sec" aria-label={`Abrir ${x.legenda || x.nome}`}
-                              onClick={() => setVendo({ id: x.id, nome: x.legenda || x.nome })}>Abrir</button>
+                {item.tipo === 'atendimento' ? (() => { const a = item.a; return (
+                  <article className="cartao-linha" aria-label={`Atendimento de ${a.areaRotulo}, ${dia(a.dia)}`}>
+                    <header className="cartao-cabeca">
+                      <span className={`cartao-faixa faixa-${a.area}`}>
+                        <b>Atendimento · {a.areaRotulo}</b><span>{dia(a.dia)}</span>
+                      </span>
+                      <span className="cartao-quem">Cadastrado por <b>{a.por}</b></span>
+                      <span className="cartao-restrito"><Icone nome="cadeado" /> Equipe técnica</span>
+                    </header>
+                    <dl className="cartao-campos">
+                      <div><dt>Área</dt><dd>{a.areaRotulo}</dd></div>
+                      <div><dt>Data e hora</dt><dd>{dia(a.dia)}{a.hora ? ` às ${a.hora}` : ''}</dd></div>
+                      <div><dt>Onde</dt><dd>{[a.ondeFoiRotulo, a.local].filter(Boolean).join(', ') || 'Não informado'}</dd></div>
+                      <div><dt>Quem atendeu</dt><dd>{a.profissional ? `Atendimento por ${a.profissional}` : a.por}</dd></div>
+                    </dl>
+                    <div className="cartao-relato">
+                      <div className="cartao-rotulo">Relato do atendimento</div>
+                      <div className="relatorio-texto">{a.relato}</div>
                     </div>
-                  ))}
-                </div>
-              </article>
+                    {a.registradoEm && <div className="mutetxt">Registrado em {diaEHora(a.registradoEm)}</div>}
+                    <div className="cartao-arquivos">
+                      <div className="row cartao-arquivos-cabeca">
+                        <span className="cartao-rotulo grow">
+                          <Icone nome="anexo" /> {a.anexos.length ? quantos(a.anexos.length, 'arquivo', 'arquivos') : 'Sem arquivo'}
+                        </span>
+                        {a.podeAnexar && (
+                          <button type="button" className="btn sm ghost" onClick={() => setJuntandoEm(a)}>Juntar arquivo</button>
+                        )}
+                      </div>
+                      {a.anexos.map((x) => (
+                        <div key={x.id} className="row cartao-arquivo">
+                          <span className="grow">{x.legenda || x.nome}</span>
+                          <button className="btn sm sec olho" aria-label={`Abrir ${x.legenda || x.nome}`}
+                                  onClick={() => setVendo({ id: x.id, nome: x.legenda || x.nome })}>
+                            <Icone nome="olho" /> Ver
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ); })() : (() => { const d = item.d; return (
+                  <article className="cartao-linha" aria-label={`Documento ${d.titulo}, ${dia(d.dia)}`}>
+                    <header className="cartao-cabeca">
+                      <span className="cartao-faixa faixa-documento">
+                        <b>Documento · {d.categoria}</b><span>{dia(d.dia)}</span>
+                      </span>
+                      <span className="cartao-quem">Cadastrado por <b>{d.por}</b></span>
+                      {d.restrita && <span className="cartao-restrito"><Icone nome="cadeado" /> Área restrita</span>}
+                    </header>
+                    <dl className="cartao-campos">
+                      <div><dt>Nome</dt><dd>{d.titulo}</dd></div>
+                      <div><dt>Inserido em</dt><dd>{diaEHora(d.em)}</dd></div>
+                      {d.emitidoEm && <div><dt>Emitido em</dt><dd>{dia(d.emitidoEm)}</dd></div>}
+                      {d.validoAte && <div><dt>Válido até</dt><dd>{dia(d.validoAte)}</dd></div>}
+                    </dl>
+                    <div className="cartao-arquivos">
+                      <div className="row cartao-arquivo">
+                        <span className="grow">{d.arquivo}</span>
+                        <button className="btn sm sec olho" aria-label={`Abrir ${d.titulo}`}
+                                onClick={() => setVendoDoc({ id: d.id, nome: d.titulo })}>
+                          <Icone nome="olho" /> Ver
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ); })()}
+              </div>
             </li>
           ))}
         </ol>
@@ -6992,7 +7075,7 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
       )}
       {juntandoEm && (
         <FolhaJuntarAoAtendimento atendimento={juntandoEm} onFechar={() => setJuntandoEm(null)}
-          onJuntado={async (msg) => { setJuntandoEm(null); setAviso(msg); setArquivosDe(juntandoEm.id); await carregar(); }} />
+          onJuntado={async (msg) => { setJuntandoEm(null); setAviso(msg); await carregar(); }} />
       )}
       {registrando && (
         <FolhaAtendimentoTecnico personId={personId} nome={nome} onFechar={() => setRegistrando(false)}
@@ -7002,6 +7085,16 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
         <FolhaArquivo titulo={vendo.nome} legenda="A abertura fica registrada com o seu nome e o horário."
           carregar={() => api(`/people/technical-sessions/attachments/${vendo.id}/file`)}
           onFechar={() => setVendo(null)} />
+      )}
+      {vendoDoc && (
+        <FolhaArquivo titulo={vendoDoc.nome} legenda="A abertura fica registrada com o seu nome e o horário."
+          carregar={() => api(`/people/${personId}/documents/${vendoDoc.id}/file`)}
+          onBaixar={async () => {
+            const a = await api<{ nome: string; tipo: string; conteudo: string }>(
+              `/people/${personId}/documents/${vendoDoc.id}/download`, { method: 'POST' });
+            baixarArquivo(a.nome, a.tipo, a.conteudo);
+          }}
+          onFechar={() => setVendoDoc(null)} />
       )}
     </section>
   );

@@ -2373,6 +2373,38 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 .relatorio-item{ display:flex; gap:12px; align-items:flex-start; padding:10px 12px; border-radius:12px;
   background:var(--sunken); border-left:4px solid var(--aba-atendimentos) }
 .relatorio-texto{ white-space:pre-wrap; margin-top:6px; line-height:1.5 }
+/* A LINHA DO PERFIL (fase 305): o ponto na linha, e o cartão com a faixa do que é e da data.
+   A cor da faixa é a da ÁREA do atendimento (uma categoria, como as do Dia), nunca estado:
+   nenhuma delas é o verde de feito, o âmbar de atenção ou o vermelho de crítico. */
+:root{ --faixa-psicologia:#1F6FB2; --faixa-psicopedagogia:#7A4CC4; --faixa-servico_social:#0E7C86;
+  --faixa-pedagogia:#8C6A00; --faixa-outra:#5E6B7A; --faixa-documento:#4B5A8C }
+.faixa-psicologia{ --faixa:var(--faixa-psicologia) } .faixa-psicopedagogia{ --faixa:var(--faixa-psicopedagogia) }
+.faixa-servico_social{ --faixa:var(--faixa-servico_social) } .faixa-pedagogia{ --faixa:var(--faixa-pedagogia) }
+.faixa-outra{ --faixa:var(--faixa-outra) } .faixa-documento{ --faixa:var(--faixa-documento) }
+.linha-do-perfil{ position:relative }
+.linha-passo{ display:flex; gap:10px; align-items:flex-start; position:relative }
+.linha-do-perfil > li:not(:last-child) .linha-passo::before{ content:""; position:absolute; left:17px; top:36px;
+  bottom:-14px; width:2px; background:var(--line) }
+.linha-ponto{ flex:0 0 36px; width:36px; height:36px; border-radius:50%; display:grid; place-items:center;
+  background:var(--faixa, var(--ink-2)); color:#fff; position:relative; z-index:1 }
+.cartao-linha{ flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:10px 12px 12px; display:flex; flex-direction:column; gap:8px }
+.cartao-cabeca{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px }
+.cartao-faixa{ display:inline-flex; gap:16px; justify-content:space-between; align-items:center; flex-wrap:wrap;
+  background:var(--faixa, var(--ink-2)); color:#fff; border-radius:6px; padding:5px 12px; min-width:min(260px, 100%) }
+.cartao-faixa b{ font-weight:800 }
+.cartao-quem{ color:var(--ink-2); font-size:13.5px }
+.cartao-quem b{ color:var(--ink); font-weight:600 }
+.cartao-restrito{ margin-left:auto; display:inline-flex; align-items:center; gap:4px; color:var(--ink-2); font-size:13px; font-style:italic }
+.cartao-campos{ margin:0; display:grid; gap:8px 16px; grid-template-columns:repeat(auto-fill, minmax(min(180px, 100%), 1fr)) }
+.cartao-campos div{ min-width:0 }
+.cartao-campos dt, .cartao-rotulo{ color:var(--ink-2); font-size:13px }
+.cartao-campos dd{ margin:2px 0 0; overflow-wrap:anywhere }
+.cartao-relato{ border-top:1px solid var(--line); padding-top:8px }
+.cartao-relato .relatorio-texto{ margin-top:2px }
+.cartao-arquivos{ border-top:1px solid var(--line); padding-top:6px; display:flex; flex-direction:column; gap:4px }
+.cartao-arquivo{ gap:8px; align-items:center; padding:4px 0; border-bottom:1px dotted var(--line) }
+.cartao-arquivo span{ min-width:0; overflow-wrap:anywhere }
 @media (max-width: 719px){
   .ficha-geral{ grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .ficha-geral li > b{ font-size:15.5px }

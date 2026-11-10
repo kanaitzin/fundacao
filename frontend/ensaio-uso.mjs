@@ -4774,13 +4774,13 @@ console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fa
   await f.locator('#at-hora').fill('00:05');
   await f.locator('#at-relato').fill('Ligação para a madrinha sobre o passeio da escola (ensaio 275).');
   await f.getByRole('button', { name: /^Registrar/ }).last().click(); await esp(1300);
-  const primeiro = await pgO.locator('ol.relatorio-tecnico > li').first().innerText();
+  const primeiro = await pgO.locator('ol.relatorio-tecnico > li.linha-atendimento').first().innerText();
   cobrar('o atendimento registrado aparece no alto, com a hora escrita', /às 00:05/.test(primeiro) && /madrinha/.test(primeiro), primeiro.slice(0, 120));
   cobrar('e diz Assistência Social, que foi fora da casa, onde e quem atendeu (fase 284)',
     /Assistência Social/.test(primeiro) && /Externo, fora da casa, Casa da madrinha/.test(primeiro)
       && /Atendimento por Sara Assistente Social/.test(primeiro), primeiro.slice(0, 200));
   cobrar('quem registrou pode juntar arquivo ao atendimento',
-    await pgO.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Juntar arquivo' }).count() === 1);
+    await pgO.locator('ol.relatorio-tecnico > li.linha-atendimento').first().getByRole('button', { name: 'Juntar arquivo' }).count() === 1);
   /* O PDF do atendimento se vê na tela (fase 304): o quadro do navegador ficava em branco no
      Android e parado na primeira página no iPhone. Agora o sistema desenha as páginas. */
   {
@@ -4792,12 +4792,26 @@ console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fa
     let pdf = '%PDF-1.4\n'; const lug = objs.map((o, i) => { const at = pdf.length; pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; return at; });
     const xref = pdf.length; pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + lug.map((v) => `${String(v).padStart(10, '0')} 00000 n \n`).join('');
     pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-    await pgO.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Juntar arquivo' }).click(); await esp(600);
+    await pgO.locator('ol.relatorio-tecnico > li.linha-atendimento').first().getByRole('button', { name: 'Juntar arquivo' }).click(); await esp(600);
     await pgO.locator('#junta-arq-arquivo').setInputFiles({ name: 'oficio-304.pdf', mimeType: 'application/pdf', buffer: Buffer.from(pdf, 'latin1') }); await esp(1200);
     await pgO.locator('.overlay').last().getByRole('button', { name: 'Juntar ao atendimento' }).click(); await esp(1500);
-    await pgO.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Abrir oficio-304.pdf' }).click(); await esp(4000);
+    await pgO.locator('ol.relatorio-tecnico > li.linha-atendimento').first().getByRole('button', { name: 'Abrir oficio-304.pdf' }).click(); await esp(4000);
     const desenhadas = await pgO.locator('.overlay .pdf-paginas img').count();
     cobrar('o PDF juntado ao atendimento abre com as duas páginas desenhadas na tela (fase 304)', desenhadas === 2, `${desenhadas} páginas`);
+    await pgO.locator('.overlay').last().getByRole('button', { name: 'Fechar' }).click(); await esp(400);
+  }
+  /* A linha do perfil (fase 305, pedido de 10/11): a faixa com a área e a data, quem cadastrou,
+     e os documentos do dossiê na mesma linha, abertos pelo olho. */
+  {
+    const cartao = await pgO.locator('ol.relatorio-tecnico > li.linha-atendimento').first().innerText();
+    cobrar('o cartão do atendimento tem a faixa com a área e a data, e quem cadastrou (fase 305)',
+      /Atendimento · Assistência Social/.test(cartao) && /Cadastrado por/.test(cartao) && /Relato do atendimento/.test(cartao), cartao.slice(0, 160));
+    const docsNaLinha = pgO.locator('ol.relatorio-tecnico > li.linha-documento');
+    cobrar('os documentos do dossiê entram na mesma linha dos atendimentos (fase 305)', await docsNaLinha.count() > 0);
+    await docsNaLinha.first().getByRole('button', { name: /^Abrir / }).click(); await esp(3000);
+    cobrar('e o documento abre pelo olho, com Baixar depois de ver',
+      (await pgO.locator('.overlay img.previa-img, .overlay .pdf-paginas, .overlay iframe.previa-quadro').count()) > 0
+        && (await pgO.locator('.overlay').last().getByRole('button', { name: 'Baixar' }).count()) === 1);
     await pgO.locator('.overlay').last().getByRole('button', { name: 'Fechar' }).click(); await esp(400);
   }
   cobrar('e a técnica tem o botão de baixar os atendimentos em Word',
@@ -4944,9 +4958,7 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await pgT.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
   await pgT.getByRole('tab', { name: /Atendimentos/ }).click(); await esp(900);
   const bloco = pgT.locator('section.atendimentos-tecnicos');
-  /* Desde a 284 os arquivos ficam no cartão, atrás de Ver os arquivos. */
-  await bloco.locator('ol.relatorio-tecnico > li').filter({ hasText: 'Desenho livre' }).first()
-    .getByRole('button', { name: 'Ver os arquivos' }).click(); await esp(300);
+  /* Desde a 305 os arquivos ficam à vista no cartão, cada um com o olho. */
   cobrar('a aba Atendimentos traz os da equipe técnica, com o desenho',
     (await bloco.count()) > 0 && /Psicologia/.test(await bloco.innerText()) && /O desenho da sessão/.test(await bloco.innerText()));
   await bloco.getByRole('button', { name: 'Abrir O desenho da sessão' }).click(); await esp(900);
@@ -4964,7 +4976,6 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   /* Desde a 233 o arquivo escolhido já entra na lista da mensagem, sem o Pôr no atendimento. */
   await folha.getByRole('textbox', { name: 'O que é atividade.png' }).fill('A folha da atividade');
   await folha.getByRole('button', { name: 'Registrar o atendimento' }).click(); await esp(1200);
-  await bloco.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Ver os arquivos' }).click(); await esp(300);
   const depois = await bloco.innerText();
   cobrar('o atendimento novo aparece, com a folha da atividade',
     /Psicopedagogia/.test(depois) && /A folha da atividade/.test(depois) && /Atendimento registrado/.test(depois), depois.slice(0, 300));
