@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 302, dia: '10/11/2026',
+    texto: 'Na demonstração, as oito casas abrem cada uma com as suas crianças, a sua equipe e seis meses de ATAs, e o acervo de cada casa agora tem os nomes dela.' },
   { fase: 301, dia: '10/11/2026',
     texto: 'Sem mudança nas telas: as perguntas que esperam a Fundação foram postas em ordem para a reunião com o Marcelo, com as duas que se contradiziam no alto, onde o sistema roda e qual inteligência artificial a Acolhe+AI usa.' },
   { fase: 300, dia: '09/11/2026',

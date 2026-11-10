@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 10/11/2026, fase 301
+### Onde estamos — 10/11/2026, fase 302
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -445,6 +445,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 299 | **o botão das duas visões** (plano de 06/11, item 2, e o §10 item 1): quem alcança mais de uma casa vê no alto *Todas as casas* ou a casa aberta, e um toque escolhe entre as oito juntas (o Painel do gestor, o dia das unidades dos outros) e uma casa por inteiro (`FolhaDaCasa`); e **o Marcelo passa a ser a Coordenação Geral das oito casas no protótipo**, com a *Coordenação da casa* (a Carla, da Casa 03) no seletor |
 | 300 | **a Acolhe+AI acolhedora, e a conversa por voz** (pedido de 09/11): ela se apresenta pelo nome e pela hora, oferece frases prontas e os documentos que monta (`acolhe-boas-vindas.ts`), cada resposta tem *Ouvir* e *Copiar* no lugar das duas caixinhas, e o botão **Conversa por voz**, ao lado do microfone, abre a tela em que ela ouve, pensa e responde falando |
 | 301 | **a pauta do Marcelo, arrumada** (sem código): o PARA-A-REUNIAO §0 refeito, com as duas respostas que se contradiziam no alto (onde o 1.0 roda e qual IA), o que as 291 a 298 deixaram para decidir num bloco só, o DPO com o plano de incidente, as escolhas soltas dos §4.34 a §4.41 no bloco F, e o respondido fora |
+| 302 | **as oito casas conferidas para o Marcelo** (pedido de 10/11): como Coordenação Geral, cada casa abre com crianças, equipe de 18, ATAs desde maio, escala, agenda e perfis com as nove abas; a Marina e o Tiago do acervo, iguais nas oito, entram na troca de nomes de cada casa |
 
 **Medido no fim da 298:** 253 migrações, 155 tabelas, 178 suítes, 1542 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -570,6 +571,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 302** (§2): as oito casas do protótipo conferidas como o Marcelo as vê, a pedido de 10/11. **Nome de criança da casa-modelo que aparece no protótipo entra no `MENINAS_DO_MODELO` ou no `MENINOS_DO_MODELO` do `casas-ficticias.ts`, sempre no fim** (no meio, mudaria o nome de todas as crianças das outras casas). **A sonda das oito casas** (entrar como Coordenação Geral, trocar pelo `.troca-casa`, ler Acolhidos, perfil, Atas do Mês mês a mês e a escala) ficou no scratchpad; a régua é a tabela da linha 302 do §2. **Medido:** a sonda nas oito casas a 1366 px, antes e depois do conserto (nenhum erro de página), o `tsc` da tela, e o que está no fechamento abaixo. **Próxima:** a mesma da 301.
 
 **FEITO — fase 301** (§2): a pauta do Marcelo arrumada, sem código. **Os números A1 a A18, C1 a C8 e F1 a F42 ficam**: quem responde ou cita um item usa o número, e o item respondido sai para *O que já foi respondido*, no fim do §0, com a fase que o fez. **Pergunta nova para a Fundação** entra no bloco do §0 em que ela se decide, com o que vale hoje entre parênteses; o §4.x guarda só o porquê. **As duas perguntas do alto** (onde o 1.0 roda e qual IA) não se decidem daqui: as duas respostas são defensáveis e foram escritas pela Fundação em dias diferentes. **Medido:** o `numeros-da-documentacao`, o `documentacao` e o `o-guia-do-sistema`, e a suíte inteira nas DUAS condições de relógio (1550 de 1550 nas duas). **Não rodou** nenhum ensaio de navegador (nenhuma tela mudou; o protótipo foi regerado só pela linha das Novidades). **Conferida contra o código em 10/11** pelo `auditor-docs-vs-codigo`: o §0, o Word (`docs/pauta-da-conversa-com-o-marcelo.docx`, gerado por um script no scratchpad, que se refaz pelo texto do §0) e as frases velhas do §4.9, do §4.41, do §3 pergunta 7, do REDE §8.2.1 e da Novidade 277 corrigidos (ninguém destrava a entrada antes dos quinze minutos; a trava não sabe de qual casa é o endereço; o educador já vê a Agenda; as ocorrências já aparecem no Dia a dia do perfil; a folha da guarita não leva o RG; a página das três direções visuais se perdeu e precisa ser refeita antes do F42); entraram A19 (o repositório público), C9 (a conversa da Acolhe+AI no aparelho) e F43 (o Gestor Geral triando a evolução de saúde). **Anotado, sem estar na pauta:** a guarda de cargo nulo da 1634 continua aberta (`1634_a_coordenacao_geral.sql`, linhas 38 e 74). **Próxima:** levar a pauta à reunião; com a resposta das duas perguntas do alto, o 1.0, só quando a pessoa da Fundação pedir (é deploy), com o agente `implantacao`.
 

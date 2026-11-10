@@ -54,9 +54,12 @@ export const CASAS_DA_FUNDACAO: CasaFicticia[] = [
 export const CASA_MODELO = 'casa-ai3';
 
 /** Os nomes da casa-modelo que mudam de casa para casa. */
-const MENINAS_DO_MODELO = ['Alice', 'Gabi', 'Helena', 'Lara', 'Nina', 'Sofia', 'Vitória', 'Yasmin'];
+/* A Marina e o Tiago são os dois que já nascem no acervo: no fim da lista, para que o sorteio
+   das outras crianças continue o mesmo e o acervo de cada casa tenha os nomes dela (até 10/11 a
+   Marina e o Tiago apareciam iguais no acervo das oito casas). */
+const MENINAS_DO_MODELO = ['Alice', 'Gabi', 'Helena', 'Lara', 'Nina', 'Sofia', 'Vitória', 'Yasmin', 'Marina'];
 const MENINOS_DO_MODELO = ['Bruno', 'Caio', 'Davi', 'Enzo', 'Felipe', 'Igor', 'Kauã', 'Miguel',
-  'Otávio', 'Pedro', 'Rafa', 'Théo'];
+  'Otávio', 'Pedro', 'Rafa', 'Théo', 'Tiago'];
 
 /**
  * A equipe da casa-modelo: o nome inteiro, o primeiro nome que aparece nos
