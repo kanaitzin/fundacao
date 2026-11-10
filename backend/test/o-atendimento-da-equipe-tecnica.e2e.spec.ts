@@ -95,6 +95,27 @@ describe('O atendimento da equipe técnica', () => {
     expect(rows.every((x) => x.house_id === ids.AI3)).toBe(true);
   });
 
+  it('baixar o arquivo depois de ver fica na auditoria como baixado, e a outra casa não baixa (fase 306)', async () => {
+    const r = await request(http).post(`/api/v1/people/technical-sessions/attachments/${ids.anexo}/download`)
+      .set(auth(tokens.coord)).expect(201);
+    expect(r.body.conteudo).toBe(PNG);
+    const { rows } = await admin.query(
+      `SELECT house_id FROM audit_event WHERE entity_id = $1 AND action = 'atendimento_tecnico.anexo.baixado'`, [ids.anexo]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].house_id).toBe(ids.AI3);
+    expect((await request(http).post(`/api/v1/people/technical-sessions/attachments/${ids.anexo}/download`)
+      .set(auth(tokens.coord4))).status).toBe(404);
+  });
+
+  it('o atendimento comportamental da casa se registra como os outros, com o nome que educa (fase 306)', async () => {
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.coord))
+      .send({ area: 'comportamental', dia: hoje, hora: '00:02', ondeFoi: 'interno', local: 'Sala da coordenação',
+              relato: 'Conversa sobre a briga no quarto e o combinado de chamar a educadora antes (fictício).' });
+    expect(r.status).toBe(201);
+    const lista = (await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.coord)).expect(200)).body;
+    expect(lista.find((x: any) => x.id === r.body.id).areaRotulo).toBe('Atendimento comportamental da casa');
+  });
+
   it('o educador não lê nem registra, e a outra casa não alcança', async () => {
     expect((await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))).status).toBe(403);
     expect((await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))

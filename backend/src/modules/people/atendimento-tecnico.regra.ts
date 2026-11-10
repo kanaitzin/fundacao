@@ -9,6 +9,9 @@ export const AREAS_DO_ATENDIMENTO = [
   { cod: 'psicopedagogia', label: 'Psicopedagogia' },
   { cod: 'servico_social', label: 'Assistência Social' },
   { cod: 'pedagogia', label: 'Pedagogia' },
+  /* Fase 306 (pedido de 10/11): a conversa de quem cuida com a criança sobre o que aconteceu e o
+     combinado dali para frente. Era a advertência; o nome diz que é educar, e não punir. */
+  { cod: 'comportamental', label: 'Atendimento comportamental da casa' },
   { cod: 'outra', label: 'Outra área' },
 ] as const;
 

@@ -179,8 +179,12 @@ export class AtendimentosTecnicosService {
     };
   }
 
-  /** O arquivo de um atendimento. Cada abertura fica registrada, e o sha256 é conferido. */
-  async arquivo(user: AuthenticatedUser, anexoId: string) {
+  /**
+   * O arquivo de um atendimento. Cada abertura fica registrada, e o sha256 é conferido.
+   * Baixar (fase 306) é a mesma leitura, anotada como baixado: abrir e baixar são atos
+   * diferentes, e a auditoria diz qual foi.
+   */
+  async arquivo(user: AuthenticatedUser, anexoId: string, baixando = false) {
     const a = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(
         `SELECT session_id, person_id, storage_key, sha256, mime, file_name
@@ -189,7 +193,7 @@ export class AtendimentosTecnicosService {
     });
     if (!a) throw new NotFoundException('Arquivo não encontrado.');
     await this.audit.log({
-      action: 'atendimento_tecnico.anexo.aberto', actorId: user.id,
+      action: baixando ? 'atendimento_tecnico.anexo.baixado' : 'atendimento_tecnico.anexo.aberto', actorId: user.id,
       houseId: await this.audit.casaDoAcolhido(user.id, a.person_id),
       entity: 'technical_session_attachment', entityId: anexoId,
       detail: { atendimento: a.session_id },

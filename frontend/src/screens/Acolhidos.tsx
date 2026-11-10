@@ -7084,6 +7084,11 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
       {vendo && (
         <FolhaArquivo titulo={vendo.nome} legenda="A abertura fica registrada com o seu nome e o horário."
           carregar={() => api(`/people/technical-sessions/attachments/${vendo.id}/file`)}
+          onBaixar={async () => {
+            const a = await api<{ nome: string; tipo: string; conteudo: string }>(
+              `/people/technical-sessions/attachments/${vendo.id}/download`, { method: 'POST' });
+            baixarArquivo(a.nome, a.tipo, a.conteudo);
+          }}
           onFechar={() => setVendo(null)} />
       )}
       {vendoDoc && (

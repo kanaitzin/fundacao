@@ -2377,10 +2377,10 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
    A cor da faixa é a da ÁREA do atendimento (uma categoria, como as do Dia), nunca estado:
    nenhuma delas é o verde de feito, o âmbar de atenção ou o vermelho de crítico. */
 :root{ --faixa-psicologia:#1F6FB2; --faixa-psicopedagogia:#7A4CC4; --faixa-servico_social:#0E7C86;
-  --faixa-pedagogia:#8C6A00; --faixa-outra:#5E6B7A; --faixa-documento:#4B5A8C }
+  --faixa-pedagogia:#8C6A00; --faixa-comportamental:#9C3F78; --faixa-outra:#5E6B7A; --faixa-documento:#4B5A8C }
 .faixa-psicologia{ --faixa:var(--faixa-psicologia) } .faixa-psicopedagogia{ --faixa:var(--faixa-psicopedagogia) }
 .faixa-servico_social{ --faixa:var(--faixa-servico_social) } .faixa-pedagogia{ --faixa:var(--faixa-pedagogia) }
-.faixa-outra{ --faixa:var(--faixa-outra) } .faixa-documento{ --faixa:var(--faixa-documento) }
+.faixa-comportamental{ --faixa:var(--faixa-comportamental) } .faixa-outra{ --faixa:var(--faixa-outra) } .faixa-documento{ --faixa:var(--faixa-documento) }
 .linha-do-perfil{ position:relative }
 .linha-passo{ display:flex; gap:10px; align-items:flex-start; position:relative }
 .linha-do-perfil > li:not(:last-child) .linha-passo::before{ content:""; position:absolute; left:17px; top:36px;

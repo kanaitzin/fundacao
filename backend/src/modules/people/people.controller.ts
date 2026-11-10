@@ -560,6 +560,13 @@ export class PeopleController {
     return this.atendimentos.arquivo(user, anexoId);
   }
 
+  /** Baixar o arquivo de um atendimento (fase 306), depois de ver: fica anotado como baixado. */
+  @Post('technical-sessions/attachments/:anexoId/download')
+  baixarArquivoDoAtendimento(@CurrentUser() user: AuthenticatedUser,
+                             @Param('anexoId', ParseUUIDPipe) anexoId: string) {
+    return this.atendimentos.arquivo(user, anexoId, true);
+  }
+
   /** Juntar o arquivo que faltou a um atendimento (fase 284): só quem o registrou. */
   @Post('technical-sessions/:sessionId/attachments')
   juntarAoAtendimento(@CurrentUser() user: AuthenticatedUser,

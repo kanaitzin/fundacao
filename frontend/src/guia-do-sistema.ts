@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 306, dia: '10/11/2026',
+    texto: 'O atendimento ganhou a área Atendimento comportamental da casa: a conversa com a criança sobre o que aconteceu e o combinado dali para frente, no lugar da advertência. E o arquivo do atendimento, depois de aberto, também se baixa.' },
   { fase: 305, dia: '10/11/2026',
     texto: 'Na aba Atendimentos do perfil, cada atendimento vira um cartão com a faixa da área e a data, quem cadastrou, onde foi, quem atendeu, o relato e os arquivos à vista com o olho. E os documentos postos no dossiê entram na mesma linha, em ordem de data, com Ver e Baixar.' },
   { fase: 304, dia: '10/11/2026',

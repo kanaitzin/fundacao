@@ -4607,6 +4607,10 @@ function semearAtendimentos() {
       + 'sílabas com M e P.'],
     [34, 'servico_social', 'Sara Assistente Social', 'Conversa sobre a visita da avó no domingo. Alice contou '
       + 'que gosta quando a avó traz o caderno de desenhos. Combinado com a família o horário das próximas visitas.'],
+    /* O atendimento comportamental da casa (fase 306): a conversa sobre o que aconteceu e o combinado. */
+    [13, 'comportamental', 'Carla Coordenadora', 'Conversa com a Alice sobre a briga com a colega do quarto '
+      + 'por causa do estojo. Ela contou o que sentiu e pediu desculpas do jeito dela. Combinado: quando ficar '
+      + 'brava, chama a educadora antes. A equipe da noite vai lembrar o combinado na hora de dormir.'],
     [41, 'psicologia', 'Tatiane Técnica', 'Atendimento com massinha. Alice montou a casa e o quarto, '
       + 'nomeou as colegas e disse que dorme melhor com a luz do corredor acesa. Combinado com a equipe da noite.'],
     [63, 'psicopedagogia', 'Paula Psicopedagoga', 'Primeira avaliação: atenção boa em atividades curtas, '
@@ -4619,7 +4623,7 @@ function semearAtendimentos() {
       hora, relato, registradoEm: `${diasAtras(d)}T17:${String(10 + (d % 40)).padStart(2, '0')}:00-03:00`, por, anexos: [],
       ondeFoi: area === 'servico_social' ? 'externo' : 'interno',
       local: area === 'servico_social' ? 'Casa da avó, no bairro Partenon' : area === 'psicopedagogia'
-        ? 'Sala de estudos da casa' : 'Sala de atendimento da casa',
+        ? 'Sala de estudos da casa' : area === 'comportamental' ? 'Sala da coordenação' : 'Sala de atendimento da casa',
       profissional: null });
   }
 }
@@ -10105,8 +10109,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'com o seu nome, o horário e o motivo — e aparece no perfil para quem cuida da criança.' };
   }
   /* O ATENDIMENTO DA EQUIPE TÉCNICA (fase 218): a mesma regra do servidor. */
+  /* Baixar (fase 306) é a mesma leitura do arquivo, por POST, como no servidor. */
   if (seg[0] === 'people' && seg[1] === 'technical-sessions' && seg[2] === 'attachments'
-      && seg[4] === 'file' && metodo === 'GET') {
+      && ((seg[4] === 'file' && metodo === 'GET') || (seg[4] === 'download' && metodo === 'POST'))) {
     semearAtendimentos();
     if (!QUEM_LE_ATENDIMENTO.includes(eu.role)) return new Recusa(404, 'Arquivo não encontrado.');
     const a = ATENDIMENTOS_TECNICOS.flatMap((x) => x.anexos).find((x) => x.id === seg[3]);

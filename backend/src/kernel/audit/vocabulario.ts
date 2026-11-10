@@ -120,6 +120,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   // ------------------------------------------------------- Atendimento técnico
   'atendimento_tecnico.registrado': 'Atendimento da equipe técnica registrado',
   'atendimento_tecnico.anexo.aberto': 'Arquivo de atendimento aberto',
+  'atendimento_tecnico.anexo.baixado': 'Arquivo de atendimento baixado',
   'atendimento_tecnico.anexo.juntado': 'Arquivo juntado a um atendimento técnico',
   'contato.encerrado': 'Contato encerrado',
   'contato.visita.autorizada': 'Visita autorizada',

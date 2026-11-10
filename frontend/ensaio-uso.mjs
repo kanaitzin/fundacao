@@ -4798,6 +4798,8 @@ console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fa
     await pgO.locator('ol.relatorio-tecnico > li.linha-atendimento').first().getByRole('button', { name: 'Abrir oficio-304.pdf' }).click(); await esp(4000);
     const desenhadas = await pgO.locator('.overlay .pdf-paginas img').count();
     cobrar('o PDF juntado ao atendimento abre com as duas páginas desenhadas na tela (fase 304)', desenhadas === 2, `${desenhadas} páginas`);
+    cobrar('e, depois de ver, o arquivo do atendimento se baixa (fase 306)',
+      await pgO.locator('.overlay').last().getByRole('button', { name: 'Baixar' }).count() === 1);
     await pgO.locator('.overlay').last().getByRole('button', { name: 'Fechar' }).click(); await esp(400);
   }
   /* A linha do perfil (fase 305, pedido de 10/11): a faixa com a área e a data, quem cadastrou,
