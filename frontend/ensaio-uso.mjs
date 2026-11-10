@@ -5037,15 +5037,15 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   const at = await pgP.locator('section.atendimentos-tecnicos').innerText();
   cobrar('os Atendimentos são só os da equipe técnica, sem café nem almoço',
     !/Café da manhã|Almoço/.test(at) && /Psicologia/.test(at) && /Psicopedagogia/.test(at));
-  /* A data inteira, com a hora quando há (fase 275): o quadradinho da data mostra a hora no lugar do ano. */
-  const datas = await pgP.locator('.relatorio-item').allInnerTexts();
+  /* A data inteira, com a hora quando há (fase 275); desde a 305 cada cartão da linha (.cartao-linha) abre com a faixa e a data. */
+  const datas = await pgP.locator('.cartao-linha').allInnerTexts();
   const iso = datas.map((d) => { const m = /(\d{2})\/(\d{2})\/(\d{4})(?: às (\d{2}:\d{2}))?/.exec(d);
     return m ? `${m[3]}-${m[2]}-${m[1]} ${m[4] ?? ''}` : ''; });
   cobrar('o relatório vem do mais novo para o mais antigo',
     iso.length >= 3 && iso.every((d, i) => i === 0 || iso[i - 1] >= d), iso.join(' '));
   cobrar('os Atendimentos têm os números por área', /em números/i.test(at) && /psicopedagogia/.test(at));
   await pgP.getByRole('button', { name: /^Psicopedagogia · / }).click(); await esp(400);
-  const soPsicoped = await pgP.locator('.relatorio-item').allInnerTexts();
+  const soPsicoped = await pgP.locator('.cartao-linha').allInnerTexts();
   cobrar('o filtro por área mostra só a área escolhida',
     soPsicoped.length > 0 && soPsicoped.every((t) => /Psicopedagogia/.test(t)));
 
