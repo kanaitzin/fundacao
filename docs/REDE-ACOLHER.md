@@ -1342,9 +1342,9 @@ leria a ausência como "não há telefone da escola", e ligaria para ninguém �
 **ausência que mente é pior do que recusa que explica**.
 
 **O que ficou de fora, e é decisão do Marcelo:** a *agenda de consulta*, que ele
-citou junto. Ela não mora no perfil e o educador não a vê hoje; ligá-la seria
-alargar o alcance do cargo, que é o que foi recusado. Virou a pergunta 7 do
-roteiro — e, se a resposta for sim, vale para as oito casas, decidido uma vez.
+citou junto. Ela não mora no perfil. *Conferido em 10/11:* o educador já vê a
+Agenda da casa pelo alcance do cargo (`alcance.ts`), e marcar continua com líder,
+técnica e coordenação; a pergunta que sobra é o F14 do PARA-A-REUNIAO §0.
 
 ### 8.2.2 A pauta que quem trabalha na casa propõe
 
