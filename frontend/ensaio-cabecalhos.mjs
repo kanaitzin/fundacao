@@ -280,7 +280,8 @@ if (!process.env.ENSAIO_SO_PAPEL) cobrar(`as telas de cada cargo abrem sem recus
   const lido = await pg.locator('#ler-texto-caixa').inputValue().catch(() => '');
   cobrar('a leitura do papel funciona com a CSP da tela', /Primavera/.test(lido), lido || 'nada lido');
   await recolher(pg, quem, estado);
-  /* O PDF abre no quadro (a CSP sem `frame-src` o recusava: revisão da 295). */
+  /* O PDF abre desenhado pelo sistema (fase 304; até a 303 era um quadro, que a CSP sem `frame-src`
+     recusava, revisão da 295). O desenho roda na página, e a CSP não pode recusá-lo calada. */
   estado.onde = 'PDF';
   await pg.keyboard.press('Escape').catch(() => undefined);
   await pg.locator('.overlay').getByRole('button', { name: /Fechar|Ainda não/ }).last().click().catch(() => undefined);
@@ -292,9 +293,9 @@ if (!process.env.ENSAIO_SO_PAPEL) cobrar(`as telas de cada cargo abrem sem recus
   await pg.locator('.overlay .rodape button').last().click(); await pg.waitForTimeout(2000);
   await pg.locator('main.conteudo div').filter({ hasText: 'oficio-295.pdf', has: botaoDoDoc })
     .last().locator(botaoDoDoc).first().click().catch(() => undefined);
-  await pg.waitForTimeout(2500);
-  const quadro = pg.locator('.overlay iframe');
-  cobrar('o PDF abre no quadro da tela', await quadro.count() === 1);
+  await pg.waitForTimeout(4000);
+  const paginas = pg.locator('.overlay .pdf-paginas img');
+  cobrar('o PDF abre desenhado na tela, sem o quadro de reserva', await paginas.count() >= 1 && await pg.locator('.overlay iframe').count() === 0);
   await recolher(pg, quem, estado);
   estado.onde = 'aviso no celular';
   const sw = await pg.evaluate(async () => !!(await navigator.serviceWorker?.getRegistration?.()));

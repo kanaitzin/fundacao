@@ -2054,7 +2054,7 @@ if (await doMais('Ocorrências')) {
       await olho.click();
       await pg.waitForTimeout(900);
       cobrar('o anexo guardado no sistema ABRE — não devolve um caminho de pasta',
-        (await pg.locator('.overlay img.previa-img, .overlay iframe.previa-quadro').count()) > 0,
+        (await pg.locator('.overlay img.previa-img, .overlay .pdf-paginas, .overlay iframe.previa-quadro').count()) > 0,
         'era isto que a tela dizia não fazer: "o sistema não abre o arquivo"');
       await fechar();
     }
@@ -2215,7 +2215,7 @@ if (await verNota.count()) {
   await verNota.click();
   await pg.waitForTimeout(900);
   cobrar('e a nota fiscal abre na tela',
-    (await pg.locator('.overlay img.previa-img, .overlay iframe.previa-quadro').count()) > 0);
+    (await pg.locator('.overlay img.previa-img, .overlay .pdf-paginas, .overlay iframe.previa-quadro').count()) > 0);
   await fechar();
 }
 /* O MOVIMENTO DO ARMÁRIO (fase 109) — a caixa que ninguém podia abrir.
@@ -4781,6 +4781,25 @@ console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fa
       && /Atendimento por Sara Assistente Social/.test(primeiro), primeiro.slice(0, 200));
   cobrar('quem registrou pode juntar arquivo ao atendimento',
     await pgO.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Juntar arquivo' }).count() === 1);
+  /* O PDF do atendimento se vê na tela (fase 304): o quadro do navegador ficava em branco no
+     Android e parado na primeira página no iPhone. Agora o sistema desenha as páginas. */
+  {
+    const linha = (t) => `BT /F1 28 Tf 72 720 Td (${t}) Tj ET`;
+    const paginas = ['Pagina um do oficio ficticio', 'Pagina dois do oficio ficticio'];
+    const objs = ['<< /Type /Catalog /Pages 2 0 R >>', `<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>`];
+    for (const t of paginas) { const c = linha(t); objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents ${objs.length + 2} 0 R /Resources << /Font << /F1 7 0 R >> >> >>`); objs.push(`<< /Length ${c.length} >>\nstream\n${c}\nendstream`); }
+    objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    let pdf = '%PDF-1.4\n'; const lug = objs.map((o, i) => { const at = pdf.length; pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; return at; });
+    const xref = pdf.length; pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + lug.map((v) => `${String(v).padStart(10, '0')} 00000 n \n`).join('');
+    pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+    await pgO.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Juntar arquivo' }).click(); await esp(600);
+    await pgO.locator('#junta-arq-arquivo').setInputFiles({ name: 'oficio-304.pdf', mimeType: 'application/pdf', buffer: Buffer.from(pdf, 'latin1') }); await esp(1200);
+    await pgO.locator('.overlay').last().getByRole('button', { name: 'Juntar ao atendimento' }).click(); await esp(1500);
+    await pgO.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Abrir oficio-304.pdf' }).click(); await esp(4000);
+    const desenhadas = await pgO.locator('.overlay .pdf-paginas img').count();
+    cobrar('o PDF juntado ao atendimento abre com as duas páginas desenhadas na tela (fase 304)', desenhadas === 2, `${desenhadas} páginas`);
+    await pgO.locator('.overlay').last().getByRole('button', { name: 'Fechar' }).click(); await esp(400);
+  }
   cobrar('e a técnica tem o botão de baixar os atendimentos em Word',
     await pgO.getByRole('button', { name: /Baixar os atendimentos em Word/ }).count() === 1);
 

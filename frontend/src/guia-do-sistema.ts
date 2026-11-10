@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 304, dia: '10/11/2026',
+    texto: 'O PDF anexado agora abre com as páginas na tela também no celular, no atendimento, no dossiê e em todo anexo: role para ver as outras páginas. Antes, no Android a área ficava em branco e no iPhone aparecia só a primeira página.' },
   { fase: 303, dia: '10/11/2026',
     texto: 'A Acolhe+AI responde ao bom dia com bom dia, explica a tela que você pediu numa frase de colega, ajuda quem atende várias casas a trocar de casa pelo botão do alto, e avisa quando espera a sua resposta para mexer na tela. Ela também faz a conta das doses (3 doses de 5 ml por dia em 7 dias), diz onde ficam os remédios de cada criança, explica como falar com a coordenação e, quando duas telas têm o mesmo nome, mostra as duas. A frase pronta Marcar um compromisso aparece só para quem marca.' },
   { fase: 302, dia: '10/11/2026',

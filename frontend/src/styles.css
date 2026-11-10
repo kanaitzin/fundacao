@@ -1032,6 +1032,10 @@ textarea{
   width:100%; height:calc(46vh / var(--zoom-da-letra, 1)); border:0; border-radius:10px;
   background:#fff; display:block;
 }
+/* As páginas desenhadas pelo sistema (fase 304): uma embaixo da outra, roladas dentro do quadro. */
+.pdf-paginas{ overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:8px; background:var(--line); }
+.pdf-paginas img{ width:100%; height:auto; display:block; background:#fff; border-radius:4px; }
+.pdf-paginas .mutetxt{ margin:8px; }
 
 /* ============================================================
    GRÁFICOS (fase 120) — a primeira cor deste sistema que NÃO é estado.

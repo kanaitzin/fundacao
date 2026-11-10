@@ -221,7 +221,41 @@ export function QuadroDoPdf({ src, titulo, tipo, className = 'previa-quadro', st
   if ((tipo || doEndereco).toLowerCase() !== 'application/pdf') {
     return <p className="mutetxt">Este arquivo não abre aqui. Baixe para ver.</p>;
   }
-  return <iframe src={src} title={titulo} className={className} style={style} />;
+  return <PaginasDoPdf src={src} titulo={titulo} className={className} style={style} />;
+}
+
+/**
+ * As páginas do PDF desenhadas pelo sistema (fase 304): o quadro do navegador ficava em branco
+ * no Android e parado na primeira página no iPhone. Se o desenho falhar, o quadro de antes volta,
+ * que no computador ainda abre.
+ */
+function PaginasDoPdf({ src, titulo, className, style }: {
+  src: string; titulo: string; className: string; style?: React.CSSProperties;
+}) {
+  const [estado, setEstado] = useState<{ paginas: string[]; total: number } | 'abrindo' | 'falhou'>('abrindo');
+  const [andou, setAndou] = useState('');
+  useEffect(() => {
+    let vivo = true;
+    setEstado('abrindo');
+    import('./pdf-na-tela')
+      .then((m) => m.paginasDoPdfNaTela(src, (f, t) => { if (vivo) setAndou(`Página ${f} de ${t}`); }))
+      .then((r) => { if (vivo) setEstado(r); })
+      .catch(() => { if (vivo) setEstado('falhou'); });
+    return () => { vivo = false; };
+  }, [src]);
+  if (estado === 'falhou') return <iframe src={src} title={titulo} className={className} style={style} />;
+  if (estado === 'abrindo') {
+    return <div className={`${className} pdf-paginas`} style={style} role="status"><p className="mutetxt">Abrindo o PDF… {andou}</p></div>;
+  }
+  const fora = estado.total - estado.paginas.length;
+  return (
+    <div className={`${className} pdf-paginas`} style={style} aria-label={`${titulo}, ${estado.total === 1 ? '1 página' : `${estado.total} páginas`}`}>
+      {estado.paginas.map((p, i) => (
+        <img key={i} src={p} alt={`${titulo}, página ${i + 1} de ${estado.total}`} />
+      ))}
+      {fora > 0 && <p className="mutetxt">Mostrei as primeiras {estado.paginas.length} páginas. As outras {fora} estão no arquivo baixado.</p>}
+    </div>
+  );
 }
 
 export function FolhaArquivo({ titulo, legenda, carregar, onFechar, onBaixar }: {
