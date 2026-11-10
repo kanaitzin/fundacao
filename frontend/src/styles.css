@@ -2646,7 +2646,8 @@ button[data-gravando]{ cursor:progress }
 
 /* A AGENDA EM GRADE (fase 280). */
 .agenda-dia{ font:inherit; align-items:center; padding:4px 2px; min-height:44px; border:1.5px solid transparent; cursor:pointer }
-.agenda-dia.vazio{ cursor:default; opacity:.7 }
+.agenda-dia.vazio{ cursor:default }
+.agenda-dia.vazio .cal-num{ color:var(--muted); font-weight:700 }
 .agenda-dia:focus-visible{ outline:3px solid var(--brand); outline-offset:1px }
 .agenda-conta{ font-size:12px; font-weight:800; color:var(--brand-solid); background:var(--brand-soft); border-radius:999px; padding:0 7px }
 
