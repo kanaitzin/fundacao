@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 11/11/2026, fase 313
+### Onde estamos — 11/11/2026, fase 314
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -457,8 +457,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 311 | **a Acolhe+AI fala como colega, e entende as quatro vozes da casa** (pedido de 11/11): sem o aviso do modo guia; o banco de palavras com o que dizem a psicóloga, a coordenação, o educador social e a assistente social; e o cuidado quando a criança fala em morrer e no xixi na cama, também nas instruções do modelo; a **voz da leitura** escolhida pela qualidade, mais ágil e trocável; e **o relatório pedido pela voz fica no chat** (abria o perfil) |
 | 312 | **o protótipo guarda o que se registra** (pedido de 11/11): a faixa *nada é salvo* saiu; um diário no IndexedDB do navegador repete as gravações ao abrir, com ids estáveis (`prototipo-guardado.ts`); e o Recomeçar a demonstração na Minha conta |
 | 313 | **o protótipo sem o que ninguém escreveu** (pedido de 11/11): o rastro do relatório inventado e que nem abria, a memória de fábrica, os documentos de fábrica e quatro números do painel escritos à mão, hoje lidos dos registros; e a aba Vivências do sistema de verdade mostrando o código do tipo |
+| 314 | **o acabamento visual** (pedido de 11/11: *melhore a qualidade visual em tudo*): uma camada de acabamento no fim do `styles.css` (raio, sombra, borda, botão em três pesos, campo, aviso, folha), a partir do estudo de 30/10; no monitor, **o topo numa linha**, **o botão sozinho do tamanho do que diz** e **a entrada em duas metades**; no escuro, o botão cheio em azul profundo com letra branca; e **o Word e a folha na tela com o azul do timbre**, no servidor e no protótipo |
 
-**Medido no fim da 313:** 256 migrações, 155 tabelas, 178 suítes, 1561 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 314:** 256 migrações, 155 tabelas, 178 suítes, 1561 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;

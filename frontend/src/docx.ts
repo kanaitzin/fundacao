@@ -145,7 +145,17 @@ interface OpcoesParagrafo {
   negrito?: boolean; italico?: boolean; caixaAlta?: boolean;
   alinhamento?: 'center' | 'both' | 'left' | 'right';
   recuo?: boolean; tamanho?: number; cor?: string; espacoDepois?: number;
+  /** Um fio embaixo do parágrafo: o título de cada seção (fase 314). */
+  fioAbaixo?: boolean;
 }
+
+/* AS CORES DO PAPEL (fase 314): o azul do timbre nos títulos e no cabeçalho dos
+   quadros, e um cinza azulado nos fios. São as mesmas do documento que o servidor
+   gera (`documentos.service.ts`): quem confere um, confere o outro. */
+const AZUL = '1F3864';
+const CINZA = '595959';
+const FIO = 'B8C4D6';
+const FUNDO_DO_CABECALHO = 'DCE6F2';
 
 function par(texto: string, o: OpcoesParagrafo = {}): string {
   const rpr = [
@@ -161,7 +171,10 @@ function par(texto: string, o: OpcoesParagrafo = {}): string {
     `<w:jc w:val="${o.alinhamento ?? 'both'}"/>`,
     o.recuo ? '<w:ind w:firstLine="708"/>' : '',
   ].join('');
-  return `<w:p><w:pPr>${ppr}<w:rPr>${rpr}</w:rPr></w:pPr>`
+  /* A ordem dos filhos do `w:pPr` é fixa no formato: a borda vem antes do espaçamento. */
+  const fio = o.fioAbaixo
+    ? `<w:keepNext/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="2" w:color="${FIO}"/></w:pBdr>` : '';
+  return `<w:p><w:pPr>${fio}${ppr}<w:rPr>${rpr}</w:rPr></w:pPr>`
     + `<w:r><w:rPr>${rpr}</w:rPr><w:t xml:space="preserve">${esc(texto)}</w:t></w:r></w:p>`;
 }
 
@@ -179,16 +192,16 @@ function tabela(cabecalho: string[], linhas: string[][]): string {
   const largura = Math.floor(9070 / Math.max(cabecalho.length, 1));
   const celula = (t: string, negrito: boolean) =>
     `<w:tc><w:tcPr><w:tcW w:w="${largura}" w:type="dxa"/>`
-    + (negrito ? '<w:shd w:val="clear" w:fill="E8EDF3"/>' : '')
-    + '</w:tcPr><w:p><w:pPr><w:spacing w:after="20"/><w:jc w:val="left"/></w:pPr>'
-    + `<w:r><w:rPr>${rpr}${negrito ? '<w:b/>' : ''}</w:rPr>`
+    + (negrito ? `<w:shd w:val="clear" w:fill="${FUNDO_DO_CABECALHO}"/>` : '')
+    + '</w:tcPr><w:p><w:pPr><w:spacing w:before="20" w:after="20"/><w:jc w:val="left"/></w:pPr>'
+    + `<w:r><w:rPr>${rpr}${negrito ? `<w:b/><w:color w:val="${AZUL}"/>` : ''}</w:rPr>`
     + `<w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p></w:tc>`;
   const linha = (cs: string[], negrito: boolean) =>
     `<w:tr>${cs.map((c) => celula(c, negrito)).join('')}</w:tr>`;
   return '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/>'
     + '<w:tblW w:w="0" w:type="auto"/><w:tblBorders>'
     + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
-      .map((b) => `<w:${b} w:val="single" w:sz="4" w:space="0" w:color="9AA7B4"/>`).join('')
+      .map((b) => `<w:${b} w:val="single" w:sz="4" w:space="0" w:color="${FIO}"/>`).join('')
     + '</w:tblBorders></w:tblPr>'
     + linha(cabecalho, true)
     + linhas.map((l) => linha(l, false)).join('')
@@ -232,11 +245,11 @@ function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
   /* A capa (fase 165): só o texto, centralizado, seguido de quebra de página. */
   if (d.capa) {
     partes.push(par('', { espacoDepois: 1600 }));
-    partes.push(par('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { alinhamento: 'center', negrito: true, espacoDepois: 60 }));
-    partes.push(par('Programa de Acolhimento Institucional', { alinhamento: 'center', tamanho: MENOR, espacoDepois: 40 }));
-    partes.push(par('Rede Acolher', { alinhamento: 'center', tamanho: MENOR, espacoDepois: 1600 }));
-    partes.push(par(d.titulo, { alinhamento: 'center', negrito: true, caixaAlta: true, espacoDepois: 200 }));
-    if (d.subtitulo) partes.push(par(d.subtitulo, { alinhamento: 'center', espacoDepois: 600 }));
+    partes.push(par('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { alinhamento: 'center', negrito: true, cor: AZUL, espacoDepois: 60 }));
+    partes.push(par('Programa de Acolhimento Institucional', { alinhamento: 'center', tamanho: MENOR, cor: CINZA, espacoDepois: 40 }));
+    partes.push(par('Rede Acolher', { alinhamento: 'center', tamanho: MENOR, cor: CINZA, espacoDepois: 1600 }));
+    partes.push(par(d.titulo, { alinhamento: 'center', negrito: true, caixaAlta: true, tamanho: 32, cor: AZUL, espacoDepois: 200 }));
+    if (d.subtitulo) partes.push(par(d.subtitulo, { alinhamento: 'center', cor: CINZA, espacoDepois: 600 }));
     for (const i of d.identificacao) {
       partes.push(par(`${i.rotulo}: ${i.valor}`, { alinhamento: 'center', tamanho: MENOR, espacoDepois: 40 }));
     }
@@ -249,14 +262,14 @@ function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
   }
 
   partes.push(par(d.titulo, {
-    alinhamento: 'center', negrito: true, caixaAlta: true, espacoDepois: 80 }));
+    alinhamento: 'center', negrito: true, caixaAlta: true, tamanho: 28, cor: AZUL, espacoDepois: 80 }));
   if (d.subtitulo) {
-    partes.push(par(d.subtitulo, { alinhamento: 'center', espacoDepois: 240 }));
+    partes.push(par(d.subtitulo, { alinhamento: 'center', tamanho: MENOR, cor: CINZA, espacoDepois: 240 }));
   }
 
   if (d.identificacao.length) {
-    partes.push(par('1  IDENTIFICAÇÃO', { alinhamento: 'left', negrito: true,
-                                          espacoDepois: 80 }));
+    partes.push(par('1  IDENTIFICAÇÃO', { alinhamento: 'left', negrito: true, cor: AZUL, fioAbaixo: true,
+                                          espacoDepois: 100 }));
     for (const i of d.identificacao) partes.push(parRotulado(i.rotulo, i.valor));
     partes.push(par('', { espacoDepois: 120 }));
   }
@@ -265,7 +278,7 @@ function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
     const n = d.identificacao.length ? i + 2 : i + 1;
     if (s.quebraAntes) partes.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
     partes.push(par(`${n}  ${s.titulo.toUpperCase()}`, {
-      alinhamento: 'left', negrito: true, espacoDepois: 80 }));
+      alinhamento: 'left', negrito: true, cor: AZUL, fioAbaixo: true, espacoDepois: 100 }));
 
     for (const p of s.paragrafos ?? []) {
       partes.push(par(p, { recuo: true }));
@@ -298,9 +311,9 @@ function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
       partes.push(par(`[a preencher: ${s.aPreencher}]`, {
         italico: true, cor: '5B6B7B', alinhamento: 'left', espacoDepois: 60 }));
       partes.push(par('____________________________________________________________',
-                      { alinhamento: 'left', cor: '9AA7B4', espacoDepois: 60 }));
+                      { alinhamento: 'left', cor: FIO, espacoDepois: 60 }));
       partes.push(par('____________________________________________________________',
-                      { alinhamento: 'left', cor: '9AA7B4', espacoDepois: 160 }));
+                      { alinhamento: 'left', cor: FIO, espacoDepois: 160 }));
     }
     if (s.procedencia) {
       partes.push(par(`Procedência: ${s.procedencia}`, {

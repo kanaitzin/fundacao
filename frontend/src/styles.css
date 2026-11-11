@@ -2734,3 +2734,288 @@ button[data-gravando]{ cursor:progress }
 .participantes legend{padding:0 4px}
 .participante{display:flex;align-items:center;gap:10px;min-height:40px;cursor:pointer}
 .participante input{width:20px;height:20px;flex:none}
+
+/* ============================================================
+   O ACABAMENTO (fase 314, pedido de 11/11: "deixar ainda mais lindo")
+   ------------------------------------------------------------
+   Uma camada só, no fim do arquivo, por cima do que as fases anteriores
+   desenharam. Ela parte do estudo da equipe de design de 30/10
+   (docs/historico/equipe-de-design-30-10) e mexe na PELE: raio, sombra,
+   borda, peso e respiro. Não muda o que cada cor quer dizer (estado, autor,
+   cargo e casa continuam os mesmos, em todos os temas), não muda o tamanho
+   dos alvos de toque nem a altura da barra do pé, e não tira nada da tela.
+
+   As três mudanças de forma, todas só no monitor (a partir de 1080 px):
+   o topo numa linha, o botão sozinho do tamanho do que diz, e a entrada em
+   duas metades.
+   ============================================================ */
+:root{
+  --r-sm:10px; --r-md:14px; --r-lg:20px;
+  /* A sombra tem a tinta azulada da marca e duas camadas: uma junto da borda,
+     que desenha o canto, e uma larga, que diz que a peça flutua. */
+  --shadow-1:0 1px 2px rgba(13,26,43,.06), 0 1px 1px rgba(13,26,43,.03);
+  --shadow-2:0 2px 4px rgba(13,26,43,.05), 0 12px 28px -8px rgba(0,50,98,.18);
+  --shadow-3:0 4px 12px rgba(0,30,60,.10), 0 28px 64px -12px rgba(0,30,60,.36);
+}
+:root[data-theme="dark"]{ --shadow-3:0 4px 12px rgba(0,0,0,.5), 0 28px 64px -12px rgba(0,0,0,.6) }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme]){ --shadow-3:0 4px 12px rgba(0,0,0,.5), 0 28px 64px -12px rgba(0,0,0,.6) }
+}
+
+::selection{ background:color-mix(in srgb, var(--brand) 24%, transparent) }
+html{ scrollbar-color:var(--line-2) transparent; scrollbar-width:thin }
+h1, h2, h3{ letter-spacing:-.018em }
+input[type=checkbox], input[type=radio]{ accent-color:var(--brand-solid) }
+
+/* ---------- O cartão: uma superfície calma ----------
+   O que está no plano tem borda e uma sombra de um fio; só o que se toca
+   (o cartão que é botão) responde ao ponteiro, e só a folha flutua. */
+.card{ border-radius:16px; box-shadow:var(--shadow-1) }
+.card .card{ box-shadow:none; border-radius:12px }
+.card.raise{ box-shadow:var(--shadow-2) }
+button.card{ cursor:pointer }
+@media (hover:hover) and (prefers-reduced-motion: no-preference){
+  button.card:hover{
+    border-color:color-mix(in srgb, var(--brand) 55%, var(--line));
+    box-shadow:var(--shadow-2);
+  }
+}
+@media (hover:hover){
+  button.card:hover{ border-color:color-mix(in srgb, var(--brand) 55%, var(--line)) }
+}
+
+/* ---------- O botão: três pesos que se distinguem de relance ----------
+   O principal é cheio e tem um fio de luz em cima; o alternativo é tonal, sem
+   contorno pesado (com contorno ele se confundia com campo de texto); o
+   secundário é branco com contorno. O desligado deixa de ser só mais pálido:
+   fundo rebaixado, letra de apoio e borda tracejada, para não parecer o
+   alternativo. */
+.btn{
+  border-radius:12px; padding:12px 18px; font-size:15px; letter-spacing:-.005em;
+  box-shadow:0 1px 2px rgba(0,30,60,.20), inset 0 1px 0 rgba(255,255,255,.14);
+}
+.btn.sm{ border-radius:10px; padding:8px 13px; font-size:13px }
+.btn.sec{
+  border-color:color-mix(in srgb, var(--brand) 16%, transparent); box-shadow:none;
+}
+.btn.ghost{ background:var(--surface); border-width:1px; border-color:var(--line-2); box-shadow:var(--shadow-1) }
+.appbar .btn.ghost{ background:var(--raised); box-shadow:none }
+.btn:disabled, .btn.sec:disabled, .btn.ghost:disabled{
+  opacity:1; background:var(--sunken); color:var(--muted);
+  border:1px dashed var(--line-2); box-shadow:none;
+}
+@media (hover:hover){
+  .btn:not(.sec):not(.ghost):not(:disabled):hover{
+    background:color-mix(in srgb, var(--brand-solid) 86%, var(--ink));
+  }
+  .btn.sec:not(:disabled):not([aria-pressed="true"]):hover{
+    background:color-mix(in srgb, var(--brand) 16%, var(--surface)); border-color:var(--brand);
+  }
+  .btn.ghost:not(:disabled):hover{ background:var(--raised); border-color:var(--brand) }
+}
+
+/* ---------- O campo ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), select, textarea{
+  border-radius:12px;
+  transition:border-color var(--mov-curto) var(--curva-padrao), box-shadow var(--mov-curto) var(--curva-padrao);
+}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):hover,
+select:hover, textarea:hover{ border-color:var(--ink-2) }
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):focus,
+select:focus, textarea:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent);
+}
+::placeholder{ color:var(--muted); opacity:.85 }
+label{ letter-spacing:-.005em }
+
+/* ---------- O aviso ----------
+   Borda inteira e fina, com o acento de três pixels por dentro: a barra larga
+   à esquerda é a forma da cor de AUTOR na linha da ATA, e o aviso não é autor. */
+.notice{
+  border:1px solid color-mix(in srgb, var(--c) 30%, transparent); border-radius:12px;
+  padding:12px 14px 12px 16px; box-shadow:inset 3px 0 0 var(--c);
+}
+.err{ border-radius:12px; border:1px solid color-mix(in srgb, var(--c) 30%, transparent) }
+
+/* ---------- A pílula de estado ---------- */
+.pill{ padding:3px 10px; letter-spacing:.005em }
+
+/* ---------- O controle segmentado e as listas ---------- */
+.filtros{ border-radius:14px; padding:4px }
+.filtros button{ border-radius:10px }
+.eyebrow{ letter-spacing:.08em }
+
+/* ---------- A folha e o que flutua ----------
+   O fundo escurece e desfoca um pouco o que ficou atrás: a folha passa a ser
+   a única coisa nítida. Sem desfoque no aparelho que pede menos movimento. */
+.overlay{ background:rgba(4,18,36,.5) }
+@media (prefers-reduced-motion: no-preference){
+  .overlay{ backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px) }
+}
+.sheet, .sheet.modal{ border-radius:20px; box-shadow:var(--shadow-3) }
+.sheet h3, .sheet.modal h3{ font-size:19px; letter-spacing:-.02em }
+.acolhe-botao{ box-shadow:0 2px 6px rgba(0,30,60,.18), 0 12px 28px -8px rgba(0,50,98,.45) }
+.iconbtn{ border-radius:11px }
+.rolechip{ letter-spacing:.005em }
+.troca-cargo-sel{ border-radius:10px }
+
+/* ---------- A navegação ---------- */
+.tabbar button{ border-radius:14px }
+@media (max-width:1079px){
+  .navegacao{ box-shadow:0 -1px 0 var(--line), 0 -12px 28px -12px rgba(0,30,60,.20); border-top:none }
+}
+@media (min-width:1080px){
+  .navegacao{ padding:16px 14px 24px }
+  .marca-lateral{ padding:4px 8px 16px; margin-bottom:10px }
+  .tabbar button:hover, .portas-lateral button:hover{ transform:none }
+  .tabbar button.on, .portas-lateral button.on{
+    box-shadow:0 1px 2px rgba(0,30,60,.20), inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .portas-lateral h2{ letter-spacing:.08em }
+
+  /* O conteúdo respira mais no monitor, e o título da tela cresce com ele. */
+  .conteudo{ padding:24px 28px 96px }
+  .diahead h2{ font-size:26px; letter-spacing:-.022em }
+
+  /* O TOPO NUMA LINHA. O círculo do cargo ficava sozinho na primeira linha, e
+     o nome, a casa e o e-mail desciam para a segunda. Agora o círculo, o nome
+     e a casa ficam à esquerda e os controles à direita, na mesma linha. O nome
+     continua sendo o `h1` da página (fase 172). */
+  .appbar{
+    display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px;
+    padding:10px 28px; min-height:64px;
+  }
+  .appbar .top{ display:contents }
+  .appbar .top > *{ order:4 }
+  .appbar .top > .quem-circulo{ order:0; display:inline-flex }
+  .appbar .quem{
+    order:1; margin:0; flex:0 1 auto; min-width:0; max-width:36ch;
+    display:flex; flex-direction:column; flex-wrap:nowrap; align-items:flex-start; gap:0;
+  }
+  .appbar .quem h1{ font-size:15px; line-height:1.25; font-weight:800 }
+  .appbar .quem .sub{
+    font-size:12px; line-height:1.3; max-width:100%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .appbar .top > .rolechip{ order:2; margin:0 }
+  .appbar .top > .troca-casa{ order:3 }
+  .appbar .top > .grow{ order:4 }
+  .appbar .cargo-chip.sm{ width:36px; height:36px; font-size:12.5px }
+  .iconbtn{ width:38px; height:38px }
+  .appbar .btn.sm{ min-height:38px }
+
+  /* O BOTÃO SOZINHO DO TAMANHO DO QUE DIZ. No monitor, o botão que é o único
+     do seu bloco esticava por mais de mil pixels e parecia uma faixa, ou um
+     campo de texto. Ele fica com a largura da frase, com um mínimo confortável.
+     Dentro de folha, de grade ou ao lado de outros botões nada muda, e quem
+     pede a largura toda continua pedindo com `.block`. */
+  .conteudo :where(button.btn, a.btn):only-of-type:not(:where(.overlay *, .sheet *, .stack > *, .row > *, .sm, .acoes-do-perfil *)){
+    display:flex; align-items:center; justify-content:center;
+    width:fit-content; min-width:min(260px, 100%); max-width:100%;
+  }
+  /* Na pilha (coluna flexível) o botão sozinho era esticado mesmo sendo pequeno. */
+  :where(.conteudo .stack) > :where(button.btn, a.btn):only-of-type:not(:where(.overlay *, .sheet *)),
+  :where(.conteudo .stack) > .btn.block:only-of-type:not(:where(.overlay *, .sheet *)){
+    align-self:flex-start; width:auto; min-width:min(260px, 100%); max-width:100%;
+  }
+}
+
+/* ---------- O tema escuro: o botão cheio fundo, com letra branca ----------
+   O azul claro da marca no escuro (#7BC0EC) é ótimo para texto e link, e ruim
+   como fundo cheio: às 23h o botão principal e o item aberto do menu eram as
+   coisas mais claras da tela. Onde a marca é FUNDO, ela passa a ser um azul
+   profundo com letra branca (6,7 de contraste); onde é tinta, fica como estava. */
+:root[data-theme="dark"] :is(.btn:not(.sec):not(.ghost), .btn.sec[aria-pressed="true"], .filtros button.on,
+    .tabbar button.on, .portas-lateral button.on, .acolhe-botao, .troca-casa-seta){
+  --brand-solid:#1F5E9E; --brand:#1F5E9E; --on-solid:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme]) :is(.btn:not(.sec):not(.ghost), .btn.sec[aria-pressed="true"], .filtros button.on,
+      .tabbar button.on, .portas-lateral button.on, .acolhe-botao, .troca-casa-seta){
+    --brand-solid:#1F5E9E; --brand:#1F5E9E; --on-solid:#FFFFFF;
+  }
+}
+
+/* ---------- A entrada (fase 314) ----------
+   No monitor, duas metades: a marca e o que o sistema guarda à esquerda, sobre
+   o navy, e o cartão à direita. No celular, só o cartão, como antes. Os
+   atalhos de demonstração viram uma grade de duas colunas: as pílulas soltas
+   formavam cinco linhas de larguras diferentes. */
+.loginwrap{
+  background:
+    radial-gradient(900px 520px at 88% 108%, color-mix(in srgb, var(--brand-2) 38%, transparent) 0%, transparent 62%),
+    radial-gradient(1200px 600px at 30% -12%, #0A4A86 0%, transparent 60%),
+    linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 55%, #001B38 100%);
+}
+.logincard{ border-radius:24px; padding:32px 30px 24px; box-shadow:var(--shadow-3) }
+.logincard h1{ font-size:28px; letter-spacing:-.025em }
+.logincard h1 span{ font-size:14.5px; margin-top:6px }
+.loginbrand{ margin-bottom:18px }
+.logincard .btn.block{ margin-top:20px; min-height:48px; font-size:15.5px }
+.logincard .btn.ghost.block{ min-height:44px; font-size:14.5px; box-shadow:none }
+.loginlado{ display:none }
+.demochips{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px }
+.chipbtn{
+  border-radius:10px; padding:9px 8px; min-height:40px; text-align:center; line-height:1.2;
+  font-family:"Plus Jakarta Sans", inherit; font-weight:700; color:var(--brand-solid);
+  transition:background-color var(--mov-curto) var(--curva-padrao), border-color var(--mov-curto) var(--curva-padrao);
+}
+.chipbtn:last-child:nth-child(odd){ grid-column:1 / -1 }
+@media (min-width:980px){
+  .loginwrap.com-lado{
+    grid-template-columns:minmax(0, 520px) minmax(0, 430px); justify-content:center; gap:72px; padding:40px;
+  }
+  .loginlado{ display:block; color:#FFFFFF; max-width:520px }
+  .loginlado-sobre{
+    margin:0 0 18px; font-family:"Plus Jakarta Sans", sans-serif; font-size:12px; font-weight:800;
+    letter-spacing:.1em; text-transform:uppercase; color:#BFDCF2;
+  }
+  .loginlado-frase{
+    margin:0 0 28px; font-family:"Plus Jakarta Sans", sans-serif; font-weight:800;
+    font-size:40px; line-height:1.12; letter-spacing:-.03em; text-wrap:balance;
+  }
+  .loginlado ul{ list-style:none; margin:0; padding:0; display:grid; gap:14px }
+  .loginlado li{
+    display:grid; grid-template-columns:40px 1fr; gap:14px; align-items:center;
+    font-size:16px; line-height:1.4; color:#DCEBF7;
+  }
+  .loginlado .ic{
+    width:40px; height:40px; border-radius:12px; display:grid; place-items:center;
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); color:#FFFFFF;
+  }
+}
+
+/* ---------- A folha na tela, com as cores do papel (fase 314) ----------
+   O Word passou a levar o azul do timbre nos títulos, um fio embaixo de cada
+   seção e o cabeçalho dos quadros no mesmo tom. A pré-visualização acompanha,
+   para a pessoa conferir na tela a folha que vai sair. Continua sendo papel:
+   claro nos dois temas. */
+.papel{
+  background:#FFFFFF; border-color:#D5DCE6; border-radius:6px; padding:26px 24px;
+  box-shadow:0 1px 2px rgba(13,26,43,.08), 0 8px 20px -10px rgba(13,26,43,.25);
+}
+.papel-timbre{ border-bottom-color:#B8C4D6; padding-bottom:12px; margin-bottom:16px }
+.papel-titulo{ color:#1F3864; font-size:15.5px; letter-spacing:.02em }
+.papel-sub{ color:#595959 }
+.papel-secao{
+  color:#1F3864; border-bottom:1px solid #B8C4D6; padding-bottom:3px; margin:18px 0 8px;
+}
+.papel-linha{ border-bottom-color:#B8C4D6 }
+.papel-tabela th, .papel-tabela td{ border-color:#B8C4D6 }
+.papel-tabela th{ background:#DCE6F2; color:#1F3864 }
+/* No monitor, a folha que mostra o papel ganha largura de papel: numa folha de
+   480 px a pré-visualização ficava com a letra de bula. */
+@media (min-width:1080px){
+  .sheet:has(.papel){ max-width:780px }
+  .papel{ font-size:14.5px; padding:34px 44px }
+}
+/* O mesmo para o botão que tem irmãos no bloco mas nenhum botão ao lado
+   (Marcar compromisso, Abrir o período): continua numa linha só dele, do
+   tamanho do que diz. Navegador sem `:has` ignora a regra e mostra como antes. */
+@media (min-width:1080px){
+  .conteudo :where(button.btn, a.btn):not(:where(.overlay *, .sheet *, .stack > *, .row > *, .sm, .grow, .acoes-do-perfil *, .btn + *)):not(:has(+ .btn)){
+    display:flex; align-items:center; justify-content:center;
+    width:fit-content; min-width:min(260px, 100%); max-width:100%;
+  }
+}

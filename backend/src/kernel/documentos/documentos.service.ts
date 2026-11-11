@@ -41,6 +41,17 @@ const SEM_BORDA = {
   right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
 };
 const CINZA = '595959';
+/* O ACABAMENTO DO PAPEL (fase 314): um fio azulado embaixo do título de cada seção e
+   nos quadros, e o cabeçalho do quadro no tom do timbre. O protótipo usa as mesmas
+   (`frontend/src/docx.ts`): quem confere um, confere o outro. */
+const FIO = 'B8C4D6';
+const FUNDO_DO_CABECALHO = 'DCE6F2';
+const FUNDO_DO_ROTULO = 'EEF3F9';
+const FIO_DO_QUADRO = { style: BorderStyle.SINGLE, size: 4, color: FIO };
+const BORDAS_DO_QUADRO = {
+  top: FIO_DO_QUADRO, bottom: FIO_DO_QUADRO, left: FIO_DO_QUADRO, right: FIO_DO_QUADRO,
+  insideHorizontal: FIO_DO_QUADRO, insideVertical: FIO_DO_QUADRO,
+};
 
 /*
  * O PADRÃO DO PAPEL (fase 165). O pedido de 25/09 descreve o documento
@@ -218,12 +229,13 @@ export class DocumentosService {
     if (f.identificacao.length) {
       filhos.push(new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: BORDAS_DO_QUADRO,
         rows: f.identificacao.map((l) => new TableRow({
           children: [
             new TableCell({
               width: { size: 28, type: WidthType.PERCENTAGE },
-              shading: { fill: 'F2F2F2' },
-              children: [new Paragraph({ children: [new TextRun({ text: l.rotulo, bold: true, size: MENOR })] })],
+              shading: { fill: FUNDO_DO_ROTULO },
+              children: [new Paragraph({ children: [new TextRun({ text: l.rotulo, bold: true, size: MENOR, color: AZUL })] })],
             }),
             new TableCell({
               children: [new Paragraph({ children: [new TextRun({ text: l.valor, size: MENOR })] })],
@@ -326,7 +338,8 @@ export class DocumentosService {
                 heading: HeadingLevel.HEADING_2,
         pageBreakBefore: !!s.quebraAntes,
         keepNext: true,
-        spacing: { before: 240, after: 60 },
+        spacing: { before: 240, after: 100 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: FIO, space: 2 } },
         children: [new TextRun({ text: s.titulo, bold: true, size: 24, color: AZUL })],
       }),
     ];
@@ -360,11 +373,13 @@ export class DocumentosService {
     if (s.tabela && s.tabela.linhas.length) {
       saida.push(new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: BORDAS_DO_QUADRO,
         rows: [
           new TableRow({
+            tableHeader: true,
             children: s.tabela.cabecalho.map((c) => new TableCell({
-              shading: { fill: 'F2F2F2' },
-              children: [new Paragraph({ children: [new TextRun({ text: c, bold: true, size: 18 })] })],
+              shading: { fill: FUNDO_DO_CABECALHO },
+              children: [new Paragraph({ children: [new TextRun({ text: c, bold: true, size: 18, color: AZUL })] })],
             })),
           }),
           ...s.tabela.linhas.map((l, i) => new TableRow({

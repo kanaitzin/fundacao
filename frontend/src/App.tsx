@@ -765,7 +765,7 @@ export function App() {
           <span className="wordmark">Rede Acolher</span>
           {/* Quem está usando o sistema, com o círculo do cargo (fase 151). O
               nome do cargo continua escrito ao lado: o círculo é apoio. */}
-          <span className="so-no-monitor"><Cargo nome={me.fullName} cargo={me.role} tamanho="sm" /></span>
+          <span className="so-no-monitor quem-circulo"><Cargo nome={me.fullName} cargo={me.role} tamanho="sm" /></span>
           {/* NO CELULAR, O TOPO É UMA LINHA (fase 184, escolha da Fundação em
               05/10): o círculo da pessoa vira o botão da conta, e o nome, a
               casa, a cor da tela, a senha e o Sair moram na folha dele. */}

@@ -74,14 +74,28 @@ export function Login({ onSubmit, erro, ocupado }: {
   }
 
   return (
-    <div className="loginwrap">
+    <div className="loginwrap com-lado">
+      {/* O LADO DA MARCA (fase 314): só no monitor, à esquerda do cartão. Diz em
+          três linhas o que o sistema guarda; no celular a entrada continua sendo
+          só o cartão, porque ali cada linha a mais empurra o campo da senha. */}
+      <aside className="loginlado" aria-label="O que é o Rede Acolher">
+        <p className="loginlado-sobre">Fundação O Pão dos Pobres · Acolhimento Institucional</p>
+        <p className="loginlado-frase">O cuidado de cada casa, registrado num lugar só.</p>
+        <ul>
+          <li><span className="ic"><Icone nome="conferido" tamanho={20} /></span>
+            O dia da casa, a chamada, a passagem de plantão e a ATA no mesmo registro.</li>
+          <li><span className="ic"><Icone nome="escrever" tamanho={20} /></span>
+            Cada registro leva o nome de quem escreveu e a hora em que foi feito.</li>
+          <li><span className="ic"><Icone nome="cadeado" tamanho={20} /></span>
+            Cada pessoa entra com a própria conta e vê o que é do seu trabalho.</li>
+        </ul>
+      </aside>
       <main className="logincard" role="main">
         <div className="loginbrand">
           <span className="loginlogo">
             <img src={marca} alt="Fundação O Pão dos Pobres" />
           </span>
           <h1>Rede Acolher<span>Acolhimento Institucional</span></h1>
-          <p className="loginsub">Sistema de gestão do acolhimento</p>
         </div>
 
         {!esqueci ? (

@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 314, dia: '11/11/2026',
+    texto: 'O visual ficou mais cuidado em todas as telas: botões, cartões, campos e avisos com acabamento novo, e a folha que se abre com o fundo levemente desfocado atrás. No computador, o seu nome, a casa e os botões do alto ficam numa linha só, o botão que está sozinho fica do tamanho do que diz, e a entrada mostra ao lado o que o Rede Acolher guarda. No tema escuro, o botão principal e o item aberto do menu passam a ser azul profundo com letra branca. E os documentos em Word saem com os títulos no azul do timbre, um fio embaixo de cada seção e o cabeçalho dos quadros no mesmo tom, iguais à folha que você confere na tela.' },
   { fase: 313, dia: '11/11/2026',
     texto: 'Na demonstração, o que aparece saiu de algum registro: o rastro de cada relatório mostra quem o escreveu, quem exportou, para quê, quem aprovou e as entregas; as memórias do perfil são as vivências do álbum; os documentos do perfil são os do dossiê; e os números do painel das oito casas são contados. Na aba Vivências, o tipo da memória aparece pelo nome, como Aniversário.' },
   { fase: 312, dia: '11/11/2026',
