@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 310, dia: '11/11/2026',
+    texto: 'O cartão do que mudou desde o seu último plantão mostra quem registrou cada ocorrência. Ao registrar uma ocorrência, você diz a hora em que aconteceu, quem da equipe estava, quem foi avisado e o que ficou pendente, e o detalhe mostra tudo isso com o nome de quem registrou.' },
   { fase: 309, dia: '10/11/2026',
     texto: 'O atendimento diz a forma: individual, familiar ou coletivo. No coletivo, marque as outras crianças da casa que participaram, e o atendimento entra no perfil de cada uma, com os mesmos arquivos e quem mais estava.' },
   { fase: 308, dia: '10/11/2026',

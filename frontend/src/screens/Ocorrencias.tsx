@@ -6,7 +6,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
-import { diaCurto as dia } from '../rotulos';
+import { diaCurto as dia, diaEHora } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
@@ -90,6 +90,8 @@ interface ItemLista {
 interface Detalhe {
   id: string; casaId: string; categoria: string; codigoCategoria: string;
   quando: string; atividade: string | null; fato: string; presentes: string | null;
+  /** Quem registrou e quando registrou (fase 310). */
+  abertaPor?: string | null; registradaEm?: string | null;
   medidasImediatas: string | null; saude: boolean; medicamento: boolean;
   contatos: string | null; pendencias: string | null; prazo: string | null;
   status: string; nivelAcesso: string; revisaoTecnicaObrigatoria: boolean;
@@ -433,9 +435,25 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                       ? d.acolhidos.map((a) => a.nome).join(', ')
                       : 'não se aplica a uma pessoa'}
                   </div>
+                  {/* Quem registrou, quando aconteceu e quando foi registrado (fase 310): o fato
+                      não fica solto, sem dono e sem hora. */}
+                  <div className="mutetxt">
+                    Aconteceu em {diaEHora(d.quando)}
+                    {d.abertaPor && <> · registrado por <b>{d.abertaPor}</b></>}
+                    {d.registradaEm && diaEHora(d.registradaEm) !== diaEHora(d.quando) && <> em {diaEHora(d.registradaEm)}</>}
+                  </div>
                   <div className="bloco"><small>Fato</small>{d.fato}</div>
                   {d.medidasImediatas && (
                     <div className="bloco"><small>Medidas imediatas</small>{d.medidasImediatas}</div>
+                  )}
+                  {d.presentes && (
+                    <div className="bloco"><small>Quem da equipe estava presente</small>{d.presentes}</div>
+                  )}
+                  {d.contatos && (
+                    <div className="bloco"><small>Quem foi avisado ou contatado</small>{d.contatos}</div>
+                  )}
+                  {d.pendencias && (
+                    <div className="bloco"><small>O que ficou pendente</small>{d.pendencias}</div>
                   )}
 
                   {d.protegido
@@ -1026,6 +1044,14 @@ function FolhaNova({ categorias, pessoas, onFechar, onAbrir }: {
   const [fato, setFato] = useState('');
   const [medidas, setMedidas] = useState('');
   const [fala, setFala] = useState('');
+  /* A hora do FATO (fase 310): já vem com a de agora, para corrigir quando se registra depois. */
+  const agoraSP = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .format(new Date()).replace(' ', 'T');
+  const [quandoFato, setQuandoFato] = useState(agoraSP);
+  const [presentes, setPresentes] = useState('');
+  const [contatos, setContatos] = useState('');
+  const [pendencias, setPendencias] = useState('');
   const cat = categorias.find((c) => c.code === categoria);
   // O servidor exige o fato com 15 caracteres e a data-hora. A tela cobra antes
   // de enviar, com a mesma régua — recusa na cara da pessoa é pior que aviso.
@@ -1064,6 +1090,12 @@ function FolhaNova({ categorias, pessoas, onFechar, onAbrir }: {
           {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </select>
 
+        <label className="f" htmlFor="oc-quando">
+          Quando aconteceu <small>— se registra depois, corrija a hora</small>
+        </label>
+        <input id="oc-quando" type="datetime-local" value={quandoFato} max={agoraSP()}
+               onChange={(e) => setQuandoFato(e.target.value)} />
+
         <label className="f" htmlFor="oc-fato">
           Fato objetivo <small>— o que aconteceu, sem interpretação</small>
         </label>
@@ -1073,6 +1105,22 @@ function FolhaNova({ categorias, pessoas, onFechar, onAbrir }: {
         <label className="f" htmlFor="oc-med">Medidas imediatas</label>
         <textarea id="oc-med" value={medidas} onChange={(e) => setMedidas(e.target.value)}
                   placeholder="O que foi feito para proteger e atender." />
+
+        <label className="f" htmlFor="oc-presentes">
+          Quem da equipe estava presente <small>— opcional</small>
+        </label>
+        <input id="oc-presentes" value={presentes} maxLength={300} onChange={(e) => setPresentes(e.target.value)}
+               placeholder="Ex.: Joana e Nélio, no plantão da noite" />
+        <label className="f" htmlFor="oc-contatos">
+          Quem foi avisado ou contatado <small>— opcional</small>
+        </label>
+        <input id="oc-contatos" value={contatos} maxLength={300} onChange={(e) => setContatos(e.target.value)}
+               placeholder="Ex.: Líder Noturno às 21h45; família às 23h30" />
+        <label className="f" htmlFor="oc-pend">
+          O que ficou pendente <small>— opcional</small>
+        </label>
+        <input id="oc-pend" value={pendencias} maxLength={300} onChange={(e) => setPendencias(e.target.value)}
+               placeholder="Ex.: conversa com a equipe técnica amanhã" />
 
         {cat?.restrito && (
           <>
@@ -1101,8 +1149,11 @@ function FolhaNova({ categorias, pessoas, onFechar, onAbrir }: {
           <button className="btn grow" disabled={!pode}
                   onClick={() => onAbrir({
                     categoria,
-                    // O servidor guarda a hora do FATO, não a do registro.
-                    quando: new Date().toISOString(),
+                    // O servidor guarda a hora do FATO, não a do registro (fase 310: a pessoa diz qual foi).
+                    quando: quandoFato ? new Date(`${quandoFato}:00-03:00`).toISOString() : new Date().toISOString(),
+                    presentes: presentes.trim() || undefined,
+                    contatos: contatos.trim() || undefined,
+                    pendencias: pendencias.trim() || undefined,
                     acolhidos: personId ? [personId] : [],
                     fato, medidasImediatas: medidas,
                     falaEspontanea: fala || undefined,

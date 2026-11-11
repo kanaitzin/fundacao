@@ -37,7 +37,9 @@ export interface OQueMudou {
   base: 'plantao' | 'ultimas_24h';
   /** Quando o último plantão foi há mais de sete dias, a folha começa sete dias atrás. */
   limitado: boolean;
-  ocorrencias: { id: string; rotulo: string; quando: string; situacao: string; restrita: boolean; criancas: string | null }[];
+  ocorrencias: { id: string; rotulo: string; quando: string; situacao: string; restrita: boolean; criancas: string | null;
+                 /** Quem registrou (fase 310): o aviso não fica sem dono. */
+                 por: string | null }[];
   ata: null | {
     data: string; turno: string; situacao: string; fechadaPor: string | null;
     pendencias: string | null; linhas: number;
@@ -72,6 +74,7 @@ export class OQueMudouService {
 
       const { rows: oc } = await c.query(
         `SELECT i.id, i.category, i.happened_at, i.status, i.access_level,
+                app_user_display_name(i.opened_by) AS por,
                 CASE WHEN i.access_level = 'restrito' THEN NULL ELSE
                   -- rls-join-ok (person): a criança da ocorrência é da mesma casa, que já
                   -- passou pela pergunta de alcance; o nome que o cargo não lê fica de fora.
@@ -137,7 +140,7 @@ export class OQueMudouService {
           id: o.id,
           rotulo: o.access_level === 'restrito' ? 'Ocorrência de acesso restrito' : (ROTULO_DA_CATEGORIA[o.category] ?? 'Ocorrência'),
           quando: o.happened_at, situacao: SITUACAO[o.status] ?? o.status,
-          restrita: o.access_level === 'restrito', criancas: o.criancas,
+          restrita: o.access_level === 'restrito', criancas: o.criancas, por: o.por ?? null,
         })),
         ata,
         remedios: rem.map((r) => ({

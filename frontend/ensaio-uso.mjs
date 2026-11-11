@@ -3740,9 +3740,11 @@ await aba('Dia');
 const cartao186 = pg.locator('section.o-que-mudou');
 cobrar('o educador encontra o cartão aberto no Dia', (await cartao186.count()) === 1);
 const texto186 = (await cartao186.count()) ? await cartao186.innerText() : '';
-cobrar('ele diz a ocorrência, a ATA anterior e os remédios',
-  /Conflito ou agressão/.test(texto186) && /O que ficou para o próximo turno/.test(texto186)
-  && /Xarope de guaco/.test(texto186) && /foi suspenso/.test(texto186), texto186.slice(0, 300));
+/* Desde a 310 o cartão sai do que a casa registrou: cada ocorrência dele está na lista das
+   Ocorrências, com quem a registrou, e a ATA anterior traz as linhas de quem as escreveu. */
+cobrar('ele diz as ocorrências com quem registrou, e a ATA anterior com quem escreveu',
+  /registrada por/.test(texto186) && /O que ficou para o próximo turno/.test(texto186)
+  && /linhas? da equipe/.test(texto186), texto186.slice(0, 300));
 cobrar('e não oferece a Saúde a quem não a abre',
   (await cartao186.getByRole('button', { name: 'Abrir a Saúde' }).count()) === 0);
 await cartao186.getByRole('button', { name: 'Entendi' }).click();
@@ -3763,6 +3765,31 @@ await aba('Dia');
 cobrar('o gestor não tem a folha do plantão',
   (await pg.getByRole('button', { name: /^O que mudou desde o seu último plantão/ }).count()) === 0
   && (await pg.locator('section.o-que-mudou').count()) === 0);
+/* O que aparece no cartão alguém escreveu (fase 310): o educador registra a ocorrência pela
+   folha, com a hora do fato e quem estava, e ela chega ao cartão e ao detalhe com o nome dele. */
+await trocar('educador');
+if (!(await aba('Ocorrências'))) await doMais('Ocorrências');
+await pg.getByRole('button', { name: /Registrar ocorrência/ }).first().click(); await pg.waitForTimeout(600);
+const fo = pg.locator('.overlay').last();
+await fo.getByRole('button', { name: 'Conflito ou agressão' }).click();
+await fo.locator('#oc-fato').fill('Discussão na sala por causa do controle da televisão; separados e acalmados (ensaio 310).');
+await fo.locator('#oc-med').fill('Conversa com os dois, cada um num canto da sala.');
+await fo.locator('#oc-presentes').fill('Joana e Mário, no plantão');
+await fo.getByRole('button', { name: /Abrir ocorrência e avisar/ }).click(); await pg.waitForTimeout(1300);
+const lista310 = await pg.locator('main').innerText();
+cobrar('a ocorrência registrada pela folha entra na lista com quem abriu', /Conflito ou agressão/.test(lista310));
+const cartaoOc = pg.locator('article, li, .card').filter({ hasText: 'Conflito ou agressão' }).first();
+await cartaoOc.getByRole('button', { name: 'Abrir detalhes' }).click(); await pg.waitForTimeout(900);
+const det310 = await pg.locator('main').innerText();
+cobrar('o detalhe diz quando aconteceu e quem registrou, e quem estava presente',
+  /Aconteceu em .* às \d\d:\d\d/.test(det310) && /registrado por/.test(det310) && /Joana e Mário, no plantão/.test(det310),
+  det310.slice(det310.indexOf('Aconteceu'), det310.indexOf('Aconteceu') + 300));
+await aba('Dia');
+const linha310 = pg.getByRole('button', { name: /^O que mudou desde o seu último plantão/ });
+if (await linha310.count()) { await linha310.click(); await pg.waitForTimeout(500); }
+const doCartao = await pg.locator('main').innerText();
+cobrar('e chega ao cartão do que mudou, com o nome de quem registrou',
+  /Conflito ou agressão[\s\S]{0,120}registrada por/.test(doCartao), doCartao.slice(0, 400));
 cobrar('nenhuma exceção na folha do plantão', erros.length === 0, erros[0]);
 
 /*

@@ -174,6 +174,11 @@ export class IncidentsService {
         'Descreva o fato objetivamente: o que aconteceu, onde e quando. Sem interpretação e sem juízo sobre a pessoa.');
     }
     if (!input.quando) throw new BadRequestException('Informe a data e a hora do fato.');
+    const quandoMs = new Date(input.quando).getTime();
+    if (Number.isNaN(quandoMs)) throw new BadRequestException('Informe a data e a hora do fato.');
+    if (quandoMs > Date.now() + 5 * 60_000) {
+      throw new BadRequestException('A hora do fato ainda não chegou. Confira o dia e a hora.');
+    }
 
     /* Quem a cobrança acabou de pedir o relato (1666), para o aviso de cada um. */
     let cobrados: string[] = [];
@@ -321,7 +326,9 @@ export class IncidentsService {
 
   async get(user: AuthenticatedUser, id: string) {
     const dados = await this.db.asUser(user.id, async (c) => {
-      const { rows: [i] } = await c.query(`SELECT * FROM incident WHERE id = $1`, [id]);
+      /* Quem registrou e quando (fase 310): o nome sai pela função, nunca por JOIN em app_user. */
+      const { rows: [i] } = await c.query(
+        `SELECT i.*, app_user_display_name(i.opened_by) AS aberta_por_nome FROM incident i WHERE i.id = $1`, [id]);
       if (!i) return null;
       // Sem `JOIN person`: a ocorrência pertence à CASA, a pessoa é visível
       // pela permanência ATIVA. Numa ocorrência de violência — categoria em
@@ -389,6 +396,7 @@ export class IncidentsService {
       categoria: CATEGORIAS.find((c) => c.code === i.category)?.label ?? i.category,
       codigoCategoria: i.category,
       quando: i.happened_at, atividade: i.activity_ref,
+      abertaPor: i.aberta_por_nome ?? null, registradaEm: i.opened_at,
       fato: i.objective_fact, presentes: i.people_present,
       medidasImediatas: i.immediate_measures,
       saude: i.health_related, medicamento: i.medication_related,
@@ -1074,6 +1082,7 @@ export class IncidentsService {
       {
         categoria: o.categoria, quando: o.quando, status: o.status,
         fato: o.fato, medidasImediatas: o.medidasImediatas,
+        abertaPor: o.abertaPor, presentes: o.presentes, contatos: o.contatos, pendencias: o.pendencias,
         acolhidos: (o.acolhidos ?? []).map((a: any) => ({ nome: a.nome })),
         relatos: { relatos: (o.relatos?.relatos ?? []).map((r: any) => ({
           autor: r.autor, testemunho: r.testemunho, quando: r.quando, relato: r.relato,

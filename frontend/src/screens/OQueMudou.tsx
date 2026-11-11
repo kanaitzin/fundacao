@@ -20,7 +20,8 @@ export interface OQueMudouResposta {
   desde: string;
   base: 'plantao' | 'ultimas_24h';
   limitado: boolean;
-  ocorrencias: { id: string; rotulo: string; quando: string; situacao: string; restrita: boolean; criancas: string | null }[];
+  ocorrencias: { id: string; rotulo: string; quando: string; situacao: string; restrita: boolean; criancas: string | null;
+                 por?: string | null }[];
   ata: null | {
     data: string; turno: string; situacao: string; fechadaPor: string | null;
     pendencias: string | null; linhas: number;
@@ -108,7 +109,7 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
               {r.ocorrencias.map((o) => (
                 <li key={o.id}>
                   <b>{o.rotulo}</b>{o.criancas && <> · {o.criancas}</>}
-                  <div className="mutetxt">{quando(o.quando)} · {o.situacao}</div>
+                  <div className="mutetxt">{quando(o.quando)}{o.por && <> · registrada por {o.por}</>} · {o.situacao}</div>
                 </li>
               ))}
             </ul>

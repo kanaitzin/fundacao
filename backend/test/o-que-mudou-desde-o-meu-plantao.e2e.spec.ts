@@ -134,6 +134,8 @@ describe('O que mudou desde o meu último plantão', () => {
       const comum = oc.find((o) => o.id === porCategoria.conflito_agressao);
       expect(comum).toMatchObject({ rotulo: 'Conflito ou agressão', situacao: 'aberta', restrita: false });
       expect(comum.criancas).toMatch(/Lucas/);
+      /* Quem registrou (fase 310): o aviso diz o nome, não fica solto. */
+      expect(comum.por).toBeTruthy();
       expect(oc.some((o) => o.id === porCategoria.outro)).toBe(false);
       const restrita = oc.find((o) => o.id === porCategoria.violencia_ou_suspeita);
       if (restrita) {
@@ -142,6 +144,28 @@ describe('O que mudou desde o meu último plantão', () => {
       /* O texto de nenhuma ocorrência sai na folha. */
       expect(JSON.stringify(r.body)).not.toMatch(/suíte da folha/);
     }
+  });
+
+  it('a ocorrência registrada depois diz quando aconteceu, quem registrou e quando, e quem estava e foi avisado (fase 310)', async () => {
+    const quando = new Date(Date.now() - 90 * 60_000).toISOString();
+    const r = await request(http).post('/api/v1/incidents').set(auth(t.educador))
+      .send({ houseId: ids.AI4, categoria: 'outro', quando,
+              fato: '[suíte 310] Discussão na sala por causa da televisão; separados e acalmados.',
+              medidasImediatas: 'Conversa com os dois, cada um num canto.',
+              presentes: 'O educador da suíte e a coordenação.', contatos: 'Coordenação às 21h45.',
+              pendencias: 'Conversa da técnica amanhã.' });
+    expect(r.status).toBe(201);
+    const d = (await request(http).get(`/api/v1/incidents/${r.body.id}`).set(auth(t.coord)).expect(200)).body;
+    expect(new Date(d.quando).getTime()).toBe(new Date(quando).getTime());
+    expect(d.abertaPor).toMatch(/Educador da Folha do Plantão/);
+    expect(new Date(d.registradaEm).getTime()).toBeGreaterThan(new Date(quando).getTime());
+    expect(d).toMatchObject({ presentes: 'O educador da suíte e a coordenação.', contatos: 'Coordenação às 21h45.',
+                              pendencias: 'Conversa da técnica amanhã.' });
+    const fut = await request(http).post('/api/v1/incidents').set(auth(t.educador))
+      .send({ houseId: ids.AI4, categoria: 'outro', quando: new Date(Date.now() + 3 * 3_600_000).toISOString(),
+              fato: '[suíte 310] Um fato que ainda não aconteceu, para ser recusado.' });
+    expect(fut.status).toBe(400);
+    expect(fut.body.message).toMatch(/ainda não chegou/);
   });
 
   it('traz o remédio novo e, suspenso pela rota, o suspenso com o instante guardado', async () => {

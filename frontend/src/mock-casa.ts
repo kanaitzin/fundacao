@@ -2182,6 +2182,8 @@ interface EsquemaMock {
   prescritaEm?: string | null;
   inicio: string; fim: string | null; horarios: string[];
   assinadaPor: string | null; assinadaEm: string | null; motivoDaSuspensao: string | null;
+  /** Quando foi suspenso (fase 310): o cartão do que mudou lê daqui, como o servidor lê `suspended_at`. */
+  suspensaEm?: string | null;
   /** A exceção do 0930: o padrão é o educador de plantão poder dar. */
   soEnfermagem: boolean; motivoSoEnfermagem: string | null;
 }
@@ -3180,6 +3182,10 @@ interface Ocorrencia {
   protegidoPor?: string | null; protegidoPorCargo?: string | null;
   protegidoEm?: string | null;
   abertaPor: string; abertaEm: string;
+  /** A hora do FATO (fase 310), que pode ser antes do registro; sem ela, a de abertura. */
+  quando?: string;
+  /** Quem da equipe estava, quem foi avisado e o que ficou pendente (fase 310). */
+  presentes?: string | null; contatos?: string | null; pendencias?: string | null;
   status: StatusOcorrencia;
   avisados: string[];
   sinteses: { id: string; texto: string; autor: string; quando: string }[];
@@ -3189,7 +3195,10 @@ let OCORRENCIAS: Ocorrencia[] = [
     fato: 'Saiu pelo portão dos fundos por volta das 21h40. Retornou às 23h15, acompanhado.',
     medidas: 'Líder Noturno Geral acionado na hora; busca conforme protocolo da casa; '
       + 'acolhido recebido e avaliado pela equipe do plantão.',
-    falaEspontanea: null, abertaPor: 'Joana Lima', abertaEm: emHoras(21, 40),
+    falaEspontanea: null, abertaPor: 'Joana Lima', abertaEm: emHoras(21, 55), quando: emHoras(21, 40),
+    presentes: 'Joana Lima e Nélio Noturno.',
+    contatos: 'Líder Noturno Geral às 21h45. Família informada pela coordenação às 23h30.',
+    pendencias: 'Conversa da equipe técnica com o acolhido amanhã de manhã.',
     status: 'encerrada_operacional',
     avisados: ['Líder Diurno', 'equipe técnica', 'coordenação'],
     sinteses: [
@@ -3249,6 +3258,8 @@ let OCORRENCIAS: Ocorrencia[] = [
 interface AtaMock {
   id: string; plantaoId: string; status: 'aberta' | 'fechada' | 'reaberta'; versao: number;
   pendencias: string | null; fechadaEm: string | null;
+  /** Quem fechou (fase 310): o cartão do que mudou diz o nome, como o servidor. */
+  fechadaPor?: string | null;
   /** O corpo do livro, por seção. Vazio até alguém escrever. */
   conteudo: Record<string, string>;
   /*
@@ -3272,7 +3283,9 @@ interface AtaMock {
  */
 let ATAS: AtaMock[] = [
   { id: ANTERIOR.turno === 'noturno' ? 'ata-noturna' : 'ata-diurna', plantaoId: 's0', status: 'fechada', versao: 2,
-    pendencias: null, fechadaEm: ANTERIOR.fecha,
+    /* O que quem fechou deixou escrito para o turno seguinte, no campo de fechar com pendência. */
+    pendencias: 'Ligar para a escola do Felipe para confirmar a reunião de quinta.', fechadaEm: ANTERIOR.fecha,
+    fechadaPor: ANTERIOR.turno === 'noturno' ? 'Nélio Noturno' : 'Lúcia Líder Diurna',
     /* O conteúdo é o do turno anterior: a noite, de dia; o dia, de noite (fase 204). */
     conteudo: ANTERIOR.turno === 'noturno' ? {
       intercorrencias: 'Noite tranquila, com dois despertares.',
@@ -6631,34 +6644,59 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
 
+  /*
+   * O QUE MUDOU DESDE O ÚLTIMO PLANTÃO (fase 186), LIDO DO QUE A CASA REGISTROU (fase 310).
+   *
+   * Até a 310 esta resposta era escrita à mão: uma ocorrência de Bruno e Kauã às
+   * 21h40 que não existia na lista das Ocorrências, linhas da ATA que ninguém
+   * escreveu e remédios que a Saúde não tinha. Quem abria o detalhe procurava o
+   * registro e não achava. Agora ela sai das mesmas listas que as telas leem:
+   * a ocorrência registrada aparece aqui, a linha escrita na ATA aparece aqui.
+   * Como o servidor, sem o texto da ocorrência e sem linha restrita.
+   */
   if (rota.startsWith('/reports/o-que-mudou') && metodo === 'GET') {
     if (!QUEM_LE_O_QUE_MUDOU.includes(eu.role)) {
       throw new Error('Esta folha é de quem trabalha no plantão da casa.');
     }
-    return {
-      desde: emDias(-1, 20, 0), base: 'plantao', limitado: false,
-      ocorrencias: [
-        { id: 'oc-mudou-1', rotulo: 'Conflito ou agressão', quando: emDias(-1, 21, 40),
-          situacao: 'em acompanhamento', restrita: false, criancas: 'Bruno, Kauã' },
-      ],
-      ata: {
-        data: emDias(-1).slice(0, 10), turno: 'noturno', situacao: 'fechada',
-        fechadaPor: 'Nélio Noturno', linhas: 4,
-        pendencias: 'Ligar para a escola do Felipe para confirmar a reunião de quinta.',
-        ultimas: [
-          { quem: 'Nélio Noturno', quando: emDias(-1, 23, 50),
-            texto: 'Bruno e Kauã conversaram com a equipe depois da discussão na sala e foram dormir tranquilos.' },
-          { quem: 'Mário Silva', quando: emDias(-1, 22, 5),
-            texto: 'Lara com tosse leve à noite, sem febre. A Enfermagem foi avisada.' },
-        ],
-      },
-      remedios: [
-        { tipo: 'novo', crianca: 'Lara', medicamento: 'Xarope de guaco', dose: '5 ml',
-          quando: emDias(-1, 22, 30) },
-        { tipo: 'suspenso', crianca: 'Bruno', medicamento: 'Loratadina', dose: '10 mg',
-          quando: emDias(-1, 21, 10) },
-      ],
+    const desde = new Date(Date.now() - 24 * 3_600_000).toISOString();
+    const depois = (iso: string | null | undefined) => !!iso && iso >= desde;
+    const SITUACAO: Record<string, string> = {
+      aberta: 'aberta', em_acompanhamento: 'em acompanhamento', reaberta: 'reaberta',
+      encerrada_operacional: 'encerrada pelo plantão', aguardando_revisao_tecnica: 'esperando a técnica',
+      fechada: 'fechada',
     };
+    const ocorrencias = OCORRENCIAS.filter((o) => depois(o.quando ?? o.abertaEm))
+      .sort((x, y) => (x.quando ?? x.abertaEm).localeCompare(y.quando ?? y.abertaEm))
+      .map((o) => {
+        const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
+        return {
+          id: o.id,
+          rotulo: cat.restrita ? 'Ocorrência de acesso restrito' : cat.label,
+          quando: o.quando ?? o.abertaEm, situacao: SITUACAO[o.status] ?? o.status,
+          restrita: !!cat.restrita,
+          criancas: cat.restrita || !o.personId ? null : (kid(o.personId)?.nome ?? null),
+          por: o.abertaPor,
+        };
+      });
+    const a = ATAS.find((x) => x.plantaoId === 's0');
+    const linhas = a ? LINHAS_ATA.filter((l) => l.ataId === a.id && !l.restrita) : [];
+    const ata = a ? {
+      data: ANTERIOR.abre.slice(0, 10), turno: ANTERIOR.turno,
+      situacao: a.status === 'fechada' ? 'fechada' : 'ainda aberta',
+      fechadaPor: a.fechadaPor ?? null,
+      pendencias: a.pendencias?.trim() || null, linhas: linhas.length,
+      ultimas: [...linhas].sort((x, y) => y.quando.localeCompare(x.quando)).slice(0, 3)
+        .map((l) => ({ quem: l.quem, quando: l.quando, texto: l.texto })),
+    } : null;
+    const remedios = [
+      ...ESQUEMAS.filter((e) => depois(e.assinadaEm) && e.status !== 'rascunho')
+        .map((e) => ({ tipo: 'novo' as const, crianca: e.acolhido.nome, medicamento: e.medicamento,
+                       dose: e.dose, quando: e.assinadaEm! })),
+      ...ESQUEMAS.filter((e) => e.status === 'suspensa' && depois(e.suspensaEm))
+        .map((e) => ({ tipo: 'suspenso' as const, crianca: e.acolhido.nome, medicamento: e.medicamento,
+                       dose: e.dose, quando: e.suspensaEm! })),
+    ].sort((x, y) => x.crianca.localeCompare(y.crianca) || x.quando.localeCompare(y.quando));
+    return { desde, base: 'ultimas_24h', limitado: false, ocorrencias, ata, remedios };
   }
 
   if (rota === '/implantacao/saude' && metodo === 'GET') {
@@ -11760,6 +11798,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     e.status = 'suspensa'; e.rotulo = 'Suspenso';
     e.motivoDaSuspensao = String(b.motivo).trim();
+    e.suspensaEm = new Date().toISOString();
     // A MESMA regra do servidor, e é uma regra de três partes:
     //
     //  * a dose que AINDA NÃO chegou a hora sai da grade — com estado próprio
@@ -12660,7 +12699,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
       return {
         id: o.id, categoria: cat.label, codigoCategoria: cat.cod,
-        quando: o.abertaEm, status: o.status,
+        quando: o.quando ?? o.abertaEm, status: o.status,
         nivelAcesso: cat.restrita ? 'restrito' : 'equipe',
         revisaoTecnicaObrigatoria: cat.exigeRevisao,
         prazo: null, abertaPor: o.abertaPor,
@@ -12700,10 +12739,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       || (eu.role === 'enfermagem' && /saude|medicamento/.test(cat.cod));
     return {
       id: o.id, casaId: 'AI3', categoria: cat.label, codigoCategoria: cat.cod,
-      quando: o.abertaEm, atividade: null,
-      fato: o.fato, presentes: null, medidasImediatas: o.medidas,
+      quando: o.quando ?? o.abertaEm, atividade: null,
+      /* Quem registrou e quando (fase 310): o fato aparece com o nome e a hora do registro. */
+      abertaPor: o.abertaPor, registradaEm: o.abertaEm,
+      fato: o.fato, presentes: o.presentes ?? null, medidasImediatas: o.medidas,
       saude: /saude|medicamento/.test(cat.cod), medicamento: cat.cod === 'erro_medicamento',
-      contatos: null, pendencias: null, prazo: null,
+      contatos: o.contatos ?? null, pendencias: o.pendencias ?? null, prazo: null,
       status: o.status, nivelAcesso: cat.restrita ? 'restrito' : 'equipe',
       revisaoTecnicaObrigatoria: cat.exigeRevisao,
       acolhidos: o.personId
@@ -12747,6 +12788,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'Sem interpretação e sem juízo sobre a pessoa.');
     }
     if (!b.quando) return new Recusa(400, 'Informe a data e a hora do fato.');
+    if (new Date(String(b.quando)).getTime() > Date.now() + 5 * 60_000) {
+      return new Recusa(400, 'A hora do fato ainda não chegou. Confira o dia e a hora.');
+    }
     const avisados = ['Líder Diurno', 'equipe técnica', 'coordenação']
       .concat(/saude|medicamento/.test(String(b.categoria)) ? ['Enfermagem'] : []);
     const acolhidos: string[] = Array.isArray(b.acolhidos) ? b.acolhidos : [];
@@ -12756,7 +12800,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       falaEspontanea: cat.restrita ? (String(b.falaEspontanea ?? '').trim() || null) : null,
       protegidoPor: eu.fullName, protegidoPorCargo: eu.role,
       protegidoEm: new Date().toISOString(),
-      abertaPor: eu.fullName, abertaEm: String(b.quando),
+      abertaPor: eu.fullName, abertaEm: new Date().toISOString(), quando: String(b.quando),
+      presentes: String(b.presentes ?? '').trim() || null,
+      contatos: String(b.contatos ?? '').trim() || null,
+      pendencias: String(b.pendencias ?? '').trim() || null,
       status: 'aberta', avisados, sinteses: [],
     };
     OCORRENCIAS = [nova, ...OCORRENCIAS];
@@ -12935,6 +12982,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     a.status = 'fechada';
     a.pendencias = pendencias || null;
     a.fechadaEm = new Date().toISOString();
+    a.fechadaPor = eu.fullName;
     // Fechou, entra na fila do arquivo — a mesma coisa que o servidor faz por
     // evento. O aviso abaixo prometia isso desde sempre; agora é verdade.
     enfileirarCopia('ata', 'ata', a.id);
@@ -14074,6 +14122,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return folhaDaOcorrencia({
       categoria: o.categoria, quando: o.quando, status: o.status,
       fato: o.fato, medidasImediatas: o.medidasImediatas,
+      abertaPor: o.abertaPor, presentes: o.presentes, contatos: o.contatos, pendencias: o.pendencias,
       acolhidos: (o.acolhidos ?? []).map((a: any) => ({ nome: a.nome })),
       relatos: { relatos: (o.relatos?.relatos ?? []) },
       sinteses: o.sinteses ?? [],

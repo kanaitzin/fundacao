@@ -17,6 +17,11 @@ export interface DadosDaOcorrencia {
   status: string;
   fato: string;
   medidasImediatas?: string | null;
+  /** Quem registrou, quem estava, quem foi avisado e o que ficou pendente (fase 310). */
+  abertaPor?: string | null;
+  presentes?: string | null;
+  contatos?: string | null;
+  pendencias?: string | null;
   acolhidos?: Array<{ nome: string }>;
   relatos?: { relatos?: Array<{ autor: string; testemunho: string; quando: string; relato: string }> };
   sinteses?: Array<{ autor: string; quando: string; texto: string }>;
@@ -27,13 +32,18 @@ export function folhaDaOcorrencia(d: DadosDaOcorrencia, autor: AutorDaFolha): Fo
     {
       titulo: 'Descrição do fato',
       paragrafos: [d.fato],
-      procedencia: 'Redação de quem registrou a ocorrência, sem alteração posterior.',
+      procedencia: d.abertaPor
+        ? `Redação de ${d.abertaPor}, que registrou a ocorrência, sem alteração posterior.`
+        : 'Redação de quem registrou a ocorrência, sem alteração posterior.',
     },
   ];
 
   if (d.medidasImediatas) {
     secoes.push({ titulo: 'Providências imediatas', paragrafos: [d.medidasImediatas] });
   }
+  if (d.presentes) secoes.push({ titulo: 'Equipe presente', paragrafos: [d.presentes] });
+  if (d.contatos) secoes.push({ titulo: 'Comunicações feitas', paragrafos: [d.contatos] });
+  if (d.pendencias) secoes.push({ titulo: 'Pendências', paragrafos: [d.pendencias] });
 
   if ((d.relatos?.relatos ?? []).length) {
     secoes.push({
