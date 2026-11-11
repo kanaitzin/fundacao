@@ -430,7 +430,10 @@ const TAREFAS = [
   {
     cargo: 'educador', secao: '1.13',
     nome: 'A Helena voltou da madrinha — leia na passagem',
-    caminho: [{ aba: 'Passagem' }, { clicar: /Plantão diurno/i }],
+    /* O plantão do turno EM CURSO, e não sempre o diurno (fase 314): a volta da
+       Helena é do turno de quem está de plantão, e depois das 20h de Porto Alegre
+       ela está no noturno. A tarefa reprovava toda noite, com o protótipo certo. */
+    caminho: [{ aba: 'Passagem' }, { clicar: /Plantão (diurno|noturno)[\s\S]*Aberto/i }],
     procurar: [/com a família neste turno/i, /Helena/, /Trouxe de casa/i],
   },
 
