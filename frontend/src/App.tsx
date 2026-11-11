@@ -678,9 +678,11 @@ export function App() {
      é a única área que depende da marca. */
   const ve = (area: string) => (area === 'implantacao' && me.role === 'coordenador'
     ? !!me.todasAsCasas : alcanca(me.role, area));
-  /* A folha Mais, na ordem dos grupos da coluna e filtrada pelo que a pessoa escreveu. */
+  /* A folha Mais, filtrada pelo que a pessoa escreveu. A ORDEM é a da tabela de
+     portas, a de sempre: quem já sabe onde o cartão fica continua achando, e os
+     ensaios entram pelo primeiro cartão com o nome. */
   const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const portasDoMais = GRUPOS.flatMap((grupo) => PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba)))
+  const portasDoMais = PORTAS.filter((porta) => ve(porta.aba))
     .filter((porta) => !buscaMais.trim()
       || semAcento(`${porta.titulo} ${porta.descricao}`).includes(semAcento(buscaMais.trim())));
   const administra = ve('equipe');
@@ -1351,9 +1353,8 @@ export function App() {
               * rolar o polegar é mais barato do que decidir em qual seção olhar,
               * e quem abre o "Mais" às 23h já sabe o nome do que procura.
               */}
-            {/* A BUSCA E A ORDEM (fase 314): a folha continua corrida, sem grupos,
-                mas na mesma ordem da coluna do monitor (o dia a dia primeiro), e
-                com um campo para quem já sabe o nome do que procura. */}
+            {/* A BUSCA (fase 314): a folha continua corrida, sem grupos e na ordem de
+                sempre, com um campo para quem já sabe o nome do que procura. */}
             <label className="f" htmlFor="busca-mais" style={{ marginTop: 6 }}>Procurar uma tela</label>
             <input id="busca-mais" type="search" value={buscaMais} autoComplete="off"
                    placeholder="Por exemplo: escala, saúde, cozinha"
