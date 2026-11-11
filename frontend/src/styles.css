@@ -2986,9 +2986,10 @@ label{ letter-spacing:-.005em }
   }
 }
 
-/* ---------- A folha na tela, com as cores do papel (fase 314) ----------
-   O Word passou a levar o azul do timbre nos títulos, um fio embaixo de cada
-   seção e o cabeçalho dos quadros no mesmo tom. A pré-visualização acompanha,
+/* ---------- A folha na tela, com o acabamento do papel (fase 314) ----------
+   O Word segue a ABNT (texto todo preto, seções numeradas) e ganhou um fio
+   embaixo de cada seção e o cabeçalho dos quadros num azul claro, o tom do
+   timbre. A pré-visualização acompanha,
    para a pessoa conferir na tela a folha que vai sair. Continua sendo papel:
    claro nos dois temas. */
 .papel{
@@ -2996,14 +2997,13 @@ label{ letter-spacing:-.005em }
   box-shadow:0 1px 2px rgba(13,26,43,.08), 0 8px 20px -10px rgba(13,26,43,.25);
 }
 .papel-timbre{ border-bottom-color:#B8C4D6; padding-bottom:12px; margin-bottom:16px }
-.papel-titulo{ color:#1F3864; font-size:15.5px; letter-spacing:.02em }
-.papel-sub{ color:#595959 }
+.papel-titulo{ font-size:15.5px; letter-spacing:.02em }
 .papel-secao{
-  color:#1F3864; border-bottom:1px solid #B8C4D6; padding-bottom:3px; margin:18px 0 8px;
+  border-bottom:1px solid #B8C4D6; padding-bottom:3px; margin:18px 0 8px;
 }
 .papel-linha{ border-bottom-color:#B8C4D6 }
 .papel-tabela th, .papel-tabela td{ border-color:#B8C4D6 }
-.papel-tabela th{ background:#DCE6F2; color:#1F3864 }
+.papel-tabela th{ background:#DCE6F2 }
 /* No monitor, a folha que mostra o papel ganha largura de papel: numa folha de
    480 px a pré-visualização ficava com a letra de bula. */
 @media (min-width:1080px){
@@ -3019,3 +3019,21 @@ label{ letter-spacing:-.005em }
     width:fit-content; min-width:min(260px, 100%); max-width:100%;
   }
 }
+
+/* ---------- Os grupos da coluna se recolhem (fase 314) ----------
+   O título do grupo é o `summary`: um toque fecha ou abre, e a setinha diz o
+   estado. Aberto é o padrão; o aparelho lembra o que a pessoa fechou. */
+.portas-lateral details.grupo > summary{
+  list-style:none; cursor:pointer; border-radius:8px; padding:4px 0; margin:0 0 2px;
+  display:flex; align-items:center;
+}
+.portas-lateral details.grupo > summary::-webkit-details-marker{ display:none }
+.portas-lateral details.grupo > summary h2{ flex:1; margin:0 }
+.portas-lateral details.grupo > summary::after{
+  content:""; flex:none; width:7px; height:7px; margin:0 12px 2px 8px;
+  border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
+  transform:rotate(45deg); transition:transform var(--mov-curto) var(--curva-padrao);
+}
+.portas-lateral details.grupo:not([open]) > summary::after{ transform:rotate(-45deg) }
+.portas-lateral details.grupo > summary:hover h2{ color:var(--titulo) }
+@media (prefers-reduced-motion: reduce){ .portas-lateral details.grupo > summary::after{ transition:none } }

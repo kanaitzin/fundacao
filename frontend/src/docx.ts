@@ -149,11 +149,12 @@ interface OpcoesParagrafo {
   fioAbaixo?: boolean;
 }
 
-/* AS CORES DO PAPEL (fase 314): o azul do timbre nos títulos e no cabeçalho dos
-   quadros, e um cinza azulado nos fios. São as mesmas do documento que o servidor
-   gera (`documentos.service.ts`): quem confere um, confere o outro. */
+/* O ACABAMENTO DO PAPEL (fase 314), dentro da ABNT: o TEXTO é todo preto (NBR
+   14724: cor só em ilustração), e a cor fica no que é desenho: o timbre, o fio
+   embaixo do título de cada seção, o fundo do cabeçalho dos quadros e as barras
+   do gráfico. São as mesmas do documento que o servidor gera
+   (`documentos.service.ts`): quem confere um, confere o outro. */
 const AZUL = '1F3864';
-const CINZA = '595959';
 const FIO = 'B8C4D6';
 const FUNDO_DO_CABECALHO = 'DCE6F2';
 
@@ -194,7 +195,7 @@ function tabela(cabecalho: string[], linhas: string[][]): string {
     `<w:tc><w:tcPr><w:tcW w:w="${largura}" w:type="dxa"/>`
     + (negrito ? `<w:shd w:val="clear" w:fill="${FUNDO_DO_CABECALHO}"/>` : '')
     + '</w:tcPr><w:p><w:pPr><w:spacing w:before="20" w:after="20"/><w:jc w:val="left"/></w:pPr>'
-    + `<w:r><w:rPr>${rpr}${negrito ? `<w:b/><w:color w:val="${AZUL}"/>` : ''}</w:rPr>`
+    + `<w:r><w:rPr>${rpr}${negrito ? '<w:b/>' : ''}</w:rPr>`
     + `<w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p></w:tc>`;
   const linha = (cs: string[], negrito: boolean) =>
     `<w:tr>${cs.map((c) => celula(c, negrito)).join('')}</w:tr>`;
@@ -220,7 +221,7 @@ function grafico(barras: { rotulo: string; valor: number }[]): string {
     + `<w:jc w:val="${direita ? 'right' : 'left'}"/></w:pPr><w:r><w:rPr>${rpr}${negrito ? '<w:b/>' : ''}</w:rPr>`
     + `<w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p></w:tc>`;
   const passo = (pintado: boolean) => `<w:tc><w:tcPr><w:tcW w:w="227" w:type="dxa"/>`
-    + (pintado ? '<w:shd w:val="clear" w:fill="1F3864"/>' : '') + '</w:tcPr><w:p/></w:tc>';
+    + (pintado ? `<w:shd w:val="clear" w:fill="${AZUL}"/>` : '') + '</w:tcPr><w:p/></w:tc>';
   const linhas = barras.map((b) => {
     const n = passosDaBarra(b.valor, maximo);
     return `<w:tr><w:trPr><w:cantSplit/></w:trPr>${texto(b.rotulo, 3080)}`
@@ -245,11 +246,11 @@ function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
   /* A capa (fase 165): só o texto, centralizado, seguido de quebra de página. */
   if (d.capa) {
     partes.push(par('', { espacoDepois: 1600 }));
-    partes.push(par('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { alinhamento: 'center', negrito: true, cor: AZUL, espacoDepois: 60 }));
-    partes.push(par('Programa de Acolhimento Institucional', { alinhamento: 'center', tamanho: MENOR, cor: CINZA, espacoDepois: 40 }));
-    partes.push(par('Rede Acolher', { alinhamento: 'center', tamanho: MENOR, cor: CINZA, espacoDepois: 1600 }));
-    partes.push(par(d.titulo, { alinhamento: 'center', negrito: true, caixaAlta: true, tamanho: 32, cor: AZUL, espacoDepois: 200 }));
-    if (d.subtitulo) partes.push(par(d.subtitulo, { alinhamento: 'center', cor: CINZA, espacoDepois: 600 }));
+    partes.push(par('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { alinhamento: 'center', negrito: true, espacoDepois: 60 }));
+    partes.push(par('Programa de Acolhimento Institucional', { alinhamento: 'center', tamanho: MENOR, espacoDepois: 40 }));
+    partes.push(par('Rede Acolher', { alinhamento: 'center', tamanho: MENOR, espacoDepois: 1600 }));
+    partes.push(par(d.titulo, { alinhamento: 'center', negrito: true, caixaAlta: true, tamanho: 28, espacoDepois: 200 }));
+    if (d.subtitulo) partes.push(par(d.subtitulo, { alinhamento: 'center', espacoDepois: 600 }));
     for (const i of d.identificacao) {
       partes.push(par(`${i.rotulo}: ${i.valor}`, { alinhamento: 'center', tamanho: MENOR, espacoDepois: 40 }));
     }
@@ -262,13 +263,13 @@ function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
   }
 
   partes.push(par(d.titulo, {
-    alinhamento: 'center', negrito: true, caixaAlta: true, tamanho: 28, cor: AZUL, espacoDepois: 80 }));
+    alinhamento: 'center', negrito: true, caixaAlta: true, espacoDepois: 80 }));
   if (d.subtitulo) {
-    partes.push(par(d.subtitulo, { alinhamento: 'center', tamanho: MENOR, cor: CINZA, espacoDepois: 240 }));
+    partes.push(par(d.subtitulo, { alinhamento: 'center', espacoDepois: 240 }));
   }
 
   if (d.identificacao.length) {
-    partes.push(par('1  IDENTIFICAÇÃO', { alinhamento: 'left', negrito: true, cor: AZUL, fioAbaixo: true,
+    partes.push(par('1  IDENTIFICAÇÃO', { alinhamento: 'left', negrito: true, fioAbaixo: true,
                                           espacoDepois: 100 }));
     for (const i of d.identificacao) partes.push(parRotulado(i.rotulo, i.valor));
     partes.push(par('', { espacoDepois: 120 }));
@@ -278,7 +279,7 @@ function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
     const n = d.identificacao.length ? i + 2 : i + 1;
     if (s.quebraAntes) partes.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
     partes.push(par(`${n}  ${s.titulo.toUpperCase()}`, {
-      alinhamento: 'left', negrito: true, cor: AZUL, fioAbaixo: true, espacoDepois: 100 }));
+      alinhamento: 'left', negrito: true, fioAbaixo: true, espacoDepois: 100 }));
 
     for (const p of s.paragrafos ?? []) {
       partes.push(par(p, { recuo: true }));

@@ -41,9 +41,12 @@ const SEM_BORDA = {
   right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
 };
 const CINZA = '595959';
-/* O ACABAMENTO DO PAPEL (fase 314): um fio azulado embaixo do título de cada seção e
-   nos quadros, e o cabeçalho do quadro no tom do timbre. O protótipo usa as mesmas
-   (`frontend/src/docx.ts`): quem confere um, confere o outro. */
+/* O ACABAMENTO DO PAPEL (fase 314), dentro da ABNT. O TEXTO do corpo é todo preto
+   (NBR 14724: cor só em ilustração) e as seções são numeradas (NBR 6024), como no
+   protótipo, que é a folha que a Fundação aprovou. A cor fica no que é desenho: o
+   timbre, o fio embaixo do título de cada seção, o fundo do cabeçalho dos quadros
+   e as barras do gráfico. O protótipo usa as mesmas (`frontend/src/docx.ts`): quem
+   confere um, confere o outro. */
 const FIO = 'B8C4D6';
 const FUNDO_DO_CABECALHO = 'DCE6F2';
 const FUNDO_DO_ROTULO = 'EEF3F9';
@@ -215,18 +218,19 @@ export class DocumentosService {
       heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
       spacing: { after: f.subtitulo ? 60 : 200 },
-      children: [new TextRun({ text: f.titulo.toUpperCase(), bold: true, size: 28, color: AZUL })],
+      children: [new TextRun({ text: f.titulo.toUpperCase(), bold: true, size: CORPO, color: '000000' })],
     }));
     if (f.subtitulo) {
       filhos.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { after: 200 },
-        children: [new TextRun({ text: f.subtitulo, size: 20, color: CINZA })],
+        children: [new TextRun({ text: f.subtitulo, size: CORPO })],
       }));
     }
 
     // Bloco de identificação, em quadro, porque é o que se confere primeiro.
     if (f.identificacao.length) {
+      filhos.push(this.tituloDaSecao(1, 'Identificação', false));
       filhos.push(new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: BORDAS_DO_QUADRO,
@@ -235,7 +239,7 @@ export class DocumentosService {
             new TableCell({
               width: { size: 28, type: WidthType.PERCENTAGE },
               shading: { fill: FUNDO_DO_ROTULO },
-              children: [new Paragraph({ children: [new TextRun({ text: l.rotulo, bold: true, size: MENOR, color: AZUL })] })],
+              children: [new Paragraph({ children: [new TextRun({ text: l.rotulo, bold: true, size: MENOR })] })],
             }),
             new TableCell({
               children: [new Paragraph({ children: [new TextRun({ text: l.valor, size: MENOR })] })],
@@ -246,7 +250,9 @@ export class DocumentosService {
       filhos.push(new Paragraph({ text: '', spacing: { after: 200 } }));
     }
 
-    for (const s of f.secoes) filhos.push(...this.secao(s));
+    /* A numeração progressiva (NBR 6024): a identificação é a seção 1, quando existe. */
+    const primeira = f.identificacao.length ? 2 : 1;
+    f.secoes.forEach((s, i) => filhos.push(...this.secao(s, primeira + i)));
 
     if (f.ressalva) {
       filhos.push(new Paragraph({
@@ -325,24 +331,29 @@ export class DocumentosService {
       centro('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { bold: true, color: AZUL }),
       centro('Programa de Acolhimento Institucional', { size: MENOR, color: CINZA }),
       centro('Rede Acolher', { size: MENOR, color: CINZA, after: 1600 }),
-      centro(f.titulo.toUpperCase(), { size: 32, bold: true, color: AZUL, after: 200 }),
+      centro(f.titulo.toUpperCase(), { size: 28, bold: true, after: 200 }),
       ...(f.subtitulo ? [centro(f.subtitulo, { color: CINZA, after: 600 })] : []),
       ...f.identificacao.map((l) => centro(`${l.rotulo}: ${l.valor}`, { size: MENOR })),
       new Paragraph({ children: [new PageBreak()] }),
     ];
   }
 
-  private secao(s: SecaoDaFolha): (Paragraph | Table)[] {
-    const saida: (Paragraph | Table)[] = [
-      new Paragraph({
-                heading: HeadingLevel.HEADING_2,
-        pageBreakBefore: !!s.quebraAntes,
-        keepNext: true,
-        spacing: { before: 240, after: 100 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: FIO, space: 2 } },
-        children: [new TextRun({ text: s.titulo, bold: true, size: 24, color: AZUL })],
-      }),
-    ];
+  /** O título de uma seção: número, nome em caixa alta, preto, com o fio embaixo. */
+  private tituloDaSecao(n: number, titulo: string, quebraAntes: boolean): Paragraph {
+    return new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      pageBreakBefore: quebraAntes,
+      keepNext: true,
+      spacing: { before: 240, after: 100 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: FIO, space: 2 } },
+      /* A caixa alta é formatação (`allCaps`), e não texto trocado: quem procura o
+         título no arquivo continua achando como ele foi escrito. */
+      children: [new TextRun({ text: `${n}  ${titulo}`, bold: true, size: CORPO, color: '000000', allCaps: true })],
+    });
+  }
+
+  private secao(s: SecaoDaFolha, n: number): (Paragraph | Table)[] {
+    const saida: (Paragraph | Table)[] = [this.tituloDaSecao(n, s.titulo, !!s.quebraAntes)];
 
     for (const p of s.paragrafos ?? []) {
       /* Justificado e com entrelinha: o documento é lido no papel, às vezes em
@@ -379,7 +390,7 @@ export class DocumentosService {
             tableHeader: true,
             children: s.tabela.cabecalho.map((c) => new TableCell({
               shading: { fill: FUNDO_DO_CABECALHO },
-              children: [new Paragraph({ children: [new TextRun({ text: c, bold: true, size: 18, color: AZUL })] })],
+              children: [new Paragraph({ children: [new TextRun({ text: c, bold: true, size: 18 })] })],
             })),
           }),
           ...s.tabela.linhas.map((l, i) => new TableRow({

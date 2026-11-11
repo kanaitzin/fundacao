@@ -504,6 +504,24 @@ export function App() {
   /* A setinha da casa (pedido de 06/11): a folha das casas que a pessoa alcança. */
   const [folhaCasa, setFolhaCasa] = useState(false);
   const [mais, setMais] = useState(false);
+  /* A busca da folha Mais e os grupos recolhidos da coluna (fase 314). Os grupos
+     ficam lembrados neste aparelho, como a cor da tela; a busca recomeça vazia. */
+  const [buscaMais, setBuscaMais] = useState('');
+  useEffect(() => { if (!mais) setBuscaMais(''); }, [mais]);
+  const [gruposFechados, setGruposFechados] = useState<string[]>(() => {
+    try {
+      const lido: unknown = JSON.parse(localStorage.getItem('rede-acolher.grupos-fechados') ?? '[]');
+      return Array.isArray(lido) ? lido.filter((g): g is string => typeof g === 'string') : [];
+    } catch { return []; }
+  });
+  const guardarGrupo = (cod: string, aberto: boolean) => {
+    setGruposFechados((antes) => {
+      const depois = aberto ? antes.filter((g) => g !== cod) : antes.includes(cod) ? antes : [...antes, cod];
+      if (depois.length === antes.length) return antes;
+      try { localStorage.setItem('rede-acolher.grupos-fechados', JSON.stringify(depois)); } catch { /* vale até fechar */ }
+      return depois;
+    });
+  };
   const [escolhida, setEscolhida] = useState<string | null>(null);
   /*
    * Quantos avisos esperam a pessoa. O sino fica na barra de cima, ao lado do
@@ -660,6 +678,11 @@ export function App() {
      é a única área que depende da marca. */
   const ve = (area: string) => (area === 'implantacao' && me.role === 'coordenador'
     ? !!me.todasAsCasas : alcanca(me.role, area));
+  /* A folha Mais, na ordem dos grupos da coluna e filtrada pelo que a pessoa escreveu. */
+  const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const portasDoMais = GRUPOS.flatMap((grupo) => PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba)))
+    .filter((porta) => !buscaMais.trim()
+      || semAcento(`${porta.titulo} ${porta.descricao}`).includes(semAcento(buscaMais.trim())));
   const administra = ve('equipe');
   const veSaude = ve('saude');
   const veCofre = ve('cofre');
@@ -1039,9 +1062,14 @@ export function App() {
             if (grupo.cod === 'comeco') return null;
             const dele = PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba));
             if (!dele.length) return null;
+            /* O GRUPO SE RECOLHE (fase 314): quem tem vinte e tantas telas na coluna
+               fecha os grupos que não usa no turno, e o aparelho lembra. O grupo da
+               tela aberta nunca fica fechado, para o item marcado não sumir. */
+            const aberto = !gruposFechados.includes(grupo.cod) || dele.some((porta) => porta.aba === aba);
             return (
-              <div key={grupo.cod} className="grupo">
-                <h2>{grupo.titulo}</h2>
+              <details key={grupo.cod} className="grupo" open={aberto}
+                       onToggle={(e) => guardarGrupo(grupo.cod, (e.currentTarget as HTMLDetailsElement).open)}>
+                <summary><h2>{grupo.titulo}</h2></summary>
                 {dele.map((porta) => (
                   <button key={porta.aba} className={aba === porta.aba ? 'on' : ''}
                           title={porta.descricao}
@@ -1049,7 +1077,7 @@ export function App() {
                     <Icone nome={porta.icone} /> <span className="rotulo">{porta.titulo}</span>
                   </button>
                 ))}
-              </div>
+              </details>
             );
           })}
         </nav>
@@ -1323,8 +1351,16 @@ export function App() {
               * rolar o polegar é mais barato do que decidir em qual seção olhar,
               * e quem abre o "Mais" às 23h já sabe o nome do que procura.
               */}
-            <div className="stack">
-              {PORTAS.filter((porta) => ve(porta.aba)).map((porta) => (
+            {/* A BUSCA E A ORDEM (fase 314): a folha continua corrida, sem grupos,
+                mas na mesma ordem da coluna do monitor (o dia a dia primeiro), e
+                com um campo para quem já sabe o nome do que procura. */}
+            <label className="f" htmlFor="busca-mais" style={{ marginTop: 6 }}>Procurar uma tela</label>
+            <input id="busca-mais" type="search" value={buscaMais} autoComplete="off"
+                   placeholder="Por exemplo: escala, saúde, cozinha"
+                   onChange={(e) => setBuscaMais(e.target.value)} />
+            {!portasDoMais.length && <p className="mutetxt" role="status">Nenhuma tela com esse nome.</p>}
+            <div className="stack" style={{ marginTop: 12 }}>
+              {portasDoMais.map((porta) => (
                 <button key={porta.aba} className="card row"
                         onClick={() => { setAba(porta.aba as typeof aba); setMais(false); }}>
                   <span className="porta-icone"><Icone nome={porta.icone} /></span>
