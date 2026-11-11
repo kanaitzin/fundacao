@@ -78,10 +78,14 @@ import { CASAS_DA_FUNDACAO, CASA_MODELO, trocadorDeNomes, type ConfigDaCasa } fr
 import { QUEM_POE_FOTO } from '../../backend/src/modules/people/foto.regra';
 import { QUEM_VE_CPF_INTEIRO } from '../../backend/src/modules/people/cpf-na-portaria.regra';
 import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../backend/src/kernel/common/senha.regra';
+import { idDoPrototipo, sorteioDoPrototipo, sorteioFixo } from './prototipo-guardado';
 
 /** A senha inicial do protótipo, sorteada como no servidor (fase 291). */
 function senhaInicialDoPrototipo(): string {
-  return senhaInicialSorteada((n) => crypto.getRandomValues(new Uint32Array(1))[0] % n);
+  /* Dentro de um pedido, o sorteio se repete igual quando o diário volta (fase 312);
+     fora dele, vem do crypto.getRandomValues, nunca do Math.random. */
+  return senhaInicialSorteada((n) => Math.floor(sorteioDoPrototipo(
+    () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * n) % n);
 }
 
 /**
@@ -156,7 +160,10 @@ const diasAtras = (n: number) => new Intl.DateTimeFormat('en-CA',
 const hhmmDe = (iso: string) => new Intl.DateTimeFormat('pt-BR',
   { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })
   .format(new Date(iso));
-const uid = () => Math.random().toString(36).slice(2, 10);
+/* O identificador novo sai do diário do protótipo (fase 312): pelo número do pedido, ou
+   pela semente fixa desta casa, para o registro guardado achar amanhã o que ele aponta. */
+const sementeDaCasa = sorteioFixo(`casa:${cfg.casa.id}`);
+const uid = () => idDoPrototipo(sementeDaCasa);
 
 // ---------------------------------------------------------------- pessoas
 
@@ -5989,7 +5996,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   /*
    * Convite de primeiro acesso. No protótipo o "e-mail" não sai daqui: o
-   * token de mentira é sempre o mesmo, e a tarja já avisa que nada é real.
+   * token de mentira é sempre o mesmo, e os dados são fictícios.
    * O que este trecho demonstra é o CAMINHO — conferir antes de pedir senha,
    * gastar o convite uma vez, e o link vencido não contar de quem era.
    */

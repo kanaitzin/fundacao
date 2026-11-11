@@ -107,8 +107,11 @@ describe('A senha e a entrada', () => {
     expect(new Set(sorteadas).size).toBeGreaterThan(295);
     // O sorteio é do `node:crypto`, no servidor, e do `crypto.getRandomValues`, no protótipo.
     expect(ler('backend/src/modules/identity/staff.service.ts')).toMatch(/senhaInicialSorteada\(randomInt\)/);
-    expect(ler('frontend/src/mock-casa.ts')).toMatch(/senhaInicialSorteada\(\(n\) => crypto\.getRandomValues/);
-    for (const p of ['backend/src/modules/identity/staff.service.ts', 'backend/src/kernel/common/senha.regra.ts']) {
+    /* No protótipo, desde a fase 312, o sorteio passa pelo do diário (`prototipo-guardado.ts`),
+       que se repete igual quando a página reabre; fora do diário, continua o crypto. */
+    expect(ler('frontend/src/mock-casa.ts')).toMatch(/function senhaInicialDoPrototipo[\s\S]{0,400}crypto\.getRandomValues/);
+    for (const p of ['backend/src/modules/identity/staff.service.ts', 'backend/src/kernel/common/senha.regra.ts',
+      'frontend/src/mock-casa.ts', 'frontend/src/prototipo-guardado.ts']) {
       expect([p, /Math\.random\(/.test(ler(p))]).toEqual([p, false]);
     }
   });

@@ -716,38 +716,8 @@ textarea{
   color:var(--ink-2); min-width:42px;
 }
 
-/*
- * A TARJA DO PROTÓTIPO.
- *
- * Antes era uma faixa de âmbar SÓLIDO com `color:#fff` fixo. Duas coisas
- * quebravam:
- *
- *  * no tema claro, um laranja queimado colado na barra azul-marinho da
- *    instituição — duas cores fortes brigando na primeira linha da tela;
- *  * no tema escuro o token `--amber-solid` vira um amarelo CLARO, e o branco
- *    fixo por cima dele sumia. O aviso mais importante da tela era o texto
- *    menos legível dela.
- *
- * Agora ela pertence ao sistema: fundo tênue tirado do próprio âmbar sobre a
- * superfície do tema, tinta `--ink` (que contrasta por definição nos dois), e
- * o peso fica no SELO, que é onde o olho precisa bater.
- */
-.tarja{
-  position:relative; z-index:5;
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  flex-wrap:wrap;
-  background:color-mix(in srgb, var(--amber) 13%, var(--surface));
-  border-bottom:1px solid color-mix(in srgb, var(--amber) 45%, var(--surface));
-  color:var(--ink); text-align:center;
-  font-size:12px; letter-spacing:.01em; padding:7px 12px;
-}
-.tarja-selo{
-  background:var(--amber-solid); color:var(--on-solid);
-  font-family:"Plus Jakarta Sans", sans-serif;
-  font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
-  padding:2px 8px; border-radius:999px; white-space:nowrap;
-}
-.tarja-txt{ color:var(--ink-2) }
+/* Recomeçar a demonstração, na Minha conta do protótipo (fase 312). A faixa do protótipo saiu, a pedido de 11/11. */
+.recomecar{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line-2) }
 
 /* Seletor de cargo — só no protótipo */
 .troca-cargo{

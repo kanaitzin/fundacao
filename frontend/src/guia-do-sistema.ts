@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 312, dia: '11/11/2026',
+    texto: 'Na demonstração, o que você registra continua lá quando a página recarrega, como a cor da tela: fica guardado neste aparelho. Para voltar ao começo, toque em Recomeçar a demonstração, na Minha conta. E a faixa do alto saiu.' },
   { fase: 311, dia: '11/11/2026',
     texto: 'A Acolhe+AI conversa sem o aviso do alto e entende melhor o jeito de falar da casa: o que a psicóloga, a coordenação, o educador social e a assistente social dizem, como estudo de caso, visita domiciliar, escuta especializada, boletim, CadÚnico e desligamento. Quando a criança fala em morrer, ela diz primeiro o cuidado: não deixar sozinha, escutar sem julgar e chamar a equipe. Em Voz da leitura, no alto da conversa, você escolhe a voz e a velocidade com que ela lê as respostas. E o relatório pedido pela conversa é feito ali mesmo: conte o que aconteceu e ela monta o rascunho para você conferir.' },
   { fase: 310, dia: '11/11/2026',

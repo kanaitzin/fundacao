@@ -99,21 +99,6 @@ const ALCANCE = new Map(ALCANCE_POR_CARGO.map(
   (a) => [a.cargo, new Set(a.areas.map((x) => x.area))] as const));
 const alcanca = (papel: string, area: string) => ALCANCE.get(papel)?.has(area) ?? false;
 
-/**
- * Só no protótipo, e desde a tela de entrada: quem abre o arquivo precisa
- * saber, antes de digitar qualquer coisa, que nada ali é real e nada fica
- * salvo — senão alguém um dia usa isto para anotar o dia de uma criança de
- * verdade.
- */
-function Tarja() {
-  if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
-  return (
-    <div className="tarja">
-      <span className="tarja-selo">Protótipo</span>
-      <span className="tarja-txt">dados fictícios · nada é salvo ao fechar</span>
-    </div>
-  );
-}
 
 /**
  * Seletor de cargo — só aparece no protótipo.
@@ -635,7 +620,6 @@ export function App() {
   if (!me && convite) {
     return (
       <>
-        <Tarja />
         <PrimeiroAcesso convite={convite} onEntrou={(t) => { setConvite(''); entrarComToken(t); }} />
       </>
     );
@@ -645,7 +629,6 @@ export function App() {
   if (me && me.mustChangePassword && !me.semSenha) {
     return (
       <>
-        <Tarja />
         <SenhaPessoal email={me.email} primeiroAcesso
                       onPronto={() => { void depoisDaTroca(); }} onAdiar={() => { void sair(); }} />
       </>
@@ -655,7 +638,6 @@ export function App() {
   if (!me) {
     return (
       <>
-        <Tarja />
         <Login onSubmit={entrar} erro={erro} ocupado={ocupado} />
       </>
     );
@@ -777,7 +759,6 @@ export function App() {
 
   return (
     <div className={`app${abasDoTurno.length + doMais.length > 1 ? ' com-barra' : ''}`}>
-      <Tarja />
       <header className="appbar">
         <div className="top">
           <span className="logochip"><img src={logo} alt="Fundação O Pão dos Pobres" /></span>
@@ -926,6 +907,7 @@ export function App() {
               <button className="btn ghost" onClick={sair}>Sair</button>
               <button className="btn ghost" onClick={() => setConta(false)}>Fechar</button>
             </div>
+            <RecomecarADemonstracao />
             <AvisoNoCelular casa={casa?.name ?? null} />
             <CameraNesteAparelho />
           </div>
@@ -1428,6 +1410,37 @@ function FolhaSessaoTerminou({ email, onEntrou, onOutraConta }: {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+
+/**
+ * Recomeçar a demonstração (fase 312): o protótipo guarda neste aparelho o que a pessoa
+ * registra (`prototipo-guardado.ts`), e aqui se apaga tudo e se volta ao começo. Só no
+ * protótipo; no sistema de verdade nada se apaga.
+ */
+function RecomecarADemonstracao() {
+  const [certeza, setCerteza] = useState(false);
+  if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
+  const recomecar = async () => {
+    const { apagarODiario } = await import('./prototipo-guardado');
+    await apagarODiario();
+    window.location.reload();
+  };
+  return (
+    <div className="recomecar">
+      {!certeza ? (
+        <button type="button" className="btn ghost sm" onClick={() => setCerteza(true)}>Recomeçar a demonstração</button>
+      ) : (
+        <div className="stack" role="group" aria-label="Recomeçar a demonstração">
+          <p className="mutetxt" style={{ margin: 0 }}>O que você registrou neste aparelho sai, e a demonstração volta ao começo.</p>
+          <div className="row" style={{ gap: 8 }}>
+            <button type="button" className="btn sm" onClick={() => void recomecar()}>Recomeçar</button>
+            <button type="button" className="btn sm sec" onClick={() => setCerteza(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,12 +21,14 @@
 import { SemConexao, ErroApi, fraseSemSinal } from './api';
 import { CASA_MODELO, CASAS_DA_FUNDACAO, configDaCasa } from './casas-ficticias';
 import { criarServidorDaCasa } from './mock-casa';
+import { comODiario, repetirODiario, semPedido } from './prototipo-guardado';
 
 type Servidor = ReturnType<typeof criarServidorDaCasa>;
 const CASAS = new Map<string, Servidor>();
 function casa(id: string): Servidor {
   let s = CASAS.get(id);
-  if (!s) { s = criarServidorDaCasa(configDaCasa(id)); CASAS.set(id, s); }
+  /* A casa nasce só da semente dela, fora do número do pedido (fase 312). */
+  if (!s) { s = semPedido(() => criarServidorDaCasa(configDaCasa(id))); CASAS.set(id, s); }
   return s;
 }
 
@@ -202,6 +204,7 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function mockApiNaCasa<T>(path: string, init?: RequestInit): Promise<T> {
+  await oDiarioRepetido();
   await new Promise((r) => setTimeout(r, ensaio.__pausaDoPrototipo ?? 120));   // uma pausa curta, como a rede real
   if (semSinal) {
     throw new SemConexao(fraseSemSinal(init?.method));
@@ -220,11 +223,22 @@ async function mockApiNaCasa<T>(path: string, init?: RequestInit): Promise<T> {
 
   const id = daOutraCasa && CASAS_DA_FUNDACAO.some((c) => c.id === daOutraCasa)
     ? daOutraCasa : casaDoPedido(rota, q, corpo, init?.method ?? 'GET');
+  const metodo = init?.method ?? 'GET';
+  casa(id);
+  /* O diário do protótipo (fase 312): o pedido corre com o número dele, e o que grava
+     fica anotado neste navegador para voltar quando a página abrir de novo. */
+  return comODiario(id, comCasa.texto, corpoTexto.texto, metodo,
+    () => responderNaCasa<T>(id, rota, seg, q, corpo, metodo));
+}
+
+/** O miolo de um pedido, na casa já escolhida: o mesmo para o pedido de agora e para o diário. */
+function responderNaCasa<T>(id: string, rota: string, seg: string[], q: URLSearchParams,
+                            corpo: Record<string, unknown>, metodo: string): T {
   const s = casa(id);
   const modelo = id === CASA_MODELO;
   if (!eu) eu = casa(CASA_MODELO).lerEu();
   s.trocarEu(eu);
-  const r = s.responder(rota, seg, q, corpo, init?.method ?? 'GET');
+  const r = s.responder(rota, seg, q, corpo, metodo);
   eu = s.lerEu();
   if (rota === '/auth/login' || rota === '/auth/convite/concluir') sessaoVencida = false;
   if (r instanceof Error) {
@@ -237,6 +251,19 @@ async function mockApiNaCasa<T>(path: string, init?: RequestInit): Promise<T> {
       && CASAS_DA_FUNDACAO.some((c) => c.id === casaAberta)) {
     return trocarNaSaida(r, casa(casaAberta).trocar) as T;
   }
-  if (modelo && (init?.method ?? 'GET') === 'GET') return juntarAsCasas(rota, q, r) as T;
+  if (modelo && metodo === 'GET') return juntarAsCasas(rota, q, r) as T;
   return (modelo ? r : trocarNaSaida(r, s.trocar)) as T;
+}
+
+/* O diário repetido uma vez, ao abrir, antes do primeiro pedido da tela (fase 312). */
+let pronto: Promise<unknown> | null = null;
+function oDiarioRepetido(): Promise<unknown> {
+  if (!pronto) {
+    pronto = repetirODiario((id) => { casa(id); }, (a) => {
+      const [rota, busca] = a.caminho.split('?');
+      const corpo = a.corpo ? JSON.parse(a.corpo) : {};
+      responderNaCasa(a.casa, rota, rota.split('/').filter(Boolean), new URLSearchParams(busca ?? ''), corpo, a.metodo);
+    }).catch(() => 0);
+  }
+  return pronto;
 }
