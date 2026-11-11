@@ -4738,6 +4738,10 @@ function semearDossie() {
     doc('certidao_nascimento', 'pessoal', 'Certidão de nascimento', true, null, 168),
     doc('cartao_sus', 'pessoal', 'Cartão SUS', false, null, 2),
     doc('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', true, diasAtras(-120), 140),
+    /* O boletim da Alice (fase 314): o roteiro da Casa 03 manda o educador achá-lo na
+       aba Documentos (tarefa 1.13.2), e desde a 313, quando o perfil passou a ler só o
+       dossiê, ele não estava em lugar nenhum. As outras crianças já tinham o delas. */
+    doc('boletim', 'escolar', 'Boletim do semestre', true, null, 60),
     doc('guia_acolhimento', 'judicial_socioassistencial', 'Guia de acolhimento', true, null, 170),
     /* O último relatório de reavaliação da Alice (fase 269), enviado há oitenta dias:
        o próximo prazo cai em dez, e a área restrita mostra o prazo chegando. */

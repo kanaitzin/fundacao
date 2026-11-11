@@ -822,6 +822,11 @@ export function App() {
             </button>
           )}
           <span className="grow" />
+          {/* OS CONTROLES DO TOPO, JUNTOS (fase 314): no monitor eles formam um bloco só,
+              à direita, e quando a linha não cabe (a Coordenação Geral, com o botão das
+              duas visões) descem inteiros, e não um a um. No celular o bloco não existe
+              para o desenho (`display:contents`): a linha continua a da fase 184. */}
+          <div className="topo-controles">
           <RelogioDoTopo />
           {/* A BUSCA DE CRIANÇA (fase 183): só para quem vê os acolhidos, e só na
               casa aberta. */}
@@ -868,6 +873,7 @@ export function App() {
           <button className="iconbtn so-no-monitor" title="Trocar minha senha" aria-label="Trocar minha senha"
                   onClick={() => setTrocarSenha(true)}><Icone nome="chave" /></button>
           <button className="btn sm ghost so-no-monitor" onClick={sair}>Sair</button>
+          </div>
         </div>
         {/*
           * QUEM ESTÁ USANDO, numa linha só (fase 172). O nome ocupava um título
