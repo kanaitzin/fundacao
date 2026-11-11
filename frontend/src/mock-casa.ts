@@ -2249,6 +2249,17 @@ const ESQUEMAS: EsquemaMock[] = [
     horarios: [], assinadaPor: 'Enfermeira Clara',
     assinadaEm: '2026-09-01T09:10:00-03:00', motivoDaSuspensao: null,
     soEnfermagem: false, motivoSoEnfermagem: null },
+  /* Um remédio que a Enfermagem ativou no turno anterior (fase 310): é ele que o cartão do
+     que mudou mostra, lido daqui, e não uma linha escrita à mão. "Se necessário", para não
+     mexer na grade das doses. */
+  { id: 'esq6', medicamento: 'Xarope de guaco', dose: '5 mL',
+    via: 'oral', tipo: 'quando_necessario', status: 'ativa', rotulo: 'Se necessário',
+    acolhido: { id: 'p11', nome: 'Lara' },
+    condicaoUso: 'Tosse que atrapalha o sono. No máximo três vezes ao dia.',
+    prescritor: 'Pediatria — UBS do Bairro', inicio: ANTERIOR.abre.slice(0, 10), fim: null,
+    horarios: [], assinadaPor: 'Enfermeira Clara',
+    assinadaEm: new Date(new Date(ANTERIOR.abre).getTime() + 2 * 3_600_000).toISOString(),
+    motivoDaSuspensao: null, soEnfermagem: false, motivoSoEnfermagem: null },
 ];
 
 /** Quem está nominalmente autorizado a administrar (§11.3). */
@@ -6658,7 +6669,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!QUEM_LE_O_QUE_MUDOU.includes(eu.role)) {
       throw new Error('Esta folha é de quem trabalha no plantão da casa.');
     }
-    const desde = new Date(Date.now() - 24 * 3_600_000).toISOString();
+    /* Desde o começo do turno anterior, fixo: o "já li" de cada pessoa é guardado por este
+       instante, e um começo que andasse a cada pedido reabriria o cartão a toda hora. */
+    const desde = ANTERIOR.abre;
     const depois = (iso: string | null | undefined) => !!iso && iso >= desde;
     const SITUACAO: Record<string, string> = {
       aberta: 'aberta', em_acompanhamento: 'em acompanhamento', reaberta: 'reaberta',
@@ -6696,7 +6709,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         .map((e) => ({ tipo: 'suspenso' as const, crianca: e.acolhido.nome, medicamento: e.medicamento,
                        dose: e.dose, quando: e.suspensaEm! })),
     ].sort((x, y) => x.crianca.localeCompare(y.crianca) || x.quando.localeCompare(y.quando));
-    return { desde, base: 'ultimas_24h', limitado: false, ocorrencias, ata, remedios };
+    return { desde, base: 'plantao', limitado: false, ocorrencias, ata, remedios };
   }
 
   if (rota === '/implantacao/saude' && metodo === 'GET') {

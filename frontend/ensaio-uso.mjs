@@ -3790,6 +3790,8 @@ if (await linha310.count()) { await linha310.click(); await pg.waitForTimeout(50
 const doCartao = await pg.locator('main').innerText();
 cobrar('e chega ao cartão do que mudou, com o nome de quem registrou',
   /Conflito ou agressão[\s\S]{0,120}registrada por/.test(doCartao), doCartao.slice(0, 400));
+/* O bloco seguinte começa no cargo em que o anterior terminava (o gestor). */
+await trocar('gestor_geral');
 cobrar('nenhuma exceção na folha do plantão', erros.length === 0, erros[0]);
 
 /*
