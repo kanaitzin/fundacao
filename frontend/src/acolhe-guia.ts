@@ -37,7 +37,9 @@ const sem = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCas
 const PALAVRAS: Record<string, string[]> = {
   dia: ['dia', 'hoje', 'linha do dia', 'o que tem hoje', 'o que mudou', 'ultimo plantao', 'resumo do dia'],
   chamada: ['chamada', 'presenca', 'quem esta na casa', 'quem esta fora', 'chamadas da casa', 'cor da chamada', 'horario da chamada'],
-  acolhidos: ['acolhido', 'crianca', 'perfil', 'dossie', 'documento da crianca', 'adolescente'],
+  acolhidos: ['acolhido', 'crianca', 'perfil', 'dossie', 'documento da crianca', 'adolescente',
+    /* Os sentidos das palavras da casa da fase 311 que moram no perfil da criança. */
+    'perfil da crianca', 'atendimento tecnico', 'beneficio social', 'vinculo educacional', 'saida da crianca', 'vivencias'],
   passagem: ['passagem', 'assinar a passagem', 'passar o plantao', 'passou o plantao', 'assinou o plantao', 'assinar o plantao'],
   /* "Quem não passou o plantão" é a pergunta do líder que vai fechar a ATA: é nela que a falta aparece com nome (fase 205). */
   ata: ['ata', 'livro', 'linha da ata', 'registro do turno', 'fechar a ata', 'assinou a ata', 'ronda', 'nao passou o plantao', 'nao passaram o plantao', 'quem nao assinou',
@@ -53,7 +55,7 @@ const PALAVRAS: Record<string, string[]> = {
     'quebrou', 'quebraram', 'danific', 'estragou', 'xingou', 'xingando', 'ameacou', 'empurrou', 'mordeu', 'chutou', 'bateu no', 'bateu na', 'bateu em'],
   cozinha: ['cozinha', 'lanche', 'cesta', 'refeic', 'comida', 'restric', 'alergia', 'amendoim', 'nao pode comer', 'dieta'],
   portaria: ['portaria', 'visita', 'visitante', 'portao', 'chegou a tia', 'chegou o tio', 'chegou a avo', 'chegou o avo', 'chegou a mae', 'chegou o pai', 'veio visitar',
-             'sair sozinho', 'sair sozinha', 'sem acompanhante', 'saida das criancas', 'registrar a volta', 'voltou da escola', 'saiu para a escola'],
+             'quem pode visitar', 'sair sozinho', 'sair sozinha', 'sem acompanhante', 'saida das criancas', 'registrar a volta', 'voltou da escola', 'saiu para a escola'],
   escala: ['escala', 'folga', 'turno de quem', 'quem trabalha', 'horario do turno', 'horario dos turnos'],
   agenda: ['agenda', 'consulta', 'compromisso', 'audiencia', 'marcado'],
   rotina: ['rotina', 'horario da casa', 'molde do dia'],
@@ -218,6 +220,11 @@ function rascunhoDoPedido(texto: string, telas: TelaDoGuia[], aceitaLongo: boole
  * Não navega sozinha numa urgência; deixa o caminho como link.
  */
 const URGENCIA_FUGA = /\b(fugiu|fugir|fugindo|fuga|fugiram|evadiu|evasao|sumiu|sumiram|desapareceu|nao voltou|nao voltaram|pulou o muro|saiu sem (avisar|autorizacao|permissao))\b/;
+/* A criança que fala em morrer ou em se machucar (fase 311, pensando como a psicóloga):
+   antes do SAMU vem não deixá-la sozinha e escutar sem julgar. Vem antes da urgência de saúde. */
+const IDEACAO = /\b(se matar|suicid\w*|quer morrer|querendo morrer|pensando em morrer|falou em morrer|nao quer mais viver|tirar a propria vida|quer sumir do mundo|se machucar de novo)\b/;
+/* O xixi na cama e o escape: cuidado sem castigo e sem expor (fase 311). */
+const ENURESE = /\b(enurese|encoprese|xixi na cama|molhou a cama|fez xixi na roupa|escape de xixi)\b/;
 const URGENCIA_SAUDE = /\b(convuls\w*|desmai\w*|nao (esta |ta )?respirando|engasg\w*|sangrando|muito sangue|engoliu|intoxic\w*|overdose|queimou|queimadura|bateu a cabeca|inconsciente|desacordad\w*|se cortou|se cortando|automutil\w*|se matar|suicid\w*|quer morrer)\b/;
 const VIOLENCIA = /\b(abus\w*|violencia|violentad\w*|estupr\w*|bateu nel[ae]|bateram nel[ae]|apanhou|apanhando|assedi\w*|tocou nel[ae]|mexeu com el[ae])\b/;
 /* "O sistema caiu" não é tombo. */
@@ -259,6 +266,12 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
   const depois = ocorrencia
     ? ` Quando der, registre a ocorrência com o mínimo e complete depois:${ocorrencia}`
     : ' Quando der, o líder do plantão registra a ocorrência.';
+  if (IDEACAO.test(t)) {
+    return 'Fique com a criança agora e não a deixe sozinha. Tire de perto o que pode machucar e chame o líder do plantão e a equipe técnica. '
+      + 'Escute com calma, sem julgar e sem prometer segredo: diga que vai pedir ajuda para cuidar dela. '
+      + 'Se a criança já se machucou ou o risco é agora, ligue para o SAMU, no 192. '
+      + `O registro nunca atrasa o cuidado.${depois}`;
+  }
   if (URGENCIA_SAUDE.test(t)) {
     return 'Se é emergência, ligue agora para o SAMU, no 192, chame o líder do plantão e fique com a criança. '
       + `O registro nunca atrasa o atendimento.${depois}`;
@@ -292,7 +305,7 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
       + link(telas, 'portaria', 'Abrir a Portaria');
   }
   if (EMOCAO.test(t)) {
-    return 'Primeiro ela: fique perto, com calma e sem pressa, num canto mais tranquilo, e ofereça água ou colo se ela aceitar. '
+    return 'Primeiro a criança: fique perto, com calma e sem pressa, num canto mais tranquilo, e ofereça água ou colo se ela aceitar. '
       + 'Não precisa resolver agora nem perguntar o porquê. Se não passar, ou se houver risco para ela ou para alguém, '
       + 'chame o líder do plantão e a equipe técnica. Depois, escreva na ATA o que aconteceu e o que ajudou: '
       + 'é o que a próxima equipe precisa saber.' + link(telas, 'ata', 'Abrir a ATA');
@@ -338,6 +351,11 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
       + 'O caminho é escrever a correção ou o complemento, com o seu nome e a hora, ao lado do que estava.'
       + (achar(t, telas) ? link(telas, achar(t, telas)!.chave, `Abrir ${achar(t, telas)!.titulo}`) : '');
   }
+  if (ENURESE.test(t)) {
+    return 'Acontece, e não é culpa da criança. Troque a roupa e a cama com discrição, longe dos outros, sem castigo e sem comentário na frente de ninguém. '
+      + 'Se está se repetindo, a Enfermagem e a equipe técnica precisam saber: escreva na ATA o que aconteceu, sem rótulo.'
+      + link(telas, 'ata', 'Abrir a ATA');
+  }
   if (SAUDE_COMUM.test(t) && !CAIU_SEM_SER_GENTE.test(t)) {
     return 'Não oriento sobre remédio nem diagnóstico: isso é da Enfermagem. Avise a Enfermagem ou o líder do plantão. '
       + 'Remédio de se necessário só com a condição escrita na prescrição, e quem dá é quem confirma. '
@@ -353,18 +371,17 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
   return null;
 }
 
-/** O aviso da primeira resposta no modo guia. A tela o tira quando o quadro azul já diz o mesmo (fase 300). */
-export const AVISO_DO_MODO_GUIA = 'Estou no modo guia: explico as telas, levo você até elas e anoto sugestões. Para ler os dados e montar relatórios, a Acolhe+AI precisa estar ligada na instalação.\n\n';
 
 export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean,
                                   ensinadas: readonly PalavraDaCasa[] = []): RespostaDoGuia {
   /* O banco de palavras da casa (fase 238): "o piá tá com piripaque" ganha "crianca menino passando mal".
      E as que a equipe ensinou e a coordenação aprovou (fase 244). */
   const t = traduzirPalavrasDaCasa(sem(texto), ensinadas);
-  const aviso = primeira ? AVISO_DO_MODO_GUIA : '';
+  /* Sem aviso de modo guia (fase 311, pedido de 11/11): ela fala como colega, e só. */
+  void primeira;
 
   const comRascunho = (r: NonNullable<RespostaDoGuia['rascunho']>): RespostaDoGuia => ({
-    texto: `${aviso}Montei o rascunho com o que você contou. Confira, mude o que quiser, acrescente falando ou anexe foto. Quando estiver bom, aperte Está bom${r.tela ? '' : ' e escolha onde ele vai ficar'}.`,
+    texto: `Montei o rascunho com o que você contou. Confira, mude o que quiser, acrescente falando ou anexe foto. Quando estiver bom, aperte Está bom${r.tela ? '' : ' e escolha onde ele vai ficar'}.`,
     rascunho: r,
   });
   /* O pedido explícito de relatório vem primeiro; o texto longo ditado sem
@@ -373,10 +390,10 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   if (pedido) return comRascunho(pedido);
 
   if (COMECO_DO_PLANTAO.test(t) && telas.some((x) => x.chave === 'dia')) {
-    return { texto: `${aviso}Bom plantão! O que mudou desde o seu último plantão fica no alto do Dia: as ocorrências, a ATA anterior e os remédios novos, suspensos ou mudados. A passagem assinada está na Passagem.\n\n${`${link(telas, 'dia', 'Abrir o Dia')}${link(telas, 'passagem', 'Abrir a Passagem')}`.trim()}`, ir: 'dia' };
+    return { texto: `Bom plantão! O que mudou desde o seu último plantão fica no alto do Dia: as ocorrências, a ATA anterior e os remédios novos, suspensos ou mudados. A passagem assinada está na Passagem.\n\n${`${link(telas, 'dia', 'Abrir o Dia')}${link(telas, 'passagem', 'Abrir a Passagem')}`.trim()}`, ir: 'dia' };
   }
   if (FIM_DO_TURNO.test(t) && telas.some((x) => x.chave === 'ata')) {
-    return { texto: `${aviso}Para fechar o turno, me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone, começando com ATA e dois-pontos. Eu monto o rascunho, você confere e eu escrevo na linha da ATA. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
+    return { texto: `Para fechar o turno, me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone, começando com ATA e dois-pontos. Eu monto o rascunho, você confere e eu escrevo na linha da ATA. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
   }
 
   /* O cuidado vem antes de qualquer tela (fase 200). Num ditado longo, o
@@ -384,19 +401,19 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
      contado, não urgência acontecendo. */
   if (texto.trim().length <= 160) {
     const cuidado = primeiroOCuidado(t, telas);
-    if (cuidado) return { texto: `${aviso}${cuidado}`, cuidado: true };
+    if (cuidado) return { texto: `${cuidado}`, cuidado: true };
     /* O cumprimento é cumprimento também na primeira mensagem (fase 303): as boas-vindas já se
        apresentaram, e o "bom dia" abria a tela do Dia. Responde com o mesmo cumprimento. */
     if (OI.test(t)) {
       const cumprimento = /^bom dia/.test(t) ? 'Bom dia!' : /^boa tarde/.test(t) ? 'Boa tarde!' : /^boa noite/.test(t) ? 'Boa noite!' : 'Oi!';
-      return { texto: `${aviso}${cumprimento} Que bom te ver por aqui. Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.` };
+      return { texto: `${cumprimento} Que bom te ver por aqui. Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.` };
     }
   }
 
   /* "Marcar visita da mãe do Bruno no sábado" levava à Portaria, que não marca nada:
      o dia de visita é o combinado do contato, no perfil (fase 205). */
   if (/\b(marcar|marca|combinar|agendar|agenda|mudar|muda|trocar)\b.{0,25}\bvisita/.test(t) && telas.some((x) => x.chave === 'acolhidos')) {
-    return { texto: `${aviso}O dia e a hora de visita de cada pessoa são o combinado da equipe técnica e ficam no contato dela, no perfil da criança, em Autorizar a visitar. A portaria só deixa entrar dentro do combinado, e a exceção é da coordenação, da técnica ou do líder do plantão, com o motivo.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
+    return { texto: `O dia e a hora de visita de cada pessoa são o combinado da equipe técnica e ficam no contato dela, no perfil da criança, em Autorizar a visitar. A portaria só deixa entrar dentro do combinado, e a exceção é da coordenação, da técnica ou do líder do plantão, com o motivo.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
   }
 
   /* O relatório das vivências (fase 237, pedido de 23/10: "pedi um relatório da vivência
@@ -404,40 +421,40 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
      com o Período, e "vivência" com os Acolhidos. Ela diz o caminho, o que dá para escolher
      e oferece abrir. */
   if (/\b(relatorio|word|documento|resumo)\b/.test(t) && /\b(vivencias?|album|memorias?)\b/.test(t)) {
-    return { texto: `${aviso}Faço com você. O relatório das vivências fica no perfil da criança: aba Documentos, Dossiê, aba Vivências, botão Relatório das vivências em Word. Lá você escolhe o período, os tipos (aniversário, passeio, conquista...), tira as vivências que não quer e diz se vai com as fotos. Depois confere a folha e baixa o Word, escrevendo para que é. As fotos seguem o seu cargo: a técnica, os líderes, a coordenação e a gestão colocam todas, e nos outros cargos a foto sem autorização de imagem sai só com a legenda.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
+    return { texto: `Faço com você. O relatório das vivências fica no perfil da criança: aba Documentos, Dossiê, aba Vivências, botão Relatório das vivências em Word. Lá você escolhe o período, os tipos (aniversário, passeio, conquista...), tira as vivências que não quer e diz se vai com as fotos. Depois confere a folha e baixa o Word, escrevendo para que é. As fotos seguem o seu cargo: a técnica, os líderes, a coordenação e a gestão colocam todas, e nos outros cargos a foto sem autorização de imagem sai só com a legenda.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
   }
   /* Os outros relatórios pedidos conversando (fase 243). Cada um diz o caminho e o que
      se escolhe, e quem baixa, com a finalidade, é a pessoa. "Relatório do mês" de uma
      criança é o acompanhamento; da casa, é o período. */
   const relatorio = /\b(relatorio|word|resumo)\b/.test(t);
   if (relatorio && /\bvisitas?\b/.test(t) && telas.some((x) => x.chave === 'acolhidos')) {
-    return { texto: `${aviso}O relatório de visitas fica no perfil da criança, na aba Família e visitas: veja o período, escreva para que é e baixe o Word. A quantidade de visitas não avalia a família: quem avalia é a equipe técnica.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
+    return { texto: `O relatório de visitas fica no perfil da criança, na aba Família e visitas: veja o período, escreva para que é e baixe o Word. A quantidade de visitas não avalia a família: quem avalia é a equipe técnica.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
   }
   if (relatorio && /\b(periodo|da casa|semana da casa|mes da casa)\b/.test(t) && telas.some((x) => x.chave === 'periodo')) {
-    return { texto: `${aviso}O relatório da casa fica no Período da casa: escolha as datas, de um dia a seis meses, aperte Abrir o período, depois Ver a folha antes de baixar e, se estiver bom, baixe o Word, escrevendo para que é. Dali também sai a planilha.`, ir: 'periodo' };
+    return { texto: `O relatório da casa fica no Período da casa: escolha as datas, de um dia a seis meses, aperte Abrir o período, depois Ver a folha antes de baixar e, se estiver bom, baixe o Word, escrevendo para que é. Dali também sai a planilha.`, ir: 'periodo' };
   }
   if (/\btrajetoria\b/.test(t) && telas.some((x) => x.chave === 'impacto')) {
-    return { texto: `${aviso}A trajetória da criança fica no Trabalho social: escolha a criança e baixe A trajetória em Word, escrevendo para que é.`, ir: 'impacto' };
+    return { texto: `A trajetória da criança fica no Trabalho social: escolha a criança e baixe A trajetória em Word, escrevendo para que é.`, ir: 'impacto' };
   }
 
 
   /* Ler o texto de um papel (fase 234): a leitura é na prévia do documento, neste
      aparelho, e a pessoa confere antes. Vem antes da tela: "documento" casaria com os Acolhidos. */
   if (/\b(ler|leia|transcrever|transcreve|passar|tirar|copiar|extrair)\b.{0,30}\b(texto|escrito|letras)\b.{0,40}\b(papel|foto|documento|pdf|oficio|receita|guia|bilhete)\b|\bocr\b/.test(t)) {
-    return { texto: `${aviso}Abra o documento no dossiê da criança, ou toque em Ver no anexo da mensagem, e toque em Ler o texto do papel. A leitura acontece neste aparelho, a imagem não sai dele, e ela erra letra, número e data: confira com o papel e corrija na caixa antes de usar. No dossiê, a técnica, a coordenação e a Enfermagem guardam o texto conferido, e a busca passa a achar o papel por ele.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
+    return { texto: `Abra o documento no dossiê da criança, ou toque em Ver no anexo da mensagem, e toque em Ler o texto do papel. A leitura acontece neste aparelho, a imagem não sai dele, e ela erra letra, número e data: confira com o papel e corrija na caixa antes de usar. No dossiê, a técnica, a coordenação e a Enfermagem guardam o texto conferido, e a busca passa a achar o papel por ele.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
   }
 
   /* Falar com uma pessoa (fase 303): "quero falar com a coordenação" recebia "não achei essa
      tela". Aqui não há recado entre pessoas; ela diz o caminho de colega. */
   if (/\b(falar|conversar|chamar|ligar|avisar)\b.{0,12}\b(com |pra |para )?(a |o )?(coordenac\w*|coordenador\w*|tecnic\w*|lider\w*|enfermag\w*|gestor\w*|gestao)\b/.test(t)) {
-    return { texto: `${aviso}Para falar com a coordenação, a técnica ou a Enfermagem, chame a pessoa ou ligue: por aqui eu não mando recado entre colegas. Se for urgência com uma criança, o líder do plantão primeiro. Se o assunto é para a reunião da equipe, ele vai aos Combinados; e se for uma melhoria do sistema, eu anoto como sugestão com o seu nome.${telas.some((x) => x.chave === 'alinhamentos') ? '\n\n[Abrir os Combinados](tela:alinhamentos)' : ''}` };
+    return { texto: `Para falar com a coordenação, a técnica ou a Enfermagem, chame a pessoa ou ligue: por aqui eu não mando recado entre colegas. Se for urgência com uma criança, o líder do plantão primeiro. Se o assunto é para a reunião da equipe, ele vai aos Combinados; e se for uma melhoria do sistema, eu anoto como sugestão com o seu nome.${telas.some((x) => x.chave === 'alinhamentos') ? '\n\n[Abrir os Combinados](tela:alinhamentos)' : ''}` };
   }
 
   /* O remédio de uma criança (fase 303): "qual remédio a Gabi toma?" abria a explicação do
      Dia. O que ela toma está no perfil, aba Saúde, e as doses de hoje no Dia e na Saúde. */
   if (/\b(qual|quais|que)\s+(e o |sao os )?(remedios?|medicac\w*|medicamentos?)\b|\b(remedios?|medicamentos?)\b.{0,25}\btoma\b|\btoma\b.{0,25}\b(remedios?|medicamentos?)\b/.test(t)) {
     const links = `${link(telas, 'acolhidos', 'Abrir os Acolhidos')}${link(telas, 'saude', 'Abrir a Saúde')}`.trim();
-    return { texto: `${aviso}Os remédios de cada criança, com o horário e a receita, ficam no perfil dela, na aba Saúde. As doses de hoje aparecem no Dia${telas.some((x) => x.chave === 'saude') ? ' e na Saúde' : ''}. Quem muda o esquema é a Enfermagem, pela receita.${links ? `\n\n${links}` : ''}` };
+    return { texto: `Os remédios de cada criança, com o horário e a receita, ficam no perfil dela, na aba Saúde. As doses de hoje aparecem no Dia${telas.some((x) => x.chave === 'saude') ? ' e na Saúde' : ''}. Quem muda o esquema é a Enfermagem, pela receita.${links ? `\n\n${links}` : ''}` };
   }
 
   /* As outras casas (fase 303): quem alcança mais de uma casa pergunta por elas pelo nome
@@ -446,19 +463,19 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   const variasCasas = telas.some((x) => x.chave === 'unidades' || x.chave === 'metricas' || x.chave === 'casas');
   if (variasCasas && /\b(casa ?0?[1-8]|casa-? ?lar ?[1-4]|ai ?[1-4]|arm ?[1-4]|todas as casas|oito casas|8 casas|outras? casas?|trocar de casa|mudar de casa)\b/.test(t)) {
     const juntas = telas.find((x) => x.chave === 'metricas') ?? telas.find((x) => x.chave === 'painel') ?? telas.find((x) => x.chave === 'unidades') ?? telas.find((x) => x.chave === 'casas');
-    return { texto: `${aviso}Para olhar outra casa, toque no botão da casa no alto da tela: ali você escolhe as oito juntas ou uma casa por inteiro, e tudo o que abrir depois é daquela casa.${juntas ? `\n\n[Abrir ${juntas.titulo}](tela:${juntas.chave})` : ''}` };
+    return { texto: `Para olhar outra casa, toque no botão da casa no alto da tela: ali você escolhe as oito juntas ou uma casa por inteiro, e tudo o que abrir depois é daquela casa.${juntas ? `\n\n[Abrir ${juntas.titulo}](tela:${juntas.chave})` : ''}` };
   }
 
   /* Ir a uma tela vem antes da sugestão: "me leva para as Sugestões de melhoria"
      é ir, e não sugerir (a palavra "melhoria" enganava o guia; fase 195). */
   const telaPedida = achar(t, telas);
   if (telaPedida && QUER_IR.test(t) && !QUER_CRIAR.test(t)) {
-    return { texto: `${aviso}Abrindo ${telaPedida.titulo}.`, ir: telaPedida.chave };
+    return { texto: `Abrindo ${telaPedida.titulo}.`, ir: telaPedida.chave };
   }
 
   if (QUER_SUGERIR.test(t)) {
     return {
-      texto: `${aviso}Posso registrar isso como sugestão de melhoria, com o seu nome, para a coordenação, a gestão e a TI lerem. Confira abaixo e confirme.`,
+      texto: `Posso registrar isso como sugestão de melhoria, com o seu nome, para a coordenação, a gestão e a TI lerem. Confira abaixo e confirme.`,
       sugestao: texto.trim(),
     };
   }
@@ -472,47 +489,47 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   if (doses) {
     const n = (x: string) => x.replace(',', '.');
     const unidade = doses[3] ? ` em ${doses[3]}` : '';
-    return { texto: `${aviso}Fiz a conta: doses por dia, vezes a quantidade de cada dose, vezes os dias, com o total${unidade}. Confira com a receita, e a dúvida sobre a dose é com a Enfermagem.`, conta: `${n(doses[1])} * ${n(doses[2])} * ${doses[4]}` };
+    return { texto: `Fiz a conta: doses por dia, vezes a quantidade de cada dose, vezes os dias, com o total${unidade}. Confira com a receita, e a dúvida sobre a dose é com a Enfermagem.`, conta: `${n(doses[1])} * ${n(doses[2])} * ${doses[4]}` };
   }
 
   const conta = contaDoTexto(texto);
-  if (conta) return { texto: `${aviso}Fiz a conta para você.`, conta };
+  if (conta) return { texto: `Fiz a conta para você.`, conta };
 
   const tela = achar(t, telas);
   if (tela) {
     if (QUER_CRIAR.test(t)) {
       /* Só "Abrindo": a frase do formulário vem depois, e só se ele abrir. Prometer
          antes fazia a portaria ler "vou abrir o formulário" e logo "não achei" (fase 203). */
-      return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave, abrirFormulario: true };
+      return { texto: `Abrindo ${tela.titulo}.`, ir: tela.chave, abrirFormulario: true };
     }
     /* O fato contado sem pedido ("o Felipe brigou com o Bruno no pátio"): o cuidado
        antes, e o caminho do registro como link. Não abre perfil de quem foi nomeado:
        a ocorrência é da casa, e quem está envolvido entra nos detalhes (fase 205). */
     if (tela.chave === 'ocorrencias' && FATO_DE_OCORRENCIA.test(t) && !QUER_IR.test(t) && !acao(t) && !ehPergunta(texto)) {
-      return { texto: `${aviso}Isso se registra como ocorrência. Se alguém se machucou, o cuidado vem antes, e o líder do plantão precisa saber agora. Quando der, escreva o que você viu, sem julgar ninguém: [Registrar ocorrência](tela:ocorrencias)`, cuidado: true };
+      return { texto: `Isso se registra como ocorrência. Se alguém se machucou, o cuidado vem antes, e o líder do plantão precisa saber agora. Quando der, escreva o que você viu, sem julgar ninguém: [Registrar ocorrência](tela:ocorrencias)`, cuidado: true };
     }
     const link = `[Abrir ${tela.titulo}](tela:${tela.chave})`;
     /* "O Dia da Casa: A linha do dia..." soava como verbete (fase 303): o nome, o que a tela traz e a
        oferta de abrir, como colega. A descrição das portas tem travessão, e ela não fala com travessão. */
     const frase = (tela.frase ?? '').replace(/\s+—\s+/g, ', ');
     const explica = frase ? `${tela.titulo}. ${frase} Quer que eu abra?` : `${tela.titulo}. Quer que eu abra?`;
-    if (QUER_IR.test(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
-    if (acao(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
-    return { texto: `${aviso}${explica}\n\n${link}` };
+    if (QUER_IR.test(t)) return { texto: `Abrindo ${tela.titulo}.`, ir: tela.chave };
+    if (acao(t)) return { texto: `Abrindo ${tela.titulo}.`, ir: tela.chave };
+    return { texto: `${explica}\n\n${link}` };
   }
 
   /* "Quero fazer um relatório" sem dizer o quê nem para onde: ela pede o relato (fase 300). */
   if (QUER_ESCREVER.test(t) || (QUER_RELATORIO.test(t) && !texto.includes(':'))) {
-    return { texto: `${aviso}Me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone. Eu monto um rascunho para você conferir, e depois você escolhe onde ele fica: na ATA, numa ocorrência ou num acompanhamento. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
+    return { texto: `Me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone. Eu monto um rascunho para você conferir, e depois você escolhe onde ele fica: na ATA, numa ocorrência ou num acompanhamento. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
   }
 
   /* Ensinar uma palavra (fase 300): o botão fica no alto da conversa. */
   if (/\bensin\w*\b.{0,30}\b(palavra|girias?|expressao|jeito de falar)\b/.test(t)) {
-    return { texto: `${aviso}Adoro aprender! Toque em Ensinar uma palavra, no alto desta conversa, escreva a palavra ou o jeito de dizer e o que ele quer dizer. A coordenação confere, e quando aprovar eu passo a entender, e para todo mundo da casa.` };
+    return { texto: `Adoro aprender! Toque em Ensinar uma palavra, no alto desta conversa, escreva a palavra ou o jeito de dizer e o que ele quer dizer. A coordenação confere, e quando aprovar eu passo a entender, e para todo mundo da casa.` };
   }
   /* A tabela que vira planilha (fase 300): no modo guia ela faz a conta, e a tabela pede o modelo. */
   if (/\b(tabela|planilha)\b/.test(t) && !/\b(periodo|relatorio)\b/.test(t)) {
-    return { texto: `${aviso}Monto sim. Me passe os dados em linhas, por exemplo: Arroz 5 kg 23,90; Feijão 2 kg 15,80. Com a Acolhe+AI ligada, eu devolvo a tabela com a soma e o botão Baixar como planilha. Aqui no modo guia eu faço a conta; as planilhas prontas da casa saem do Período da casa.` };
+    return { texto: `Faço a conta com você: me passe os valores, por exemplo 23,90 + 15,80, e eu somo. As planilhas prontas da casa saem do Período da casa, com o botão Baixar a planilha.` };
   }
 
   /* O nome de uma parte da tela que vale para mais de uma ("me explica o painel", com o Painel do
@@ -520,14 +537,14 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   const palavras = t.split(/[^a-z0-9]+/).filter((w) => w.length >= 5 && !/^(explica|quero|abrir|mostra|preciso|sobre|aquela|aquele|tela)$/.test(w));
   const parecidas = telas.filter((x) => palavras.some((w) => sem(x.titulo).split(/\s+/).includes(w)));
   if (parecidas.length) {
-    return { texto: `${aviso}${parecidas.length === 1 ? 'Achei esta tela com esse nome' : `Achei ${parecidas.length} telas com esse nome`}. Toque para abrir, ou me diga qual.\n\n${parecidas.map((x) => `[${x.titulo}](tela:${x.chave})`).join('  ')}` };
+    return { texto: `${parecidas.length === 1 ? 'Achei esta tela com esse nome' : `Achei ${parecidas.length} telas com esse nome`}. Toque para abrir, ou me diga qual.\n\n${parecidas.map((x) => `[${x.titulo}](tela:${x.chave})`).join('  ')}` };
   }
 
   if (QUER_SABER.test(t) || primeira) {
     const naoAchei = QUER_SABER.test(t) || OI.test(t) ? '' : 'Esse pedido eu não reconheci. ';
     const algumas = telas.slice(0, 6).map((x) => `[${x.titulo}](tela:${x.chave})`).join('  ');
     return {
-      texto: `${aviso}${naoAchei}Eu sou a Acolhe+AI, a colega de plantão que mora aqui no sistema, e vejo só o que você vê. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), abrir o formulário ("quero marcar um compromisso"), fazer contas ("quanto é 12,50 + 7,90"), montar o rascunho de um relatório com o que você me contar, ler a resposta em voz alta e conversar por voz quando as mãos estão ocupadas. Quem confere e salva é sempre você.\n\nAlgumas telas suas: ${algumas}`,
+      texto: `${naoAchei}Eu sou a Acolhe+AI, a colega de plantão que mora aqui no sistema, e vejo só o que você vê. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), abrir o formulário ("quero marcar um compromisso"), fazer contas ("quanto é 12,50 + 7,90"), montar o rascunho de um relatório com o que você me contar, ler a resposta em voz alta e conversar por voz quando as mãos estão ocupadas. Quem confere e salva é sempre você.\n\nAlgumas telas suas: ${algumas}`,
     };
   }
   return {

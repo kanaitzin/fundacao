@@ -524,6 +524,75 @@ describe('a Acolhe+AI entende o jeito de falar da casa', () => {
 });
 
 
+/* Fase 311 (pedido de 11/11): sem o aviso do modo guia, e o jeito de falar da psicóloga,
+   da coordenação, do educador social e da assistente social. */
+describe('a Acolhe+AI fala como colega e entende as quatro vozes da casa (fase 311)', () => {
+  const CHAVES = ['acolhidos', 'ata', 'saude', 'ocorrencias', 'portaria', 'escala', 'rotina', 'plantao',
+    'alinhamentos', 'acompanhamentos', 'painel'];
+  const TELAS = CHAVES.map((chave) => ({ chave, titulo: chave }));
+  const r = (frase: string, primeira = false) => responderPeloGuia(frase, TELAS, primeira);
+  const destino = (frase: string) => { const x = r(frase); return x.ir ?? /\(tela:(\w+)\)/.exec(x.texto)?.[1]; };
+
+  it('nenhuma resposta fala em modo guia, nem a primeira', () => {
+    for (const f of ['o que você faz?', 'abre a ata', 'bom dia', 'faz uma tabela de compras', 'o kauã fugiu', 'xyz qualquer coisa']) {
+      expect(r(f, true).texto).not.toMatch(/modo guia/i);
+    }
+    const tela = readFileSync(join(FRONT, 'acolhe.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+    expect(tela).not.toMatch(/modo guia/i);
+  });
+
+  it('a criança que fala em morrer: não deixar sozinha e escutar sem julgar, antes do SAMU', () => {
+    for (const f of ['a Alice falou em morrer hoje', 'o Kauã disse que não quer mais viver', 'ela tem ideação suicida']) {
+      const x = r(f);
+      expect(x.cuidado).toBe(true);
+      expect(x.texto).toMatch(/não a deixe sozinha/);
+      expect(x.texto).toMatch(/sem julgar e sem prometer segredo/);
+      expect(x.texto).toMatch(/192/);
+    }
+  });
+
+  it('o que a criança sente chega ao cuidado, e o xixi na cama sem castigo', () => {
+    for (const f of ['a Lara teve uma crise de ansiedade', 'o Bruno está isolado, calado o dia todo', 'morreu a avó do Felipe',
+      'a Alice teve insônia e acordou gritando', 'o Theo pediu pela mãe a noite toda']) {
+      expect([f, r(f).cuidado]).toEqual([f, true]);
+    }
+    const xixi = r('o Theo fez xixi na cama de novo');
+    expect(xixi.texto).toMatch(/sem castigo/);
+    expect(xixi.texto).toMatch(/não é culpa da criança/);
+  });
+
+  it('cada voz da casa chega à tela certa', () => {
+    const casos: [string, string][] = [
+      ['vamos fazer um estudo de caso do Kauã', 'alinhamentos'],
+      ['chegou o ofício do juizado', 'acompanhamentos'],
+      ['como faço o desligamento do Bruno', 'acolhidos'],
+      ['a casa está lotada', 'painel'],
+      ['quem vai cobrir o plantão de sábado', 'plantao'],
+      ['o boletim do Kauã chegou', 'acolhidos'],
+      ['tem reunião de pais na escola da Alice', 'acolhidos'],
+      ['hora do banho', 'rotina'],
+      ['quero ver as regras da casa', 'alinhamentos'],
+      ['passeio na pracinha domingo', 'acolhidos'],
+      ['visita domiciliar na casa da mãe da Lara', 'acompanhamentos'],
+      ['preciso fazer um encaminhamento pro caps', 'acompanhamentos'],
+      ['onde vejo o cadunico da família', 'acolhidos'],
+      ['segunda via da certidão de nascimento', 'acolhidos'],
+      ['o pai tem medida protetiva, não pode visitar', 'portaria'],
+      ['fizemos boletim de ocorrência na deca', 'ocorrencias'],
+      ['levamos o Bruno na upa', 'saude'],
+      ['onde registro a terapia da Alice', 'acolhidos'],
+    ];
+    for (const [f, tela] of casos) expect([f, destino(f)]).toEqual([f, tela]);
+  });
+
+  it('as respostas novas não usam travessão e falam da criança, não de ela ou ele', () => {
+    for (const f of ['a Alice falou em morrer hoje', 'o Theo fez xixi na cama', 'o Kauã está chorando']) {
+      expect(r(f).texto).not.toMatch(/[—–]/);
+      expect(r(f).texto).toMatch(/a criança/);
+    }
+  });
+});
+
 describe('os documentos pela conversa e o cuidado com as palavras (fase 243)', () => {
   const TELAS = [
     { chave: 'acolhidos', titulo: 'Acolhidos' }, { chave: 'periodo', titulo: 'O período da casa' },

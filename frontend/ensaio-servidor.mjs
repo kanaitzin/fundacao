@@ -188,7 +188,7 @@ for (const conta of CONTAS) {
     await pg.locator('.acolhe-painel').getByRole('button', { name: 'Enviar' }).click();
     await pg.waitForTimeout(1200);
     const conversa = await pg.locator('.acolhe-painel').innerText().catch(() => '');
-    if (!/modo guia/i.test(conversa)) anota(conta.quem, onde, `sem a chave, a Acolhe+AI não disse que está no modo guia: ${conversa.slice(0, 160).replace(/\s+/g, ' ')}`);
+    if (/modo guia/i.test(conversa) || !/\S/.test(conversa)) anota(conta.quem, onde, `sem a chave, a Acolhe+AI falou em modo guia ou não respondeu: ${conversa.slice(0, 160).replace(/\s+/g, ' ')}`);
     await pg.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click().catch(() => {});
     await pg.waitForTimeout(300);
     telas.push(onde);

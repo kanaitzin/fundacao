@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 311, dia: '11/11/2026',
+    texto: 'A Acolhe+AI conversa sem o aviso do alto e entende melhor o jeito de falar da casa: o que a psicóloga, a coordenação, o educador social e a assistente social dizem, como estudo de caso, visita domiciliar, escuta especializada, boletim, CadÚnico e desligamento. Quando a criança fala em morrer, ela diz primeiro o cuidado: não deixar sozinha, escutar sem julgar e chamar a equipe.' },
   { fase: 310, dia: '11/11/2026',
     texto: 'O cartão do que mudou desde o seu último plantão mostra quem registrou cada ocorrência. Ao registrar uma ocorrência, você diz a hora em que aconteceu, quem da equipe estava, quem foi avisado e o que ficou pendente, e o detalhe mostra tudo isso com o nome de quem registrou.' },
   { fase: 309, dia: '10/11/2026',

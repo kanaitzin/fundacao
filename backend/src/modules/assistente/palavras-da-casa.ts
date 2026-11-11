@@ -65,6 +65,60 @@ export const PALAVRAS_DA_CASA: PalavraDaCasa[] = [
   { diz: ['juizado', 'vara', 'juiz', 'juiza', 'forum', 'audiencia'], querDizer: 'judiciario' },
   { diz: ['eca'], querDizer: 'estatuto da crianca e do adolescente' },
   { diz: ['cns', 'cartao do sus', 'cartaozinho do sus'], querDizer: 'cartao sus' },
+  /*
+   * FASE 311 (pedido de 11/11: "pense como uma psicóloga, como um coordenador, um
+   * educador social e uma assistente social"). O que cada um diz no plantão e na
+   * reunião, levado ao cuidado ou ao lugar certo. Nada aqui rotula a criança: o
+   * sentido é sempre o que a equipe faz, nunca o que a criança é.
+   */
+  // A psicóloga: o que a criança sente e mostra
+  { diz: ['ideacao suicida', 'pensamento de morte', 'pensando em morrer', 'falou em morrer', 'nao quer mais viver', 'quer sumir do mundo', 'tirar a propria vida', 'se machucar de novo'],
+    querDizer: 'quer morrer, risco, cuidado imediato' },
+  { diz: ['crise de ansiedade', 'ataque de panico', 'crise de panico', 'tremendo de nervoso', 'falta de ar de nervoso', 'coracao disparado de medo'], querDizer: 'ansiosa com medo' },
+  { diz: ['se isolou', 'isolada', 'isolado', 'retraida', 'retraido', 'calada o dia todo', 'calado o dia todo', 'nao fala com ninguem', 'cabisbaixa', 'cabisbaixo', 'chorosa', 'choroso'],
+    querDizer: 'triste, tristeza' },
+  { diz: ['luto', 'falecimento', 'faleceu', 'morreu a mae', 'morreu o pai', 'morreu a avo', 'morreu o avo', 'perdeu a mae', 'perdeu o pai'], querDizer: 'tristeza saudade, luto' },
+  { diz: ['insonia', 'acordou de madrugada', 'terror noturno', 'sonambulo', 'sonambula', 'acordou gritando'], querDizer: 'nao consegue dormir, pesadelo' },
+  { diz: ['saudade da mae', 'saudade do pai', 'saudade de casa', 'quer ir pra casa', 'quer voltar pra casa', 'pediu pela mae', 'chamou pela mae'], querDizer: 'saudade da familia' },
+  { diz: ['enurese', 'xixi na cama', 'molhou a cama', 'fez xixi na roupa', 'escape de xixi', 'encoprese'], querDizer: 'enurese, evolucao de saude, cuidado sem castigo' },
+  { diz: ['escuta especializada', 'depoimento especial', 'escuta protegida'], querDizer: 'judiciario, escuta da crianca com protecao' },
+  { diz: ['psicoterapia', 'terapia', 'atendimento psicologico', 'psicologa', 'psicologo', 'sessao de terapia', 'psiquiatra', 'neuro', 'neuropediatra'],
+    querDizer: 'atendimento tecnico, perfil da crianca' },
+  // A coordenação: o caso, a rede e a vaga
+  { diz: ['estudo de caso', 'discussao de caso', 'reuniao de rede', 'reuniao de equipe', 'reuniao tecnica', 'supervisao', 'reuniao de casa'], querDizer: 'reuniao, pauta' },
+  { diz: ['guia de acolhimento', 'termo de acolhimento', 'oficio do juizado', 'relatorio circunstanciado', 'relatorio informativo', 'relatorio de reavaliacao', 'relatorio para o juizado'],
+    querDizer: 'documento para o judiciario' },
+  { diz: ['desacolhimento', 'desligamento', 'reintegracao', 'reintegracao familiar', 'retorno a familia', 'familia extensa', 'familia substituta', 'familia acolhedora', 'adocao', 'guarda provisoria'],
+    querDizer: 'saida da crianca, perfil da crianca, judiciario' },
+  { diz: ['lotada', 'superlotada', 'casa cheia', 'sem vaga', 'capacidade da casa'], querDizer: 'vagas, ocupacao' },
+  { diz: ['cobrir o plantao', 'cobrir a folga', 'dobrar o plantao', 'dobra', 'troca de folga', 'trocar a folga', 'banco de horas'], querDizer: 'escala, substituicao' },
+  { diz: ['acolhimento novo', 'acolhimento emergencial', 'chegou uma crianca', 'vai chegar uma crianca', 'crianca nova'], querDizer: 'chegada de crianca, acolhido' },
+  // O educador social: a rotina, a escola e a convivência
+  { diz: ['tema de casa', 'dever de casa', 'licao de casa', 'para casa da escola', 'boletim', 'nota da escola', 'reuniao de pais', 'conselho de classe', 'bilhete da escola', 'agenda da escola'],
+    querDizer: 'escola, documento da crianca', menosQuando: ['boletim de ocorrencia'] },
+  { diz: ['higiene', 'escovar os dentes', 'cortar o cabelo', 'corte de cabelo', 'cortar as unhas', 'hora do banho', 'hora de dormir', 'hora do silencio', 'toque de recolher'],
+    querDizer: 'rotina da casa' },
+  { diz: ['regra da casa', 'regras da casa', 'combinado da casa', 'assembleia', 'roda de conversa'], querDizer: 'combinado, regra de convivencia' },
+  { diz: ['de castigo', 'castigar', 'tirar o celular', 'tirar a televisao', 'sem sobremesa'], querDizer: 'combinado, regra de convivencia, sem punicao' },
+  { diz: ['passeio', 'pracinha', 'saida coletiva', 'saida de lazer', 'cinema', 'parque', 'oficina'], querDizer: 'vivencias, atividade' },
+  // A assistente social: a família, a rede e os direitos
+  { diz: ['visita domiciliar', 'vd', 'ida a casa da familia', 'visita a familia', 'busca ativa'], querDizer: 'acompanhamento, visita domiciliar' },
+  { diz: ['encaminhamento', 'encaminhar', 'contrarreferencia', 'rede socioassistencial', 'rede de protecao'], querDizer: 'acompanhamento, rede' },
+  { diz: ['cadunico', 'cad unico', 'cadastro unico', 'nis', 'bolsa familia', 'bpc', 'loas', 'auxilio', 'beneficio'], querDizer: 'beneficio social, documento da crianca' },
+  { diz: ['segunda via', 'certidao de nascimento', 'cpf', 'rg', 'carteira de identidade', 'titulo de eleitor', 'carteira de trabalho'], querDizer: 'documento da crianca' },
+  { diz: ['genograma', 'ecomapa', 'arvore da familia', 'arvore genealogica'], querDizer: 'familia, contatos no perfil da crianca' },
+  { diz: ['medida protetiva', 'medida de protecao', 'destituicao', 'destituicao do poder familiar', 'poder familiar', 'defensoria', 'defensor', 'defensora', 'advogado', 'advogada'],
+    querDizer: 'judiciario' },
+  { diz: ['aproximacao restrita', 'proibido de visitar', 'proibida de visitar', 'nao pode visitar', 'nao pode ver a crianca'], querDizer: 'quem pode visitar, visita' },
+  { diz: ['scfv', 'convivencia e fortalecimento de vinculos', 'jovem aprendiz', 'menor aprendiz', 'estagio', 'curso profissionalizante'], querDizer: 'vinculo educacional, escola, documento da crianca' },
+  // Mais siglas e lugares da rede em Porto Alegre
+  { diz: ['paefi', 'paif'], querDizer: 'acompanhamento da familia pelo creas ou cras' },
+  { diz: ['fasc'], querDizer: 'fundacao de assistencia social e cidadania de porto alegre' },
+  { diz: ['cmdca', 'conselho municipal'], querDizer: 'conselho municipal dos direitos da crianca e do adolescente' },
+  { diz: ['deca', 'delegacia', 'boletim de ocorrencia', 'registrar bo', 'fazer bo'], querDizer: 'ocorrencia, delegacia da infancia e juventude' },
+  { diz: ['hps', 'pronto socorro', 'pronto atendimento', 'upa', 'clinicas', 'hcpa', 'emergencia do hospital'], querDizer: 'atendimento de saude, evolucao de saude' },
+  { diz: ['caps ad', 'drogadicao', 'uso de drogas', 'usando droga', 'fumando maconha', 'cheirando cola'], querDizer: 'centro de atencao psicossocial, saude mental, cuidado' },
+  { diz: ['nasf', 'esf', 'agente comunitario', 'acs'], querDizer: 'unidade basica de saude' },
   // FIM DA LISTA
 ];
 

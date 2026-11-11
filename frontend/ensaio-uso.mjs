@@ -3906,10 +3906,8 @@ console.log('\n💬 A Acolhe+AI (fase 192)');
     return painel.locator('.acolhe-conversa').innerText();
   };
   const r1 = await perguntar('o que você faz?');
-  /* Desde a fase 300, o modo guia é dito uma vez, no quadro azul do alto, e a resposta não repete. */
-  const avisoGuia = await painel.locator('.acolhe-aviso').first().innerText().catch(() => '');
-  cobrar('ela diz que está no modo guia, sem modelo no protótipo', /modo guia/i.test(avisoGuia), avisoGuia.slice(0, 200));
-  cobrar('e a primeira resposta não repete o aviso do quadro azul', !/Estou no modo guia/i.test(r1), r1.slice(0, 200));
+  /* Desde a fase 311 (pedido de 11/11), nada de aviso de modo guia: só a fala dela. */
+  cobrar('sem o quadro do modo guia, e a resposta não fala em modo guia', !/modo guia/i.test(await painel.innerText()), r1.slice(0, 200));
   const r2 = await perguntar('onde vejo as ocorrências?');
   cobrar('ela explica a tela e oferece o link', (await painel.locator('.acolhe-link', { hasText: /Ocorr/ }).count()) > 0, r2.slice(-200));
   await perguntar('seria bom ter um lembrete de banho na chamada');

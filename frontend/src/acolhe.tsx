@@ -9,7 +9,7 @@ import { notaDoMomento } from '../../backend/src/modules/assistente/momento';
 import { turnoAgora } from './turno';
 import { palavrasEnsinadas } from '../../backend/src/modules/assistente/palavras-da-casa';
 import type { PalavraDaCasa } from '../../backend/src/modules/assistente/palavras-da-casa';
-import { AVISO_DO_MODO_GUIA, CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
+import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, apertarEste, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 import { APRESENTACAO, COMO_CONVERSAR, DOCUMENTOS_QUE_EU_FACO, FRASES_PRONTAS, boasVindas, frasesDoCargo } from './acolhe-boas-vindas';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
@@ -395,12 +395,10 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
   async function pelosGuias(t: string, comAnexo = false) {
     if (comAnexo) {
       const dossie = telas.find((x) => x.chave === 'acolhidos');
-      dizer(`No modo guia eu não leio arquivos. Para guardar um documento, abra o perfil da criança e o dossiê dela${dossie ? ': [Abrir os Acolhidos](tela:acolhidos)' : '.'}`);
+      dizer(`Documento se guarda no dossiê da criança: abra o perfil dela e o dossiê${dossie ? ': [Abrir os Acolhidos](tela:acolhidos)' : '.'}`);
       return;
     }
     const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0, ensinadas);
-    /* O quadro azul do alto já diz que é o modo guia: a resposta não repete (fase 300). */
-    if (ligada === false && r.texto.startsWith(AVISO_DO_MODO_GUIA)) r.texto = r.texto.slice(AVISO_DO_MODO_GUIA.length);
     /* A criança nomeada (fase 196): o perfil é o lugar dela. O rascunho, a
        sugestão e a conta continuam vindo antes: "relatório: a Alice voltou da
        escola" é texto para conferir, e não ida ao perfil. */
@@ -492,7 +490,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
       if (dossie) {
         const r = await apertarAqui(dossie);
         if (r.erro) { dizer(r.conteudo); return true; }
-        dizer(`Abri o dossiê de ${c.nome}. A carteira de vacinação, a receita e os outros papéis ficam aqui, cada um no seu item, com a validade quando houver: aperte Anexar no item certo. No modo guia eu não leio as datas.`);
+        dizer(`Abri o dossiê de ${c.nome}. A carteira de vacinação, a receita e os outros papéis ficam aqui, cada um no seu item, com a validade quando houver: aperte Anexar no item certo.`);
         return true;
       }
     }
@@ -505,7 +503,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
     /* Pergunta não abre formulário: "a Lara é alérgica a quê" abria o de cadastrar
        alergia (achado fazendo o papel da Enfermagem, fase 200). */
     if (ehPergunta(t) && !pedeFormulario(t)) {
-      dizer(`Abrindo o perfil de ${c.nome}. No modo guia eu não leio os dados dela; o que está registrado aparece no perfil, cada coisa na sua parte.`);
+      dizer(`Abrindo o perfil de ${c.nome}. O que está registrado aparece no perfil, cada coisa na sua aba.`);
       return true;
     }
     const abriu = await abrirOFormulario(t, true, { ignorar, entrar: true });
@@ -1287,9 +1285,6 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
             <button type="button" className="btn sm sec" onClick={() => setEnsinando(false)}>Cancelar</button>
           </div>
         </div>
-      )}
-      {ligada === false && (
-        <p className="acolhe-aviso">Modo guia: explico as telas, levo você até elas e anoto sugestões. Ler dados e montar relatórios pede a Acolhe+AI ligada na instalação.</p>
       )}
       <div className="acolhe-conversa" aria-live="polite">
         {linhas.length === 0 && (

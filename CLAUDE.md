@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 11/11/2026, fase 310
+### Onde estamos — 11/11/2026, fase 311
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -454,8 +454,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 308 | **a barra de ações no perfil** (pedido de 10/11): acima das abas, os registros da criança conforme o cargo, cada botão abrindo a aba e a folha que já existiam (`AcoesDoPerfil`); no celular, duas colunas |
 | 309 | **a forma do atendimento e o atendimento em grupo** (pedido de 10/11): individual, familiar ou coletivo; o coletivo nasce no perfil de cada criança da casa marcada, com o mesmo grupo e os mesmos arquivos (people/1716) |
 | 310 | **tudo o que aparece tem quem escreveu** (pedido de 11/11): o cartão do que mudou do protótipo era escrito à mão e mostrava ocorrência inexistente; hoje sai dos registros e diz quem registrou; a folha da ocorrência pergunta a hora do fato, quem estava, quem foi avisado e o que ficou pendente, e o detalhe e o Word mostram, com quem registrou |
+| 311 | **a Acolhe+AI fala como colega, e entende as quatro vozes da casa** (pedido de 11/11): sem o aviso do modo guia; o banco de palavras com o que dizem a psicóloga, a coordenação, o educador social e a assistente social; e o cuidado quando a criança fala em morrer e no xixi na cama, também nas instruções do modelo |
 
-**Medido no fim da 310:** 256 migrações, 155 tabelas, 178 suítes, 1554 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 311:** 256 migrações, 155 tabelas, 178 suítes, 1559 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -579,6 +580,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 311** (§2, PARA-A-REUNIAO F45): a Acolhe+AI fala como colega e entende as quatro vozes da casa, a pedido de 11/11. **Nada na tela nem na resposta fala em modo guia**: sem a chave ela diz onde está a coisa, e o teste lê o `acolhe.tsx` e as respostas. **Palavra nova entra no `palavras-da-casa.ts` com um sentido que leva a algum lugar**: o sentido é acrescentado ao pedido e disputa as chaves de tela do `acolhe-guia.ts` pelo tamanho, então confira o destino conversando (a frase inteira no `a-acolhe-conhece-o-sistema`); *adolescente* no sentido da DECA levava aos Acolhidos, e o *boletim* da escola casava com o *boletim de ocorrência* (hoje `menosQuando`). **Resposta de cuidado fala da criança**, não *dela*. **Medido:** a `a-acolhe-conhece-o-sistema` (51 de 51) e a sonda das frases das quatro vozes. **Próxima:** a mesma da 301.
 
 **FEITO — fase 310** (§2): tudo o que aparece tem quem escreveu, a pedido de 11/11. **Resposta do protótipo não se escreve à mão**: ela lê as listas que os formulários escrevem (o `o-que-mudou` do `mock-casa.ts` lê `OCORRENCIAS`, `ATAS`, `LINHAS_ATA` e `ESQUEMAS`), ou a demonstração mostra o que ninguém registrou. **Campo que o servidor aceita, a tela pergunta e mostra**: a ocorrência guardava `people_present`, `contacts` e `pendencies` sem nenhuma tela perguntar, e a hora do fato era sempre a do toque. **Registro mostrado leva quem e quando** (o nome por `app_user_display_name`). **Medido:** a `o-que-mudou-desde-o-meu-plantao` (8 de 8, com a ocorrência registrada uma hora e meia depois, o nome, os campos novos e a hora no futuro recusada), a `a-voz-dos-documentos` e a `o-que-entra-volta-inteiro`, a sonda no protótipo a 390 px (o educador registra pela folha, o detalhe diz a hora, quem registrou e quem estava, e a ocorrência chega ao cartão do Dia com o nome; nenhum erro), a suíte inteira nas DUAS condições de relógio (1562 de 1562 nas duas) e o `ensaio:uso` (870 cobranças, sem reprovação, com o bloco novo: a ocorrência registrada pela folha chega ao detalhe e ao cartão com o nome). **A primeira rodada do `ensaio:uso` achou** que o cartão começava nas últimas 24 horas contadas de agora, e o já li de cada pessoa, guardado por esse começo, se perdia a cada pedido: o começo agora é o do turno anterior, fixo. **E que sem remédio novo na semente o cartão não oferecia a Saúde**: entrou o xarope da Lara, ativado pela Enfermagem no turno anterior, se necessário, sem mexer na grade. **Não rodou:** o do celular, o de acessibilidade (nenhuma cor nova) e a simulação contra o servidor. **Próxima:** a mesma da 301.
 
