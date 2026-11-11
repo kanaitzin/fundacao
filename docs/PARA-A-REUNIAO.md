@@ -14,7 +14,7 @@
 > segurança da análise de 08/11 também** (fases 288 a 298). O que separa o sistema da Casa 03 agora
 > são as respostas abaixo, documentos de papel e pessoas. O resto deste arquivo é o histórico das
 > perguntas; esta seção é a que se leva para a mesa. Os números A1 a A16, C1 a C6 e F1 a F30 são os de
-> antes, para não quebrar quem os cita; A17 a A19, C7 a C10 e F31 a F46 são desta rodada. **Conferida contra o
+> antes, para não quebrar quem os cita; A17 a A19, C7 a C10 e F31 a F47 são desta rodada. **Conferida contra o
 > código em 10/11** (auditoria dos documentos): os parênteses dizem o que o código faz hoje.
 
 ### Primeiro: duas respostas que se contradizem
@@ -183,6 +183,7 @@ hoje. Os números 1 a 30 são os de 21/10; os que saíram estão no fim.
 44. O atendimento coletivo é copiado no perfil de cada criança, com o mesmo relato e os mesmos arquivos. Quando uma delas é transferida, o registro dela vai junto para a casa nova, com o que foi falado das outras. Fica assim, ou o relato coletivo fica só na casa onde aconteceu? (fica assim; na casa de antes, o cartão diz quantas crianças do grupo saíram do alcance, sem o nome; fase 309)
 45. Duas respostas novas da Acolhe+AI, escritas pensando como a psicóloga: quando a criança fala em morrer (*fique com a criança agora e não a deixe sozinha, tire de perto o que pode machucar, chame o líder do plantão e a equipe técnica, escute sem julgar e sem prometer segredo, e se o risco é agora o SAMU, no 192*) e quando faz xixi na cama (*sem castigo, com discrição, e a ATA se repetir*). Conferem com o protocolo da casa? (valem como estão até a resposta; fase 311)
 46. O protótipo online não tem mais a faixa que dizia que é demonstração e que nada fica salvo (pedido de 11/11), e agora guarda neste navegador o que se registra. Alguém pode confundir o protótipo com o sistema e anotar o dia de uma criança de verdade nele: o dado fica no navegador de quem abriu, num endereço público. Fica assim, ou volta um selo discreto de demonstração na tela de entrada? (fica assim; fase 312)
+47. No alto do protótipo há um botão de teste que simula a falta de internet, para mostrar a fila que guarda a chamada e a passagem sem sinal. Não é função do sistema instalado. Fica, sai, ou vai para a Minha conta? (fica; fase 313)
 
 **Do perfil da criança:**
 
@@ -276,7 +277,7 @@ Conferido em 10/11 contra o código, e nada disso volta à mesa:
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **312 fases.** 178 suítes e 1561 testes; a suíte inteira, verde em duas condições de
+- **313 fases.** 178 suítes e 1561 testes; a suíte inteira, verde em duas condições de
   relógio na fase 290, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

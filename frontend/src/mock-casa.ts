@@ -4102,6 +4102,16 @@ interface Relatorio {
   entregas: { id: string; destino: string; meio: string; em: string; protocolo: string | null;
               por: string }[];
 }
+/** O que foi feito com cada relatório depois de escrito: exportações e aprovação (revisão de 11/11). */
+const RASTRO_DOS_RELATORIOS = new Map<string, { id: string; acao: string; codigo: string; quando: string;
+  por: string; finalidade: string | null; detalhe: Record<string, unknown> }[]>();
+function anotarNoRastro(id: string, linha: { acao: string; codigo: string; finalidade?: string | null;
+  detalhe?: Record<string, unknown> }) {
+  const lista = RASTRO_DOS_RELATORIOS.get(id) ?? [];
+  lista.push({ id: uid(), acao: linha.acao, codigo: linha.codigo, quando: new Date().toISOString(),
+    por: eu.fullName, finalidade: linha.finalidade ?? null, detalhe: linha.detalhe ?? {} });
+  RASTRO_DOS_RELATORIOS.set(id, lista);
+}
 /** Os que exigem aprovação de outra pessoa — a mesma lista do servidor. */
 const EXIGEM_APROVACAO = ['judiciario', 'audiencia', 'mensal_da_casa'];
 /** O rótulo do tipo. O servidor devolve a frase, não o código. */
@@ -4765,6 +4775,29 @@ function semearDossie() {
   );
   MARCAS_FOTO.push({ id: 'marca-1', fotoId: 'foto-redencao', personId: 'p01', autorizada: true,
     por: 'Mário Silva', em: emHoras(18, 5) });
+  /* Os papéis básicos das outras crianças semeadas (revisão de 11/11). O perfil mostrava, para
+     cada uma, receita, boletim, certidão e guia escritos à mão, que o dossiê não tinha: o perfil
+     dizia que havia boletim e a pasta, aberta, não mostrava nada. Agora estão no dossiê, com o
+     dia e quem anexou, e o perfil lê de lá. Uma imagem por título, para não pesar. */
+  const imagem = new Map<string, string>();
+  const papel = (k: { id: string }, i: number, chave: string, categoria: string, titulo: string,
+                 dias: number, aceito: boolean): DocumentoMock => {
+    if (!imagem.has(titulo)) imagem.set(titulo, jpegFicticio(titulo));
+    return { id: uid(), personId: k.id, chave, categoria, titulo, emitidoEm: null, validoAte: null, origem: null,
+      anexadoEm: emDias(-(dias + i), 9, 15), anexadoPor: 'Tatiane Técnica',
+      aceitoEm: aceito ? emDias(-(dias + i), 9, 40) : null, aceitoPor: aceito ? 'Carla Coordenadora' : null,
+      notaDoAceite: aceito ? 'Legível, e é o papel dela.' : null,
+      versao: 1, conteudo: imagem.get(titulo)!,
+      arquivo: { nome: `${chave}.jpg`, tipo: 'image/jpeg', tamanho: 48_000, sha256: uid() } };
+  };
+  KIDS.filter((k) => k.id !== 'p01' && !ehNova(k)).forEach((k, i) => {
+    DOSSIE_DOCS.push(
+      papel(k, i, 'certidao_nascimento', 'pessoal', 'Certidão de nascimento', 160, true),
+      papel(k, i, 'guia_acolhimento', 'judicial_socioassistencial', 'Guia de acolhimento', 150, true),
+      papel(k, i, 'boletim', 'escolar', 'Boletim do semestre', 60, true),
+      papel(k, i, 'receita', 'saude', 'Receita em vigência', 20, false),
+    );
+  });
 }
 
 const EPISODIOS: EpisodioMock[] = [];
@@ -7737,19 +7770,24 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (seg[1] === 'person') {
       return { dias: 90, cortado: false, linhas: AUDITORIA[seg[2]] ?? [] };
     }
-    if (seg[1] === 'entity') {
+    /* A rota é a do servidor, /audit/report/:id (auditoria.controller). O protótipo respondia
+       /audit/entity/report/:id, que a tela não chama: o rastro do relatório não abria. */
+    if (seg[1] === 'report' || seg[1] === 'entity') {
+      if (seg[1] === 'report') seg = ['audit', 'entity', 'report', seg[2]];
       /* O rastro de um relatório: a segunda entrada, pelo DOCUMENTO. Com
          conteúdo, porque bloco vazio nasce invisível (§6.19) — e porque é aqui
          que a FINALIDADE aparece, que é a razão de a tela existir. */
-      const doRelatorio = seg[2] === 'report' ? [
-        { id: 'ar1', acao: 'Relatório exportado', codigo: 'report.export',
-          quando: emDias(-2, 15, 20), por: 'Equipe técnica',
-          finalidade: 'Audiência concentrada de outubro — cópia para a Defensoria.',
-          detalhe: { formato: 'docx' } },
-        { id: 'ar2', acao: 'Relatório aprovado', codigo: 'report.approve',
-          quando: emDias(-3, 9, 10), por: 'Carla Coordenadora',
-          finalidade: null, detalhe: {} },
-      ] : [];
+      /* O rastro sai do que foi feito com o relatório: quem escreveu, cada exportação com a
+         finalidade, a aprovação e cada entrega. Até a revisão de 11/11 eram duas linhas
+         escritas à mão, iguais para todo relatório, mesmo o que ninguém tinha exportado. */
+      const r = seg[2] === 'report' ? RELATORIOS.find((x) => x.id === seg[3]) : undefined;
+      const doRelatorio = r ? [
+        { id: `${r.id}-escrito`, acao: 'Relatório escrito', codigo: 'report.create', quando: r.em,
+          por: r.autor, finalidade: r.finalidade, detalhe: {} },
+        ...(RASTRO_DOS_RELATORIOS.get(r.id) ?? []),
+        ...r.entregas.map((e) => ({ id: e.id, acao: 'Entrega registrada', codigo: 'report.delivery',
+          quando: e.em, por: e.por, finalidade: null, detalhe: { destino: e.destino, meio: e.meio } })),
+      ].sort((a, b) => String(b.quando).localeCompare(String(a.quando))) : [];
       return { entidade: seg[2], entidadeId: seg[3], linhas: doRelatorio };
     }
   }
@@ -11259,18 +11297,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       /* OS DOCUMENTOS DA CRIANÇA, como o servidor (fase 253): o que o dossiê guardou,
          pela mesma regra do banco (`app_can_open_doc`), e a contagem do que o cargo
          não abre. A lista era fixa, e o que se anexava no dossiê nunca chegava a ela;
-         as quatro de fábrica continuam nas crianças semeadas. */
+         as quatro de fábrica saíram na revisão de 11/11: estão no dossiê de cada criança semeada. */
       ...(() => {
         semearDossie();
-        const fabrica = ehNova(k) ? [] : [
-          { id: 'doc1', category: 'saude', title: 'Receita em vigência', issued_on: '2026-08-01', valid_until: null },
-          { id: 'doc2', category: 'escolar', title: 'Boletim do semestre', issued_on: '2026-07-15', valid_until: null },
-          { id: 'doc3', category: 'pessoal', title: 'Certidão de nascimento', issued_on: null, valid_until: null },
-          { id: 'doc4', category: 'judicial_socioassistencial', title: 'Guia de acolhimento', issued_on: '2026-02-25', valid_until: null },
-        ];
         const doDossie = DOSSIE_DOCS.filter((d) => d.personId === k.id)
           .map((d) => ({ id: d.id, category: d.categoria, title: d.titulo, issued_on: d.emitidoEm, valid_until: d.validoAte }));
-        const todos = [...doDossie, ...fabrica.filter((f) => !doDossie.some((d) => d.title === f.title))];
+        const todos = doDossie;
         const abre = (cat: string) => ({ educador: ['saude', 'escolar'], lider_diurno: ['saude', 'escolar'],
           lider_noturno_geral: ['saude'], enfermagem: ['saude'], cozinha: [] as string[] } as Record<string, string[]>)[eu.role]
           ?.includes(cat) ?? ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role);
@@ -11297,9 +11329,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         ? CAMPOS_DO_PERFIL.filter((c) => CAMPOS_DESLIGADOS[c.code])
             .map((c) => ({ code: c.code, rotulo: c.rotulo, ...CAMPOS_DESLIGADOS[c.code] }))
         : [],
-      memorias: ehNova(k) ? [] : [{ id: 'mem1', event_type: 'aniversário', happened_on: '2026-07-14',
-                   description: 'Comemoração na casa com bolo escolhido pelo grupo.',
-                   has_photo: false, photo_authorized: false }],
+      /* As memórias são as vivências do álbum dela, como no servidor (o mesmo memory_record).
+         Até a revisão de 11/11 toda criança mostrava o mesmo aniversário escrito à mão. */
+      memorias: (semearDossie(), VIVENCIAS.filter((v) => v.personId === k.id).map((v) => ({
+        id: v.id, event_type: v.tipo, happened_on: v.quando.slice(0, 10), description: v.descricao,
+        has_photo: v.fotos.length > 0,
+        photo_authorized: v.fotos.length > 0 && v.fotos.every((f) => f.autorizacaoRegistrada) }))),
       beneficios: { acessivel: ['coordenador', 'gestor_geral'].includes(eu.role),
                     rota: `/people/${k.id}/benefits` },
     };
@@ -14328,6 +14363,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const rascunho = r.situacao !== 'aprovado';
 
     const doc = documentoDoRelatorio(r, crianca, finalidade, rascunho);
+    anotarNoRastro(r.id, { acao: 'Relatório exportado', codigo: 'report.export', finalidade,
+      detalhe: { formato: 'docx' } });
     return {
       formato: 'docx',
       nomeArquivo: nomeDeArquivo(`relatorio-${r.tipo}-${r.periodo}`),
@@ -14346,6 +14383,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'Você escreveu este relatório. Quem aprova é outra pessoa.');
     }
     r.situacao = 'aprovado';
+    anotarNoRastro(r.id, { acao: 'Relatório aprovado', codigo: 'report.approve' });
     return { ok: true, aviso: 'Relatório aprovado. O sistema gera e não envia: a entrega ao '
       + 'Judiciário, ao Conselho Tutelar ou ao Ministério Público é feita por uma pessoa e '
       + 'registrada aqui.' };
@@ -14574,7 +14612,24 @@ function resumoDaCozinha() {
     const kids = todosKids();
     const pedidos = PEDIDOS_COZINHA.filter((p) => p.status !== 'cancelado' && p.em >= desdeDia);
     const compras = COMPRAS_MED.filter((c) => c.em >= desdeDia);
+    /* Os quatro que eram escritos à mão até a revisão de 11/11, contados como o servidor
+       (`1450_o_painel_conta_o_conceito`): o marco de passar de ano, o que saiu do armário,
+       e as ATAs fechadas, com e sem pendência, do livro e das abertas no protótipo. */
+    const doLivro = ARQUIVO_ATAS.filter((d) => d.data >= desdeDia)
+      .flatMap((d) => [d.diurno, d.noturno]).filter(Boolean);
+    const noLivro = new Set(doLivro.map((c: any) => c.plantaoId));
+    const fechadasAgora = ATAS.filter((a) => a.status === 'fechada' && (a.fechadaEm ?? '') >= desde
+      && !noLivro.has(a.plantaoId));
+    const atasFechadas = doLivro.filter((c: any) => c.status === 'fechada').length
+      + fechadasAgora.filter((a) => !a.pendencias).length;
+    const atasComPendencia = doLivro.filter((c: any) => c.status === 'fechada_com_pendencia').length
+      + fechadasAgora.filter((a) => !!a.pendencias).length;
+    const medicamentosSaidos = Object.values(MOVIMENTOS).flat()
+      .filter((m) => ['consumo', 'descarte', 'saida_com_acolhido'].includes(m.tipo) && m.quando >= desde)
+      .reduce((t, m) => t + Math.abs(m.quantidade), 0);
     return {
+      passouDeAno: MARCOS.filter((m) => m.tipo === 'aprovacao_escolar' && m.quando >= desdeDia).length,
+      medicamentosSaidos, atasFechadas, atasComPendencia,
       acolhidos: kids.length, capacidade: LIMITE.valor,
       entradas: kids.filter((k) => (k.episodios ?? []).some((e) => !e.ended_at && e.started_at >= desdeDia)).length,
       saidas: ACERVO.filter((x) => x.saiuEm >= desde).length,

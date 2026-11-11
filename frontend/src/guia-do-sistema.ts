@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 313, dia: '11/11/2026',
+    texto: 'Na demonstração, o que aparece saiu de algum registro: o rastro de cada relatório mostra quem o escreveu, quem exportou, para quê, quem aprovou e as entregas; as memórias do perfil são as vivências do álbum; os documentos do perfil são os do dossiê; e os números do painel das oito casas são contados. Na aba Vivências, o tipo da memória aparece pelo nome, como Aniversário.' },
   { fase: 312, dia: '11/11/2026',
     texto: 'Na demonstração, o que você registra continua lá quando a página recarrega, como a cor da tela: fica guardado neste aparelho. Para voltar ao começo, toque em Recomeçar a demonstração, na Minha conta. E a faixa do alto saiu.' },
   { fase: 311, dia: '11/11/2026',

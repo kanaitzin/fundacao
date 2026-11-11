@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { TIPOS_DE_VIVENCIA } from '../../../backend/src/modules/people/dossie-exigido';
 import { FolhaDocumento, baixarArquivo, entregarArquivo } from '../documentos';
 import { Dossie, DocumentosDaCategoria, AnexosDoRegistroDeSaude } from './Dossie';
 import { FolhaReceitas } from './Saude';
@@ -1690,7 +1691,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             {maisNovoEmCima(p.memorias, (m) => m.happened_on).map((m) => (
               <li key={m.id}>
                 <b className="ff">{m.description}</b>
-                <div className="mutetxt">{m.event_type} · {dia(m.happened_on)}</div>
+                <div className="mutetxt">{TIPOS_DE_VIVENCIA.find((t) => t.code === m.event_type)?.label ?? m.event_type} · {dia(m.happened_on)}</div>
               </li>
             ))}
           </ul>

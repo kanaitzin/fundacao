@@ -280,7 +280,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 11/11/2026, fase 312
+### Onde estamos — 11/11/2026, fase 313
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -456,8 +456,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 310 | **tudo o que aparece tem quem escreveu** (pedido de 11/11): o cartão do que mudou do protótipo era escrito à mão e mostrava ocorrência inexistente; hoje sai dos registros e diz quem registrou; a folha da ocorrência pergunta a hora do fato, quem estava, quem foi avisado e o que ficou pendente, e o detalhe e o Word mostram, com quem registrou |
 | 311 | **a Acolhe+AI fala como colega, e entende as quatro vozes da casa** (pedido de 11/11): sem o aviso do modo guia; o banco de palavras com o que dizem a psicóloga, a coordenação, o educador social e a assistente social; e o cuidado quando a criança fala em morrer e no xixi na cama, também nas instruções do modelo; a **voz da leitura** escolhida pela qualidade, mais ágil e trocável; e **o relatório pedido pela voz fica no chat** (abria o perfil) |
 | 312 | **o protótipo guarda o que se registra** (pedido de 11/11): a faixa *nada é salvo* saiu; um diário no IndexedDB do navegador repete as gravações ao abrir, com ids estáveis (`prototipo-guardado.ts`); e o Recomeçar a demonstração na Minha conta |
+| 313 | **o protótipo sem o que ninguém escreveu** (pedido de 11/11): o rastro do relatório inventado e que nem abria, a memória de fábrica, os documentos de fábrica e quatro números do painel escritos à mão, hoje lidos dos registros; e a aba Vivências do sistema de verdade mostrando o código do tipo |
 
-**Medido no fim da 312:** 256 migrações, 155 tabelas, 178 suítes, 1561 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 313:** 256 migrações, 155 tabelas, 178 suítes, 1561 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -581,6 +582,8 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 313** (§2, PARA-A-REUNIAO F47): o protótipo sem o que ninguém escreveu, a pedido de 11/11. **Resposta do protótipo lê a lista que o formulário escreve**, e **a rota do protótipo é a do servidor** (o rastro respondia uma rota que a tela não chama): o `contrato-rotas` só confere a chamada da tela contra o servidor, não contra o protótipo. **A varredura** que achou os casos ficou no scratchpad: separa as respostas de leitura do `mock-casa.ts` e lista frase longa que não é recusa e resposta que não lê lista nenhuma; quem confirma abre a tela. **Medido:** a sonda no protótipo (o rastro do relatório só com o que aconteceu, o painel das oito casas sem número quebrado, os quatro papéis do Bruno vindos do dossiê, as memórias da Alice contadas do álbum; nenhum erro), e as rodadas no fechamento. **Próxima:** a mesma da 301.
 
 **FEITO — fase 312** (§2): o protótipo guarda o que se registra, a pedido de 11/11, e a faixa do alto saiu. **Identificador novo do protótipo sai do `uid()` do `mock-casa.ts`**, que passa pelo `idDoPrototipo` (`prototipo-guardado.ts`); **nunca `Math.random` nem `crypto` solto no servidor de mentira**, ou o diário repetido não acha o que o registro aponta. **A casa nasce fora do número do pedido** (`semPedido` no `casa()` do `mock.ts`). **Ensaio que precisa da demonstração limpa não faz nada**: o diário fica desligado sob `navigator.webdriver`; **ensaio que mede a guarda liga** com `localStorage['rede-acolher.guardar-no-ensaio']='1'`. **Medido:** a sonda no protótipo a 390 px com o diário ligado (a ocorrência registrada pelo educador continua na lista depois de recarregar, o detalhe dela abre com o texto, e o Recomeçar volta a lista ao começo; nenhum erro de página). **E a revisão pedida em 11/11** achou e consertou: duas abas anotando com o mesmo número (hoje cada abertura tem a marca dela, e o diário vai pela ordem de chegada), o *obrigado* virando rascunho depois do *me conte*, e o Nova conversa que não esquecia o relato pedido; e as duas marcas de aviso entraram na lista da `varredura-de-pontas`. **Cuidado escrito na pauta:** sem a faixa, nada na tela diz que é demonstração; o que se registra fica no navegador de quem abriu (PARA-A-REUNIAO F46). **Próxima:** a mesma da 301.
 
