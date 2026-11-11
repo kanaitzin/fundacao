@@ -279,7 +279,7 @@ function RelogioDoTopo() {
     hour: '2-digit', minute: '2-digit', timeZone: fuso });
   return (
     <time className="relogio-topo" dateTime={agora.toISOString()} aria-label={`Agora: ${extenso}`}>
-      <span className="relogio-semana">{semana}, </span>{dia} · <b>{hora}</b>
+      <span className="relogio-semana">{semana}, </span><span className="relogio-dia">{dia} · </span><b>{hora}</b>
     </time>
   );
 }
@@ -884,8 +884,12 @@ export function App() {
           */}
         <div className="quem">
           <h1>{me.fullName}</h1>
+          {/* A casa e o e-mail em duas peças (fase 314): quando a linha do topo não tem
+              lugar para as duas, o e-mail desce inteiro e some, e nada fica cortado no
+              meio. Ele continua na página para o leitor de tela. */}
           <span className="sub">
-            {casa ? `${casa.code} — ${casa.name}` : 'Escopo institucional'} · {me.email}
+            <span className="sub-casa">{casa ? `${casa.code} — ${casa.name}` : 'Escopo institucional'}</span>
+            <span className="sub-email"> · {me.email}</span>
           </span>
         </div>
       </header>

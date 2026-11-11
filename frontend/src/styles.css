@@ -2897,10 +2897,14 @@ label{ letter-spacing:-.005em }
   }
   .appbar .quem h1{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
   .appbar .quem h1{ font-size:15px; line-height:1.25; font-weight:800 }
+  /* A casa fica; o e-mail só aparece quando cabe inteiro. A linha tem a altura
+     de uma linha, e o e-mail que não cabe desce para a segunda, que não se vê. */
   .appbar .quem .sub{
-    font-size:12px; line-height:1.3; max-width:100%;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-size:12px; line-height:1.3; max-width:100%; max-height:1.3em;
+    overflow:hidden; display:flex; flex-wrap:wrap; column-gap:0;
   }
+  .appbar .quem .sub-casa{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100% }
+  .appbar .quem .sub-email{ white-space:pre }
   .appbar .top > .rolechip{ order:2; margin:0 }
   .appbar .top > .troca-casa{ order:3 }
   .appbar .top > .grow{ display:none }
@@ -3046,3 +3050,21 @@ label{ letter-spacing:-.005em }
 .portas-lateral details.grupo:not([open]) > summary::after{ transform:rotate(-45deg) }
 .portas-lateral details.grupo > summary:hover h2{ color:var(--titulo) }
 @media (prefers-reduced-motion: reduce){ .portas-lateral details.grupo > summary::after{ transition:none } }
+
+/* ---------- Nada por cima de nada (fase 314, pedido de 11/11) ----------
+   Medido em catorze tamanhos de aparelho, do celular de 320 px ao monitor de
+   1920: na linha com o nome à esquerda e a pílula ou o botão à direita, o nome
+   podia encolher até zero, e o que estava dentro dele saía por cima do
+   vizinho. Agora o texto da linha guarda um mínimo (e o vizinho desce quando
+   não cabe), e a pílula comprida quebra em duas linhas em vez de vazar. */
+.row > .grow{ min-width:min(150px, 100%) }
+.pill{ white-space:normal; text-align:left; max-width:100%; overflow-wrap:break-word }
+.pill .icone{ flex:none }
+/* O celular de 320 px (o iPhone SE antigo e os Android pequenos): o topo numa
+   linha só com a hora, e a barra do pé com o rótulo inteiro. */
+@media (max-width:340px){
+  .relogio-topo .relogio-dia{ display:none }
+  .appbar .top{ gap:4px }
+  .tabbar button{ font-size:10px; padding-left:1px; padding-right:1px; letter-spacing:-.02em }
+  .navegacao .tabbar{ padding-left:3px; padding-right:3px; gap:2px }
+}
