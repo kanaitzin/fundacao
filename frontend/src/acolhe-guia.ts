@@ -396,7 +396,10 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   if (pedido) return comRascunho(pedido);
   /* A resposta ao "me conte" do relatório (fase 311): o que vier é o relato, mesmo curto,
      a não ser que seja pergunta ou outro pedido de relatório. */
-  if (relatoPedido && !ehPergunta(texto) && !PEDE_RELATORIO_NO_CHAT.test(t)) {
+  /* Agradecer, cumprimentar ou desistir não é o relato, e frase de duas palavras também não. */
+  const desistiu = /^(nao|não)\b|\b(deixa|esquece|cancela|depois eu|agora nao|outra hora)\b/.test(t);
+  if (relatoPedido && !ehPergunta(texto) && !PEDE_RELATORIO_NO_CHAT.test(t)
+      && !OBRIGADO.test(t) && !OI.test(t) && !desistiu && texto.trim().split(/\s+/).length >= 4) {
     const relato = rascunhoDoPedido(texto, telas, true, true);
     if (relato) return comRascunho({ ...relato, titulo: relato.titulo === 'relatório' ? 'relatório' : relato.titulo });
   }

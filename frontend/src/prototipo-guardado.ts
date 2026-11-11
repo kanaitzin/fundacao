@@ -20,6 +20,10 @@
  */
 
 export interface Anotacao {
+  /** A ordem de chegada no diário (o IndexedDB numera). */
+  chave?: number;
+  /** A abertura da página que anotou: com duas abas abertas, os números não se misturam. */
+  sessao: string;
   seq: number;
   casa: string;
   caminho: string;
@@ -34,7 +38,14 @@ const LOJA = 'diario';
 
 /* ---------- os identificadores ---------- */
 
-let contexto: { seq: number; n: number } | null = null;
+let contexto: { sessao: string; seq: number; n: number } | null = null;
+
+/* A marca desta abertura da página: cada aba conta os pedidos dela. */
+const SESSAO = (() => {
+  try { return crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0, 5); }
+  catch { return DataRealAgora().toString(36).slice(-5); }
+})();
+function DataRealAgora() { return Date.now(); }
 
 /** Um sorteio fixo (mulberry32), para a semente de cada casa sair igual a cada abertura. */
 export function sorteioFixo(semente: string): () => number {
@@ -52,14 +63,14 @@ export function sorteioFixo(semente: string): () => number {
 
 /** O identificador novo: dentro de um pedido, pelo número dele; fora, pela semente da casa. */
 export function idDoPrototipo(daSemente: () => number): string {
-  if (contexto) return `g${contexto.seq.toString(36)}x${(contexto.n++).toString(36)}`;
+  if (contexto) return `g${contexto.sessao}${contexto.seq.toString(36)}x${(contexto.n++).toString(36)}`;
   return daSemente().toString(36).slice(2, 10).padEnd(8, '0');
 }
 
 /** Um número de 0 a 1 que se repete igual: para a senha inicial sorteada no protótipo. */
 export function sorteioDoPrototipo(daSemente: () => number): number {
   if (!contexto) return daSemente();
-  return sorteioFixo(`${contexto.seq}:${contexto.n++}`)();
+  return sorteioFixo(`${contexto.sessao}:${contexto.seq}:${contexto.n++}`)();
 }
 
 /** Roda sem o número do pedido: a criação de uma casa usa só a semente dela. */
@@ -100,8 +111,11 @@ let fila: Promise<unknown> = Promise.resolve();
 
 function abrir(): Promise<IDBDatabase> {
   return new Promise((ok, falha) => {
-    const r = indexedDB.open(BANCO, 1);
-    r.onupgradeneeded = () => { r.result.createObjectStore(LOJA, { keyPath: 'seq' }); };
+    const r = indexedDB.open(BANCO, 2);
+    r.onupgradeneeded = () => {
+      if (r.result.objectStoreNames.contains(LOJA)) r.result.deleteObjectStore(LOJA);
+      r.result.createObjectStore(LOJA, { keyPath: 'chave', autoIncrement: true });
+    };
     r.onsuccess = () => ok(r.result);
     r.onerror = () => falha(r.error);
   });
@@ -112,7 +126,7 @@ async function lerTudo(): Promise<Anotacao[]> {
   try {
     return await new Promise((ok, falha) => {
       const r = db.transaction(LOJA, 'readonly').objectStore(LOJA).getAll();
-      r.onsuccess = () => ok((r.result as Anotacao[]).sort((a, b) => a.seq - b.seq));
+      r.onsuccess = () => ok((r.result as Anotacao[]).sort((a, b) => (a.chave ?? 0) - (b.chave ?? 0)));
       r.onerror = () => falha(r.error);
     });
   } finally { db.close(); }
@@ -139,7 +153,7 @@ function gravar(a: Anotacao) {
 export function comODiario<T>(casa: string, caminho: string, corpo: string, metodo: string,
                               executar: () => T): T {
   const seq = proximo;
-  contexto = { seq, n: 0 };
+  contexto = { sessao: SESSAO, seq, n: 0 };
   let n = 0;
   try {
     return executar();
@@ -149,7 +163,7 @@ export function comODiario<T>(casa: string, caminho: string, corpo: string, meto
     const escrita = metodo !== 'GET';
     if (ligado && (escrita || n > 0) && !caminho.startsWith('/prototipo/sem-sinal')) {
       proximo = seq + 1;
-      gravar({ seq, casa, caminho, corpo, metodo, quando: Date.now(), escrita });
+      gravar({ sessao: SESSAO, seq, casa, caminho, corpo, metodo, quando: Date.now(), escrita });
     } else if (escrita || n > 0) {
       proximo = seq + 1;
     }
@@ -166,13 +180,12 @@ export async function repetirODiario(
   try { anotacoes = await lerTudo(); } catch { return 0; }
   for (const a of anotacoes) {
     criarCasa(a.casa);
-    contexto = { seq: a.seq, n: 0 };
+    contexto = { sessao: a.sessao ?? '', seq: a.seq, n: 0 };
     try {
       if (a.escrita) naHora(a.quando, () => executar(a));
       else executar(a);
     } catch { /* o que foi recusado na hora é recusado de novo, e segue */ }
     contexto = null;
-    proximo = a.seq + 1;
   }
   return anotacoes.length;
 }

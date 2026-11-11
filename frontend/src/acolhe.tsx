@@ -224,6 +224,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
     setLinhas((xs) => xs.map((l) => (l.id === id && l.proposta ? { ...l, proposta: { ...l.proposta, estado, detalhe } } : l)));
 
   function novaConversa() {
+    relatoPedido.current = false;
     historico.current = []; anexos.current = [];
     licenca.current = 'perguntar'; respostaDaLicenca.current?.(false); respostaDaLicenca.current = null;
     setPelaCamera(false); setAnexando(false);

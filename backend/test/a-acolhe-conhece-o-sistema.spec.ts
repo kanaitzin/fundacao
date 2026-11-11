@@ -596,7 +596,12 @@ describe('a Acolhe+AI fala como colega e entende as quatro vozes da casa (fase 3
     const relato = responderPeloGuia('a Alice foi à escola, voltou bem e fez o tema', TELAS, false, [], true);
     expect(relato.rascunho?.texto).toBe('A Alice foi à escola, voltou bem e fez o tema.');
     expect(responderPeloGuia('onde fica a ata?', TELAS, false, [], true).rascunho).toBeUndefined();
+    /* Agradecer, cumprimentar ou desistir depois do "me conte" não vira rascunho (revisão de 11/11). */
+    for (const f of ['obrigado', 'bom dia', 'deixa pra lá', 'não, esquece', 'ok']) {
+      expect([f, responderPeloGuia(f, TELAS, false, [], true).rascunho]).toEqual([f, undefined]);
+    }
     const tela = readFileSync(join(FRONT, 'acolhe.tsx'), 'utf8');
+    expect(tela).toMatch(/function novaConversa\(\) \{\s*relatoPedido\.current = false;/);
     expect(tela).toMatch(/!r\.cuidado && !r\.pedeORelato\)/);
   });
 

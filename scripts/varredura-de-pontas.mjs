@@ -52,6 +52,8 @@ const CARIMBOS = new Map([
      saiu uma vez só, como a pia_aviso; o aviso, com a hora, está no sino. */
   ['document_due_notice.notified_at', 'quando o aviso da receita ou da vacina saiu; o aviso em si, com a hora, está no sino'],
   ['shift_fim_aviso.avisado_em', 'quando o aviso de meia hora antes do fim do plantão saiu; o aviso em si está no sino'],
+  ['education_link_notice.notified_at', 'quando o aviso do fim do vínculo educacional saiu; o aviso em si, com a hora, está no sino'],
+  ['reavaliacao_aviso.avisado_em', 'quando o aviso do prazo da reavaliação saiu; o aviso em si, com a hora, está no sino'],
 ]);
 
 const c = new Client({ connectionString: url });
