@@ -180,9 +180,16 @@ for (const largura of LARGURAS) {
   await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
   await pg.waitForTimeout(1200);
   const seletor = pg.locator('select.troca-cargo-sel');
+  /* Espera o seletor existir: com a máquina ocupada, 1,2 s não bastava, a lista
+     voltava vazia e a largura inteira era pulada sem reprovar (achado em 11/11). */
+  await seletor.waitFor({ state: 'attached', timeout: 30000 }).catch(() => {});
   const cargos = await seletor.locator('option').evaluateAll((os) =>
     os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() })));
   console.log(`\n📱 ${largura} px, letra ${LETRA} — ${cargos.length} cargos`);
+  if (cargos.length === 0) {
+    console.error(`✗ ${largura} px: nenhum cargo no seletor. A medida desta largura não rodou.`);
+    process.exitCode = 1;
+  }
 
   /* Toque que não trava o ensaio: quando a tela vaza, o celular encolhe a página
      inteira e o toque pelo Playwright pode cair fora do botão. O achado já foi

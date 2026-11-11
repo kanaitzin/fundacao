@@ -187,9 +187,16 @@ for (const largura of LARGURAS) {
   await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
   await esp(pg, 1200);
   const seletor = pg.locator('select.troca-cargo-sel');
+  /* Espera o seletor existir: sem isso, com a máquina ocupada, a lista voltava vazia e o ensaio
+     passava sem medir nada (achado em 11/11 no do celular). */
+  await seletor.waitFor({ state: 'attached', timeout: 30000 }).catch(() => {});
   const cargos = (await seletor.locator('option').evaluateAll((os) =>
     os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() }))))
     .filter((c) => !SO_CARGOS.length || SO_CARGOS.includes(c.valor));
+  if (cargos.length === 0 && !SO_CARGOS.length) {
+    console.error('✗ Nenhum cargo no seletor: o ensaio não mediu nada.');
+    process.exit(1);
+  }
   console.log(`\n${celular ? '📱' : '🖥️ '} ${largura} px, letra ${LETRA} — ${cargos.length} cargos`);
 
   /** Entra de novo do zero, no mesmo cargo: para quando uma folha não deixa sair. */

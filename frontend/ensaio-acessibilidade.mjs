@@ -139,8 +139,15 @@ async function conferir(onde) {
 }
 
 const seletor = pg.locator('select.troca-cargo-sel');
+/* Espera o seletor existir: sem isso, com a máquina ocupada, a lista voltava vazia e o ensaio
+   passava sem medir nada (achado em 11/11 no do celular). */
+await seletor.waitFor({ state: 'attached', timeout: 30000 }).catch(() => {});
 const cargos = await seletor.locator('option').evaluateAll((os) =>
   os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() })));
+if (cargos.length === 0) {
+  console.error('✗ Nenhum cargo no seletor: o ensaio não mediu nada.');
+  process.exit(1);
+}
 
 /*
  * OS TRÊS TEMAS (27/09). Até aqui o ensaio conferia SÓ o claro — o Chromium

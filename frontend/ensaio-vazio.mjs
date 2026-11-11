@@ -138,9 +138,16 @@ const porDentro = async (cargo, onde) => {
 };
 
 const seletor = pg.locator('select.troca-cargo-sel');
+/* Espera o seletor existir: sem isso, com a máquina ocupada, a lista voltava vazia e o ensaio
+   passava sem medir nada (achado em 11/11 no do celular). */
+await seletor.waitFor({ state: 'attached', timeout: 30000 }).catch(() => {});
 const cargos = (await seletor.locator('option').evaluateAll((os) =>
   os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() }))))
   .filter((c) => !SO || SO.includes(c.valor));
+if (cargos.length === 0 && !SO) {
+  console.error('✗ Nenhum cargo no seletor: o ensaio não mediu nada.');
+  process.exit(1);
+}
 console.log(`\n⏳ O vazio que mente: ${cargos.length} cargos, pausa de ${PAUSA} ms`);
 
 for (const cargo of cargos) {
