@@ -585,6 +585,46 @@ describe('a Acolhe+AI fala como colega e entende as quatro vozes da casa (fase 3
     for (const [f, tela] of casos) expect([f, destino(f)]).toEqual([f, tela]);
   });
 
+  it('o relatório completo pedido pela voz fica no chat, e o relato seguinte vira o rascunho', () => {
+    for (const f of ['faça um relatório completo', 'faz um relatório completo da Alice', 'gera o relatório da Alice pelo chat', 'quero um resumo da Lara']) {
+      const x = r(f);
+      expect([f, x.pedeORelato, x.ir]).toEqual([f, true, undefined]);
+      expect(x.texto).toMatch(/Faço aqui no chat/);
+    }
+    /* O relatório que tem lugar pronto continua indo a ele. */
+    expect(destino('preciso fazer o relatório mensal da Alice')).toBe('acompanhamentos');
+    const relato = responderPeloGuia('a Alice foi à escola, voltou bem e fez o tema', TELAS, false, [], true);
+    expect(relato.rascunho?.texto).toBe('A Alice foi à escola, voltou bem e fez o tema.');
+    expect(responderPeloGuia('onde fica a ata?', TELAS, false, [], true).rascunho).toBeUndefined();
+    const tela = readFileSync(join(FRONT, 'acolhe.tsx'), 'utf8');
+    expect(tela).toMatch(/!r\.cuidado && !r\.pedeORelato\)/);
+  });
+
+  it('a leitura em voz alta escolhe a melhor voz deste aparelho, e a da internet só se a pessoa escolher', () => {
+    const vozes = [
+      { name: 'eSpeak Portuguese', lang: 'pt', localService: true, voiceURI: 'espeak' },
+      { name: 'Microsoft Francisca Online (Natural) - Portuguese (Brazil)', lang: 'pt-BR', localService: false, voiceURI: 'francisca' },
+      { name: 'Português do Brasil aprimorada', lang: 'pt-BR', localService: true, voiceURI: 'local-boa' },
+      { name: 'English', lang: 'en-US', localService: true, voiceURI: 'en' },
+    ];
+    const guardado: Record<string, string> = {};
+    const g = globalThis as unknown as Record<string, unknown>;
+    g.window = { speechSynthesis: { getVoices: () => vozes } };
+    g.localStorage = { getItem: (k: string) => guardado[k] ?? null, setItem: (k: string, v: string) => { guardado[k] = v; } };
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const voz = require('../../frontend/src/voz-da-leitura');
+      expect(voz.listarVozes().map((v: { id: string }) => v.id)).toEqual(['local-boa', 'francisca', 'espeak']);
+      expect(voz.vozDaLeitura().voiceURI).toBe('local-boa');
+      expect(voz.velocidadeDaLeitura()).toBeGreaterThan(1);
+      voz.escolherVoz('francisca');
+      expect(voz.vozDaLeitura().voiceURI).toBe('francisca');
+      const tela = readFileSync(join(FRONT, 'acolhe.tsx'), 'utf8');
+      expect(tela).toMatch(/prepararFala\(fala\)/);
+      expect(tela).not.toMatch(/getVoices\(\)\.find/);
+    } finally { delete g.window; delete g.localStorage; }
+  });
+
   it('as respostas novas não usam travessão e falam da criança, não de ela ou ele', () => {
     for (const f of ['a Alice falou em morrer hoje', 'o Theo fez xixi na cama', 'o Kauã está chorando']) {
       expect(r(f).texto).not.toMatch(/[—–]/);

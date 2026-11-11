@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { VELOCIDADES, escolherVelocidade, escolherVoz, listarVozes, prepararFala, quandoAsVozesChegarem,
+  velocidadeDaLeitura, vozDaLeitura, type VozDoAparelho } from './voz-da-leitura';
 import { api, apiAosPoucos, SemConexao } from './api';
 import { Icone, SimboloDaAcolhe } from './icones';
 import { AnexosDaMensagem, EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
@@ -111,9 +113,8 @@ function falar(texto: string, aoTerminar?: () => void) {
   if (!('speechSynthesis' in window)) { aoTerminar?.(); return; }
   window.speechSynthesis.cancel();
   const fala = new SpeechSynthesisUtterance(texto.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').slice(0, 4000));
-  fala.lang = 'pt-BR';
-  const voz = window.speechSynthesis.getVoices().find((v) => v.lang?.toLowerCase().startsWith('pt'));
-  if (voz) fala.voice = voz;
+  /* A melhor voz do aparelho, ou a escolhida na folha Voz da leitura, um pouco mais ágil (fase 311). */
+  prepararFala(fala);
   if (aoTerminar) { fala.onend = aoTerminar; fala.onerror = aoTerminar; }
   window.speechSynthesis.speak(fala);
 }
@@ -144,6 +145,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
 }) {
   const [aberta, setAberta] = useState(false);
   const [ligada, setLigada] = useState<boolean | null>(null);
+  const relatoPedido = useRef(false);
+  const [escolhendoVoz, setEscolhendoVoz] = useState(false);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [texto, setTexto] = useState('');
   /* Até dez fotos ou PDFs por pergunta (fase 233), como no WhatsApp. */
@@ -398,12 +401,14 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
       dizer(`Documento se guarda no dossiê da criança: abra o perfil dela e o dossiê${dossie ? ': [Abrir os Acolhidos](tela:acolhidos)' : '.'}`);
       return;
     }
-    const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0, ensinadas);
+    /* A resposta anterior pediu o relato (fase 311): o que vier agora é o relato. */
+    const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0, ensinadas, relatoPedido.current);
+    relatoPedido.current = !!r.pedeORelato;
     /* A criança nomeada (fase 196): o perfil é o lugar dela. O rascunho, a
        sugestão e a conta continuam vindo antes: "relatório: a Alice voltou da
        escola" é texto para conferir, e não ida ao perfil. */
     let daCrianca: CriancaDaCasa | undefined;
-    if (!r.rascunho && !r.sugestao && !r.conta && !r.cuidado) {
+    if (!r.rascunho && !r.sugestao && !r.conta && !r.cuidado && !r.pedeORelato) {
       const achadas = criancasNoPedido(t, await criancasDaCasa());
       if (achadas.length > 1) {
         dizer(`Há ${achadas.length} crianças com esse nome nesta casa: ${achadas.map((c) => `[${c.nome}](crianca:${c.id})`).join('  ')}. Qual delas?`);
@@ -1268,7 +1273,11 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
         <button type="button" className="btn sm ghost" aria-expanded={ensinando} onClick={() => setEnsinando((x) => !x)}>
           Ensinar uma palavra
         </button>
+        <button type="button" className="btn sm ghost" aria-expanded={escolhendoVoz} onClick={() => setEscolhendoVoz((x) => !x)}>
+          Voz da leitura
+        </button>
       </div>
+      {escolhendoVoz && <EscolherVozDaLeitura aoFechar={() => setEscolhendoVoz(false)} />}
       {ensinando && (
         <div className="acolhe-ensinar stack" role="group" aria-labelledby="t-ensinar">
           <strong id="t-ensinar">Ensinar uma palavra à Acolhe+AI</strong>
@@ -1443,6 +1452,54 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca, nome, 
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+
+/**
+ * A folha Voz da leitura (fase 311): as vozes em português deste aparelho, da melhor para
+ * a pior, a velocidade, e um exemplo para ouvir antes de escolher. A escolha fica neste aparelho.
+ */
+function EscolherVozDaLeitura({ aoFechar }: { aoFechar: () => void }) {
+  const [vozes, setVozes] = useState<VozDoAparelho[]>(() => listarVozes());
+  const [voz, setVoz] = useState<string>(() => { const v = vozDaLeitura(); return v ? (v.voiceURI || v.name) : ''; });
+  const [velocidade, setVelocidade] = useState<number>(() => velocidadeDaLeitura());
+  useEffect(() => quandoAsVozesChegarem(() => {
+    setVozes(listarVozes());
+    setVoz((atual) => { if (atual) return atual; const v = vozDaLeitura(); return v ? (v.voiceURI || v.name) : ''; });
+  }), []);
+  const daInternet = vozes.find((v) => v.id === voz && !v.doAparelho);
+  const exemplo = () => falar('Oi! Eu sou a Acolhe mais AI. É assim que eu leio as respostas para você.');
+  return (
+    <div className="acolhe-ensinar stack" role="group" aria-labelledby="t-voz-leitura">
+      <strong id="t-voz-leitura">Voz da leitura</strong>
+      {vozes.length === 0 ? (
+        <p className="mutetxt" style={{ margin: 0 }}>Este aparelho não tem voz em português para ler. No celular, ela vem nas configurações de voz do aparelho.</p>
+      ) : (
+        <>
+          <label className="f" htmlFor="acolhe-voz-leitura">Voz</label>
+          <select id="acolhe-voz-leitura" value={voz} onChange={(e) => { setVoz(e.target.value); escolherVoz(e.target.value); }}>
+            {vozes.map((v) => (
+              <option key={v.id} value={v.id}>{v.nome}{v.doAparelho ? '' : ' (pela internet)'}</option>
+            ))}
+          </select>
+          {daInternet && (
+            <p className="mutetxt" style={{ margin: 0 }}>Esta voz lê pela internet: o texto da resposta vai ao serviço de voz do navegador para ser lido.</p>
+          )}
+        </>
+      )}
+      <span className="f">Velocidade</span>
+      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+        {VELOCIDADES.map((v) => (
+          <button key={v.valor} type="button" className={`btn sm ${velocidade === v.valor ? '' : 'sec'}`} aria-pressed={velocidade === v.valor}
+                  onClick={() => { setVelocidade(v.valor); escolherVelocidade(v.valor); }}>{v.rotulo}</button>
+        ))}
+      </div>
+      <div className="row" style={{ gap: 8 }}>
+        <button type="button" className="btn sm" disabled={vozes.length === 0} onClick={exemplo}>Ouvir um exemplo</button>
+        <button type="button" className="btn sm sec" onClick={() => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); aoFechar(); }}>Fechar</button>
+      </div>
     </div>
   );
 }

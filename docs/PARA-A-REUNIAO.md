@@ -14,7 +14,7 @@
 > segurança da análise de 08/11 também** (fases 288 a 298). O que separa o sistema da Casa 03 agora
 > são as respostas abaixo, documentos de papel e pessoas. O resto deste arquivo é o histórico das
 > perguntas; esta seção é a que se leva para a mesa. Os números A1 a A16, C1 a C6 e F1 a F30 são os de
-> antes, para não quebrar quem os cita; A17 a A19, C7 a C9 e F31 a F45 são desta rodada. **Conferida contra o
+> antes, para não quebrar quem os cita; A17 a A19, C7 a C10 e F31 a F45 são desta rodada. **Conferida contra o
 > código em 10/11** (auditoria dos documentos): os parênteses dizem o que o código faz hoje.
 
 ### Primeiro: duas respostas que se contradizem
@@ -127,6 +127,7 @@ o público (crianças, adolescentes ou jovens), o endereço e o número de vagas
 | C7 | **O plano de incidente**: se um dado vazar ou uma conta for tomada, quem é avisado, em quanto tempo, e o que se comunica às famílias e à ANPD | análise de 08/11 |
 | C8 | **As folhas que saem da instituição com a criança** (fase 270): a de transição leva as condições de saúde, além das alergias, e nada da área restrita | §4.39 |
 | C9 | **A conversa com a Acolhe+AI some quando a tela recarrega.** Guardar no aparelho ajuda quem foi interrompido no plantão, mas deixa a conversa num celular que pode ser pessoal | §4.28 |
+| C10 | **A voz que lê as respostas em voz alta.** A Acolhe+AI usa as vozes do aparelho e, sem escolha, fica numa voz do próprio aparelho. As vozes mais naturais (no Chrome as do Google, no Edge as naturais da Microsoft) leem pela internet: o texto da resposta, que pode ter o nome e a situação da criança, vai ao serviço de voz. A pessoa pode escolher uma delas na folha Voz da leitura, que avisa. Fica liberado, ou só as vozes do aparelho? (liberado com o aviso; fase 311) | fase 311 |
 
 ### D. Para assinar, antes do piloto
 
@@ -274,7 +275,7 @@ Conferido em 10/11 contra o código, e nada disso volta à mesa:
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **311 fases.** 178 suítes e 1559 testes; a suíte inteira, verde em duas condições de
+- **311 fases.** 178 suítes e 1561 testes; a suíte inteira, verde em duas condições de
   relógio na fase 290, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

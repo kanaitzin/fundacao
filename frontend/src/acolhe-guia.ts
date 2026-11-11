@@ -24,6 +24,9 @@ export type RespostaDoGuia = {
   rascunho?: { titulo: string; texto: string; tela?: string };
   /** Resposta de cuidado ou de limite (fase 200): a tela só responde, não abre perfil nem formulário. */
   cuidado?: boolean;
+  /** Pediu o relato para montar o relatório aqui no chat (fase 311): a tela não abre perfil, e a
+      próxima mensagem da pessoa vira o rascunho, mesmo curta. */
+  pedeORelato?: boolean;
 };
 
 /** As telas onde um texto escrito pela equipe costuma ficar, na ordem em que a casa mais usa. */
@@ -168,7 +171,10 @@ const PEDIDO_DE_RELATORIO = /^\s*(relat[oó]rio|rascunho|anota[cç][aã]o|anotar
  * linhas do turno, então pede o relato, e o "ATA:" leva o rascunho à linha.
  */
 const COMECO_DO_PLANTAO = /\b(o que (eu )?(preciso|tenho que|devo) saber|passa(r)? o plantao|como (ta|esta) a casa|cheguei (agora )?(no|pro|para o|ao) plantao|comecei (o |meu )?plantao|comeco do (meu )?plantao|o que aconteceu (no|desde o) (meu )?(ultimo )?plantao)\b/;
-const FIM_DO_TURNO = /\b(rascunho da ata|resumo do (meu )?(plantao|turno)|fim do (meu )?(plantao|turno)|terminando o (meu )?(plantao|turno)|encerrando o (meu )?(plantao|turno))\b/;
+const FIM_DO_TURNO = /\b(relatorio (completo )?do (meu )?(plantao|turno)|rascunho da ata|resumo do (meu )?(plantao|turno)|fim do (meu )?(plantao|turno)|terminando o (meu )?(plantao|turno)|encerrando o (meu )?(plantao|turno))\b/;
+/* "Faça um relatório completo", "gera o relatório da Alice pelo chat" (fase 311, pedido de 11/11:
+   "pedi na voz um relatório completo pelo chat e ele me levou para os perfis"). */
+const PEDE_RELATORIO_NO_CHAT = /\b(faz|faca|fazer|faze|escreve|escrever|monta|montar|cria|criar|gera|gerar|elabora|elaborar|redige|redigir|prepara|preparar|quero|queria|preciso|preciso de|me da|me de|me manda)\b.{0,24}\b(relatorio|relato|resumo)\b|\brelatorio\b.{0,30}\b(completo|completinho|pelo chat|no chat|aqui|por aqui|geral)\b/;
 const QUER_RELATORIO = /\b(fazer|faz|escrever|escreve|montar|monta|criar|cria|ditar|dita)\s+(um|o|uma|a)?\s*(relat[oó]rio|rascunho|registro|relato)\b/;
 /* "Preciso registrar que o Bruno caiu no pátio": o que vem depois do "que" é o
    relato, e o lugar dele é o rascunho, não o perfil (fase 200). */
@@ -181,14 +187,14 @@ function arrumar(t: string): string {
   return /[.!?]$/.test(y) ? y : `${y}.`;
 }
 
-function rascunhoDoPedido(texto: string, telas: TelaDoGuia[], aceitaLongo: boolean): RespostaDoGuia['rascunho'] | null {
+function rascunhoDoPedido(texto: string, telas: TelaDoGuia[], aceitaLongo: boolean, eORelato = false): RespostaDoGuia['rascunho'] | null {
   const t = sem(texto);
   const que = REGISTRAR_QUE.exec(t);
   /* "Preciso fazer o relatório mensal da Alice" é pedido de ir ao acompanhamento, e não
      o relato: sem dois-pontos e curto, o pedido não vira o texto do rascunho (fase 205). */
   const soOPedido = QUER_RELATORIO.test(t) && !PEDIDO_DE_RELATORIO.test(texto) && !que
     && !texto.includes(':') && texto.trim().length <= 160;
-  const explicito = !soOPedido && (PEDIDO_DE_RELATORIO.test(texto) || QUER_RELATORIO.test(t) || !!que);
+  const explicito = eORelato || (!soOPedido && (PEDIDO_DE_RELATORIO.test(texto) || QUER_RELATORIO.test(t) || !!que));
   const ditadoLongo = aceitaLongo && texto.trim().length > 160 && !texto.includes('?');
   if (!explicito && !ditadoLongo) return null;
   const doisPontos = texto.indexOf(':');
@@ -373,7 +379,7 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
 
 
 export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean,
-                                  ensinadas: readonly PalavraDaCasa[] = []): RespostaDoGuia {
+                                  ensinadas: readonly PalavraDaCasa[] = [], relatoPedido = false): RespostaDoGuia {
   /* O banco de palavras da casa (fase 238): "o piá tá com piripaque" ganha "crianca menino passando mal".
      E as que a equipe ensinou e a coordenação aprovou (fase 244). */
   const t = traduzirPalavrasDaCasa(sem(texto), ensinadas);
@@ -388,12 +394,18 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
      pedido vira rascunho só depois de não ser ida a uma tela nem sugestão. */
   const pedido = rascunhoDoPedido(texto, telas, false);
   if (pedido) return comRascunho(pedido);
+  /* A resposta ao "me conte" do relatório (fase 311): o que vier é o relato, mesmo curto,
+     a não ser que seja pergunta ou outro pedido de relatório. */
+  if (relatoPedido && !ehPergunta(texto) && !PEDE_RELATORIO_NO_CHAT.test(t)) {
+    const relato = rascunhoDoPedido(texto, telas, true, true);
+    if (relato) return comRascunho({ ...relato, titulo: relato.titulo === 'relatório' ? 'relatório' : relato.titulo });
+  }
 
   if (COMECO_DO_PLANTAO.test(t) && telas.some((x) => x.chave === 'dia')) {
     return { texto: `Bom plantão! O que mudou desde o seu último plantão fica no alto do Dia: as ocorrências, a ATA anterior e os remédios novos, suspensos ou mudados. A passagem assinada está na Passagem.\n\n${`${link(telas, 'dia', 'Abrir o Dia')}${link(telas, 'passagem', 'Abrir a Passagem')}`.trim()}`, ir: 'dia' };
   }
   if (FIM_DO_TURNO.test(t) && telas.some((x) => x.chave === 'ata')) {
-    return { texto: `Para fechar o turno, me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone, começando com ATA e dois-pontos. Eu monto o rascunho, você confere e eu escrevo na linha da ATA. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
+    return { texto: `Para fechar o turno, me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone, começando com ATA e dois-pontos. Eu monto o rascunho, você confere e eu escrevo na linha da ATA. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.`, pedeORelato: true };
   }
 
   /* O cuidado vem antes de qualquer tela (fase 200). Num ditado longo, o
@@ -495,7 +507,21 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   const conta = contaDoTexto(texto);
   if (conta) return { texto: `Fiz a conta para você.`, conta };
 
-  const tela = achar(t, telas);
+  /* O relatório pedido sem dizer qual dos prontos (fase 311): faz aqui no chat, com o relato da
+     pessoa, e não abre o perfil da criança nomeada. "O relatório mensal da Alice" continua indo
+     ao acompanhamento, porque a tela dele casa antes. */
+  const telaDoPedido = achar(t, telas);
+  if (PEDE_RELATORIO_NO_CHAT.test(t) && !texto.includes(':') && (!telaDoPedido || telaDoPedido.chave === 'acolhidos')) {
+    return {
+      texto: 'Faço aqui no chat, com você. Me conte tudo do jeito que vier, escrevendo ou pelo microfone: o que aconteceu, quando, '
+        + 'quem estava, o que a equipe fez e o que ficou pendente. Pode falar de uma vez só. Eu organizo num relatório, você confere '
+        + 'e corrige aqui mesmo, e depois escolhe onde ele fica: na ATA, num acompanhamento ou numa ocorrência.\n\n'
+        + 'Se for um relatório do que já está registrado, me diga qual: o do mês da criança, as visitas, as vivências, a trajetória ou o período da casa.',
+      pedeORelato: true,
+    };
+  }
+
+  const tela = telaDoPedido;
   if (tela) {
     if (QUER_CRIAR.test(t)) {
       /* Só "Abrindo": a frase do formulário vem depois, e só se ele abrir. Prometer
@@ -520,7 +546,7 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
 
   /* "Quero fazer um relatório" sem dizer o quê nem para onde: ela pede o relato (fase 300). */
   if (QUER_ESCREVER.test(t) || (QUER_RELATORIO.test(t) && !texto.includes(':'))) {
-    return { texto: `Me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone. Eu monto um rascunho para você conferir, e depois você escolhe onde ele fica: na ATA, numa ocorrência ou num acompanhamento. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
+    return { texto: `Me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone. Eu monto um rascunho para você conferir, e depois você escolhe onde ele fica: na ATA, numa ocorrência ou num acompanhamento. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.`, pedeORelato: true };
   }
 
   /* Ensinar uma palavra (fase 300): o botão fica no alto da conversa. */

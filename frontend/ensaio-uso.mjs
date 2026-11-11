@@ -3917,6 +3917,27 @@ console.log('\n💬 A Acolhe+AI (fase 192)');
   await cartao.getByRole('button', { name: 'Confirmar' }).click();
   await pg.waitForTimeout(500);
   cobrar('e, confirmada, sai em nome da pessoa', /Feito, em seu nome/.test(await cartao.innerText()));
+  /* O relatório completo pedido pela voz (fase 311, pedido de 11/11): fica no chat, não abre perfil,
+     e o relato seguinte, mesmo curto, vira o rascunho para conferir. */
+  const antesDoRelatorio = await conteudo();
+  const r3 = await perguntar('faz um relatório completo da Alice');
+  cobrar('"faz um relatório completo da Alice" fica no chat e pede o relato', /Faço aqui no chat/.test(r3), r3.slice(-200));
+  cobrar('e não abre o perfil da criança', (await conteudo()) === antesDoRelatorio);
+  await perguntar('a Alice foi à escola, voltou bem e fez o tema');
+  cobrar('o relato seguinte vira o rascunho', (await painel.locator('.acolhe-rascunho, [aria-label*="rascunho" i]').count()) > 0
+    || /Montei o rascunho/.test(await painel.locator('.acolhe-conversa').innerText()));
+  /* A folha Voz da leitura (fase 311): abre, mostra a velocidade e fecha. */
+  await painel.getByRole('button', { name: 'Voz da leitura' }).click();
+  await pg.waitForTimeout(300);
+  const folhaVoz = painel.getByRole('group', { name: 'Voz da leitura' });
+  cobrar('a folha Voz da leitura abre com a velocidade', (await folhaVoz.count()) === 1
+    && (await folhaVoz.getByRole('button', { name: 'Normal' }).getAttribute('aria-pressed')) === 'true');
+  await folhaVoz.getByRole('button', { name: 'Rápida' }).click();
+  cobrar('e a velocidade escolhida fica marcada', (await folhaVoz.getByRole('button', { name: 'Rápida' }).getAttribute('aria-pressed')) === 'true');
+  await folhaVoz.getByRole('button', { name: 'Calma' }).click();
+  await folhaVoz.getByRole('button', { name: 'Normal' }).click();
+  await folhaVoz.getByRole('button', { name: 'Fechar' }).click();
+  cobrar('e fecha', (await painel.getByRole('group', { name: 'Voz da leitura' }).count()) === 0);
   await perguntar('me leva para a chamada');
   await painel.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
   await pg.waitForTimeout(500);
