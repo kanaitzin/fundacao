@@ -21,6 +21,7 @@ import request from 'supertest';
 import { createServer, Server, Socket } from 'net';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { emHtml } from '../src/modules/identity/mensagem-do-email';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -176,6 +177,43 @@ describe('O envio por SMTP', () => {
     /* E o log disse que saiu, para quem, sem o link. */
     expect(logs.some((l) => l.includes(`e-mail enviado para ${p.email}`))).toBe(true);
     expect(logs.join('\n')).not.toContain(token!);
+  });
+
+  it('a mensagem sai em texto e com apresentação, as duas com o mesmo link e nada buscado de fora', async () => {
+    const cap = servidorDeCaptura();
+    smtp(await cap.abrir());
+    const p = await novaPessoa();
+    const r = await convidar(p.id);
+    await cap.fechar();
+    expect(r.status).toBe(201);
+    const corpo = texto(cap.recebidos[0].dados);
+
+    /* As duas versões na mesma mensagem: quem não mostra HTML lê o texto de sempre. */
+    expect(corpo).toMatch(/Content-Type: multipart\/alternative/i);
+    expect(corpo).toMatch(/Content-Type: text\/plain/i);
+    expect(corpo).toMatch(/Content-Type: text\/html/i);
+    const html = corpo.slice(corpo.search(/<!DOCTYPE html>/i));
+    expect(html).toContain('Escolher a minha senha');
+    expect(html).toContain('Fundação O Pão dos Pobres');
+
+    /* O mesmo link nas duas, e só ele: nenhum outro endereço, imagem, script ou formulário. */
+    const links = [...corpo.matchAll(/convite=([A-Za-z0-9_-]+)/g)].map((m) => m[1]);
+    expect(links.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(links).size).toBe(1);
+    const enderecos = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
+    expect(enderecos.length).toBeGreaterThan(0);
+    for (const e of enderecos) expect(e).toMatch(/\/entrar\?convite=/);
+    expect(html).not.toMatch(/<img|<script|<form|<link|@import|url\(/i);
+  });
+
+  it('o nome de quem recebe entra na mensagem como texto, nunca como HTML', () => {
+    const html = emHtml({
+      resumo: 'r', nome: 'Ana <img src=x onerror=alert(1)> & "Cia"', titulo: 't', antes: ['a'],
+      botao: 'b', link: 'https://exemplo.dev/entrar?convite=abc&x="1"', validade: 'v', depois: ['d'],
+    });
+    expect(html).not.toContain('<img');
+    expect(html).toContain('Ana &lt;img src=x onerror=alert(1)&gt; &amp; &quot;Cia&quot;');
+    expect(html).toContain('href="https://exemplo.dev/entrar?convite=abc&amp;x=&quot;1&quot;"');
   });
 
   it('com conta e senha do SMTP, entra com elas', async () => {

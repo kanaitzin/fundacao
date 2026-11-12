@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
-import { mkdirSync, appendFileSync } from 'node:fs';
+import { mkdirSync, appendFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTransport, type Transporter } from 'nodemailer';
 import { DatabaseService } from '../../kernel/database/database.service';
@@ -26,6 +26,8 @@ export interface Mensagem {
   para: string;
   assunto: string;
   corpo: string;
+  /** A mesma mensagem com apresentação (`mensagem-do-email.ts`). O texto vai sempre junto. */
+  html?: string;
 }
 
 /*
@@ -69,6 +71,9 @@ export class MailGateway {
       `\n=== ${new Date().toISOString()} ===\nPara: ${m.para}\nAssunto: ${m.assunto}\n\n${m.corpo}\n`,
       'utf8',
     );
+    /* A última mensagem com apresentação, para abrir no navegador e ver como chega.
+       Mora na mesma caixa local do texto, que nunca sai para a rede. */
+    if (m.html) writeFileSync(join(this.caixa, 'ultima-mensagem.html'), m.html, 'utf8');
     // Metadado, não conteúdo: destinatário e assunto bastam para investigar
     // "o convite saiu?" sem que o log vire a chave da porta.
     this.log.log(`e-mail enfileirado para ${m.para} — ${m.assunto}`);
@@ -89,6 +94,7 @@ export class MailGateway {
     try {
       const info = await this.smtp(host).sendMail({
         from: remetente, to: m.para, subject: m.assunto, text: m.corpo,
+        ...(m.html ? { html: m.html } : {}),
       });
       /* O mesmo metadado do modo arquivo, e o identificador que o servidor deu:
          é o que o provedor pede para rastrear. Nunca o corpo. */
