@@ -3760,6 +3760,13 @@ const topoDaLinha315 = await pg.locator('ol.linha li.ev').first()
   .evaluate((e) => Math.round(e.getBoundingClientRect().top + window.scrollY)).catch(() => 99999);
 cobrar('e a primeira tarefa da linha do dia fica a menos de 1.200 px do topo', topoDaLinha315 < 1200, `${topoDaLinha315} px`);
 await cartao186.getByRole('button', { name: 'Ver o que mudou' }).click(); await pg.waitForTimeout(300);
+/* O Fechar devolve ao cartão curto SEM marcar como lido: o `ensaio:cabe` achou o cartão
+   aberto sem volta nenhuma, só com o Entendi. */
+await cartao186.getByRole('button', { name: 'Fechar', exact: true }).click(); await pg.waitForTimeout(300);
+cobrar('o Fechar do cartão aberto volta ao curto, sem marcar como lido',
+  (await cartao186.getByRole('button', { name: 'Ver o que mudou' }).count()) === 1
+  && (await cartao186.getByRole('button', { name: 'Entendi' }).count()) === 0);
+await cartao186.getByRole('button', { name: 'Ver o que mudou' }).click(); await pg.waitForTimeout(300);
 const texto186 = (await cartao186.count()) ? await cartao186.innerText() : '';
 /* Desde a 310 o cartão sai do que a casa registrou: cada ocorrência dele está na lista das
    Ocorrências, com quem a registrou, e a ATA anterior traz as linhas de quem as escreveu. */

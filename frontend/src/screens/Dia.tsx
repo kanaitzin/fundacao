@@ -1798,7 +1798,7 @@ function FoiAAula({ houseId }: { houseId: string }) {
           : <span className="pill c-ok"><Icone nome="conferido" tamanho={14} /> Todos verificados</span>}
         <button type="button" className="btn sm sec" aria-expanded={aberto} aria-controls="foi-a-aula-lista"
                 onClick={() => setAberto((a) => !a)}>
-          {aberto ? 'Recolher' : faltam > 0 && dados.marca ? 'Marcar a frequência' : 'Ver a frequência'}
+          {aberto ? 'Fechar' : faltam > 0 && dados.marca ? 'Marcar a frequência' : 'Ver a frequência'}
         </button>
       </div>
       {recado && <div className="notice c-ok" role="status">{recado}</div>}

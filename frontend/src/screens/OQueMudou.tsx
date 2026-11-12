@@ -71,6 +71,9 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
    * O "Entendi" só existe na forma aberta: ninguém confirma que leu o que não abriu.
    */
   const [modo, setModo] = useState<'curto' | 'aberto' | 'lido'>('lido');
+  /* De onde o cartão foi aberto: o Fechar devolve para lá, sem marcar como lido
+     (o `ensaio:cabe` achou o cartão aberto sem volta, só com o Entendi). */
+  const [veioDe, setVeioDe] = useState<'curto' | 'lido'>('lido');
 
   useEffect(() => {
     let vivo = true;
@@ -96,7 +99,7 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
 
   if (modo === 'lido') {
     return (
-      <button className="btn sec block" onClick={() => setModo('aberto')}>
+      <button className="btn sec block" onClick={() => { setVeioDe('lido'); setModo('aberto'); }}>
         O que mudou desde o seu último plantão{n ? ` (${n})` : ''}
       </button>
     );
@@ -136,7 +139,7 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
             <b>O que ficou para o próximo turno:</b> {r.ata.pendencias}
           </div>
         )}
-        <button className="btn sec" aria-expanded={false} onClick={() => setModo('aberto')}>Ver o que mudou</button>
+        <button className="btn sec" aria-expanded={false} onClick={() => { setVeioDe('curto'); setModo('aberto'); }}>Ver o que mudou</button>
       </section>
     );
   }
@@ -219,9 +222,12 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
         )}
       </div>
 
-      <button className="btn block" onClick={() => { marcarLido(chave(pessoa, houseId, r.desde)); setModo('lido'); }}>
-        Entendi
-      </button>
+      <div className="row rodape-do-que-mudou">
+        <button className="btn sec" onClick={() => setModo(veioDe)}>Fechar</button>
+        <button className="btn grow" onClick={() => { marcarLido(chave(pessoa, houseId, r.desde)); setModo('lido'); }}>
+          Entendi
+        </button>
+      </div>
     </section>
   );
 }
