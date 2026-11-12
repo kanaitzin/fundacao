@@ -1,7 +1,7 @@
 # Frente: o banco recusa quem chega sem cargo, a passagem de turno entre as contas e o e-mail com apresentação
 
 - **Branch:** `claude/cargo-nulo-recusado` (aberto a partir do `cf6ea5b`, a ponta da frente do visual em 12/11)
-- **Atualizado em:** 2026-11-12T09:51-03:00
+- **Atualizado em:** 2026-11-12T14:52-03:00
 - **Situação:** esperando o dono (o código está pronto e medido; falta o fechamento nos documentos, que é da frente do visual)
 - **Fase:** 316, reservada. Não está escrita em documento nenhum ainda.
 - **Pedido do dono:** em 12/11, *veja o que você pode fazer sem entrar no que ele está fazendo* (a outra conta ajusta o visual do perfil e dos menus); e depois, *crie uma pasta em que você e a outra conta consigam ver o que está sendo feito quando o limite acaba*; e *o sistema consegue mandar uma mensagem bonita quando pedirem uma senha nova no esqueci?*
@@ -100,5 +100,10 @@ conserto da cobrança (só a suíte nova, sozinha).
   `.env.example` e no §12.8, e o `instalar.sh` dizer que o modo não é para produção. Nesta
   sessão a autorização mora no ambiente `fundacao`, posta pelo dono num formulário seguro:
   a rede a injeta, e o `GMAIL_TOKEN` daqui é um valor de enfeite.
+- **O envio de verdade NÃO saiu desta sessão.** Três autorizações do Gmail salvas pelo dono no
+  ambiente `fundacao`, e a API respondeu sempre que o pedido chegava sem credencial, também
+  numa sessão nova do mesmo ambiente. Não se sabe se a rede da sessão não repassa a
+  autorização a esse endereço ou se o valor salvo não servia. **Não insistir por aqui**: o
+  envio real se prova numa máquina com internet, pelo `smtp`, com a senha de app do Gmail.
 - **O ambiente desta conta:** o `preparar-ambiente.sh` foi recusado pela permissão
   automática da sessão; o PostgreSQL e o `faketime` subiram à mão, com os mesmos passos.
