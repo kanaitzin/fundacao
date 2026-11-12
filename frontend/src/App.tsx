@@ -285,7 +285,18 @@ function RelogioDoTopo() {
   );
 }
 
-function BuscaCrianca({ houseId, onAbrir }: { houseId: string; onAbrir: (id: string) => void }) {
+/*
+ * A BUSCA DO TOPO acha a criança e, desde a fase 315, também a TELA: com a coluna
+ * curta, quem não lembra em que família está a escala digita "escala" e vai. O
+ * atalho do teclado é Ctrl+K (ou a barra, fora de um campo), como nos programas
+ * que a coordenação já usa no computador.
+ */
+function BuscaCrianca({ houseId, onAbrir, telas, onTela }: {
+  houseId: string; onAbrir: (id: string) => void;
+  /** As telas que este cargo alcança, com o nome que o menu mostra. */
+  telas: { aba: string; titulo: string; descricao: string }[];
+  onTela: (aba: string) => void;
+}) {
   const [aberto, setAberto] = useState(false);
   const [termo, setTermo] = useState('');
   const [lista, setLista] = useState<{ id: string; nome: string; idade: number }[] | null>(null);
@@ -296,11 +307,25 @@ function BuscaCrianca({ houseId, onAbrir }: { houseId: string; onAbrir: (id: str
     api<{ id: string; nome: string; idade: number }[]>(`/people?houseId=${houseId}`)
       .then(setLista).catch((e) => setErro(e instanceof Error ? e.message : 'Não foi possível buscar.'));
   }, [aberto, houseId]);
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      const emCampo = e.target instanceof HTMLElement
+        && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName));
+      const atalho = ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') || (e.key === '/' && !emCampo);
+      if (!atalho || document.querySelector('.overlay')) return;
+      e.preventDefault();
+      setTermo(''); setAberto(true);
+    };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, []);
   const sem = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const achadas = (lista ?? []).filter((p) => termo.trim() && sem(p.nome).includes(sem(termo.trim())));
+  const telasAchadas = termo.trim().length >= 2
+    ? telas.filter((t) => sem(`${t.titulo} ${t.descricao}`).includes(sem(termo.trim()))).slice(0, 6) : [];
   return (
     <>
-      <button className="iconbtn" title="Buscar criança" aria-label="Buscar criança pelo nome"
+      <button className="iconbtn" title="Buscar criança ou tela (Ctrl+K)" aria-label="Buscar criança ou tela"
               onClick={() => { setTermo(''); setAberto(true); }}>
         <Icone nome="busca" />
       </button>
@@ -308,22 +333,36 @@ function BuscaCrianca({ houseId, onAbrir }: { houseId: string; onAbrir: (id: str
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-busca"
              onClick={(e) => { if (e.target === e.currentTarget) setAberto(false); }}>
           <div className="sheet">
-            <h3 id="t-busca">Buscar criança</h3>
-            <label className="f" htmlFor="busca-crianca">Nome ou nome social</label>
+            <h3 id="t-busca">Buscar</h3>
+            <label className="f" htmlFor="busca-crianca">Nome da criança ou da tela</label>
             <input id="busca-crianca" className="field" type="search" autoFocus value={termo}
                    onChange={(e) => setTermo(e.target.value)} placeholder="Comece a digitar" />
             {erro && <div className="notice c-crit" role="alert">{erro}</div>}
-            <ul className="lista" aria-live="polite">
-              {achadas.map((p) => (
-                <li key={p.id}>
-                  <button className="btn ghost block" onClick={() => { setAberto(false); onAbrir(p.id); }}>
-                    {p.nome} <span className="mutetxt">· {p.idade} anos</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {termo.trim() && lista && !achadas.length && (
-              <p className="mutetxt">Nenhuma criança desta casa com esse nome.</p>
+            <div aria-live="polite">
+              {achadas.length > 0 && <div className="eyebrow" style={{ margin: '10px 0 4px' }}>Crianças</div>}
+              <ul className="lista">
+                {achadas.map((p) => (
+                  <li key={p.id}>
+                    <button className="btn ghost block" onClick={() => { setAberto(false); onAbrir(p.id); }}>
+                      {p.nome} <span className="mutetxt">· {p.idade} anos</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {telasAchadas.length > 0 && <div className="eyebrow" style={{ margin: '10px 0 4px' }}>Telas</div>}
+              <ul className="lista">
+                {telasAchadas.map((t) => (
+                  <li key={t.aba}>
+                    <button className="btn ghost block busca-tela" title={t.descricao}
+                            onClick={() => { setAberto(false); onTela(t.aba); }}>
+                      {t.titulo}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {termo.trim() && lista && !achadas.length && !telasAchadas.length && (
+              <p className="mutetxt">Nenhuma criança desta casa e nenhuma tela com esse nome.</p>
             )}
             <button className="btn sec block" onClick={() => setAberto(false)}>Fechar</button>
           </div>
@@ -884,6 +923,9 @@ export function App() {
               casa aberta. */}
           {casaAtual && ve('acolhidos') && (
             <BuscaCrianca houseId={casaAtual.id}
+                          telas={[...abasDoTurno.map((t) => ({ aba: t.aba, titulo: t.label, descricao: '' })),
+                                  ...PORTAS.filter((porta) => ve(porta.aba))]}
+                          onTela={(destino) => { tocarAba(destino); setMais(false); marcarChegada(); }}
                           onAbrir={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); marcarChegada(); }} />
           )}
           {/* A COR E A LETRA DA TELA (27/09 e fase 183), lembradas neste aparelho. */}
@@ -1033,7 +1075,13 @@ export function App() {
             const quem = await api<{ fullName?: string; id?: string; email?: string; todasAsCasas?: boolean }>(
               '/prototipo/cargo', { method: 'POST', body: JSON.stringify({ role: escolha }) });
             if (quem?.fullName) {
-              setMe({ ...me, role, fullName: quem.fullName, id: quem.id ?? me.id,
+              /* A CASA DE TRABALHO TROCA JUNTO (fase 315). O seletor trocava a pessoa e
+                 deixava o vínculo de casa de quem entrou (o Marcelo, que não tem casa):
+                 a educadora da Casa 03 aparecia como "Escopo institucional", com o aviso
+                 "Você está na AI3" em toda tela, que é de quem atende várias casas. */
+              let vinculos = me.assignments;
+              try { vinculos = (await api<Me>('/users/me')).assignments ?? vinculos; } catch { /* fica o de antes */ }
+              setMe({ ...me, role, fullName: quem.fullName, id: quem.id ?? me.id, assignments: vinculos,
                       email: quem.email ?? me.email, todasAsCasas: !!quem.todasAsCasas });
               definirQuemAssina(quem.fullName, role);
               definirAutor(quem.id ?? me.id);

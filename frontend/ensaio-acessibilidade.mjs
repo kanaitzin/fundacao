@@ -261,7 +261,7 @@ await conferir(`${tema} · folha "Cor da tela"`); telas++;
 await fecharCor();
 await pg.waitForTimeout(300);
 /* A busca de criança (fase 183), com um nome digitado e a lista à vista. */
-await pg.getByRole('button', { name: /^Buscar criança pelo nome$/ }).click();
+await pg.getByRole('button', { name: /^Buscar criança ou tela$/ }).click();
 await pg.waitForTimeout(400);
 await pg.locator('#busca-crianca').fill('a');
 await pg.waitForTimeout(300);

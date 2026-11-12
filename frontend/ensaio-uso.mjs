@@ -351,7 +351,7 @@ cobrar('e o botão leva mesmo à chamada',
 }
 /* A BUSCA DE CRIANÇA (fase 183): pelo nome, sem acento, e leva ao perfil. */
 {
-  await pg.getByRole('button', { name: /^Buscar criança pelo nome$/ }).click();
+  await pg.getByRole('button', { name: /^Buscar criança ou tela$/ }).click();
   await pg.waitForTimeout(500);
   await pg.locator('#busca-crianca').fill('bru');
   await pg.waitForTimeout(300);
@@ -360,6 +360,16 @@ cobrar('e o botão leva mesmo à chamada',
   await pg.locator('.overlay .lista li button').first().click();
   await pg.waitForTimeout(1200);
   cobrar('e escolher abre o perfil dela', /Bruno/.test(await conteudo()) && /Acolhidos/.test(await conteudo()));
+  /* A BUSCA TAMBÉM ACHA A TELA (fase 315): digitar o nome leva lá, sem passar pelo menu. */
+  await pg.getByRole('button', { name: /^Buscar criança ou tela$/ }).click();
+  await pg.waitForTimeout(400);
+  await pg.locator('#busca-crianca').fill('ocorrencia');
+  await pg.waitForTimeout(300);
+  const telas315 = await pg.locator('.overlay .lista li button.busca-tela').allInnerTexts();
+  cobrar('a busca acha a tela pelo nome, sem acento', telas315.some((t) => /Ocorrências/.test(t)), telas315.join(' | '));
+  await pg.locator('.overlay .lista li button.busca-tela', { hasText: 'Ocorrências' }).first().click();
+  await pg.waitForTimeout(900);
+  cobrar('e escolher abre a tela', (await pg.locator('main.conteudo').getAttribute('data-tela')) === 'ocorrencias');
   /* E vale para UMA abertura: indo a outra aba e voltando, a casa vê a lista,
      e não a criança buscada de novo (o defeito que este ensaio achou). */
   await aba('Dia');
@@ -3738,7 +3748,18 @@ await pg.evaluate(() => { try { Object.keys(localStorage).filter((k) => k.starts
 await trocar('educador');
 await aba('Dia');
 const cartao186 = pg.locator('section.o-que-mudou');
-cobrar('o educador encontra o cartão aberto no Dia', (await cartao186.count()) === 1);
+cobrar('o educador encontra o cartão no alto do Dia', (await cartao186.count()) === 1);
+/* O CARTÃO CURTO (fase 315): quem ainda não leu vê quantas coisas mudaram, o remédio que
+   mudou e o recado do turno, sem o Entendi; a primeira tarefa da linha do dia fica a menos
+   de duas telas do topo. O Ver o que mudou abre tudo, como era. */
+const curto315 = (await cartao186.count()) ? await cartao186.innerText() : '';
+cobrar('ele nasce curto: diz quantas coisas mudaram e o recado do turno, e não tem o Entendi',
+  /ocorrência/.test(curto315) && /O que ficou para o próximo turno/.test(curto315)
+  && (await cartao186.getByRole('button', { name: 'Entendi' }).count()) === 0, curto315.slice(0, 300));
+const topoDaLinha315 = await pg.locator('ol.linha li.ev').first()
+  .evaluate((e) => Math.round(e.getBoundingClientRect().top + window.scrollY)).catch(() => 99999);
+cobrar('e a primeira tarefa da linha do dia fica a menos de 1.200 px do topo', topoDaLinha315 < 1200, `${topoDaLinha315} px`);
+await cartao186.getByRole('button', { name: 'Ver o que mudou' }).click(); await pg.waitForTimeout(300);
 const texto186 = (await cartao186.count()) ? await cartao186.innerText() : '';
 /* Desde a 310 o cartão sai do que a casa registrou: cada ocorrência dele está na lista das
    Ocorrências, com quem a registrou, e a ATA anterior traz as linhas de quem as escreveu. */
@@ -3754,7 +3775,9 @@ cobrar('depois de Entendi, vira a linha que reabre',
   && (await pg.getByRole('button', { name: /^O que mudou desde o seu último plantão/ }).count()) === 1);
 await trocar('enfermagem');
 await aba('Dia');
-cobrar('a Enfermagem, no mesmo aparelho, encontra o cartão aberto, com a porta da Saúde',
+await pg.locator('section.o-que-mudou').getByRole('button', { name: 'Ver o que mudou' }).click().catch(() => {});
+await pg.waitForTimeout(300);
+cobrar('a Enfermagem, no mesmo aparelho, encontra o cartão para ler, com a porta da Saúde',
   (await pg.locator('section.o-que-mudou').count()) === 1
   && (await pg.locator('section.o-que-mudou').getByRole('button', { name: 'Abrir a Saúde' }).count()) === 1);
 await trocar('educador');
@@ -5713,6 +5736,122 @@ console.log('\n🔒 O registro de saúde sigiloso (fase 287)');
   cobrar('e o sigilo sai, dito na tela', /O sigilo saiu deste registro/.test(await pgS.locator('#perfil-historico-saude').innerText()));
   cobrar('nenhuma exceção no registro sigiloso', errosS.length === 0, errosS[0]);
   await pgS.close();
+}
+
+/*
+ * A COLUNA CURTA, OS ATALHOS E A BARREIRA DE ERRO (fase 315, pedido de 12/11: "temos
+ * muitos menus na lateral"). Este bloco abre a coluna como a pessoa a vê: sob o
+ * ensaio o padrão é a lista inteira, e aqui a página pede a curta antes de abrir.
+ * Cada família tem de abrir cada irmã pela faixa do alto, e o atalho fixado tem de
+ * ser da pessoa, e não do aparelho.
+ */
+console.log('\n🧭 A coluna curta, os atalhos e a barreira de erro (fase 315)');
+{
+  const ctxM = await navegador.newContext({ viewport: { width: 1366, height: 900 } });
+  await ctxM.addInitScript(() => { try { if (!localStorage.getItem('rede-acolher.menu')) localStorage.setItem('rede-acolher.menu', 'curto'); } catch { /* sem armazenamento */ } });
+  const pgM = await ctxM.newPage();
+  const errosM = [];
+  pgM.on('pageerror', (e) => errosM.push(e.message));
+  const esp = (ms = 600) => pgM.waitForTimeout(ms);
+  await pgM.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgM.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgM.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  const naColuna = () => pgM.locator('.navegacao nav button .rotulo').filter({ visible: true }).allInnerTexts();
+  let soma = 0; const semIrma = [];
+  for (const cargo of ['coordenador', 'equipe_tecnica', 'educador', 'lider_diurno', 'lider_noturno_geral', 'enfermagem', 'gestor_geral']) {
+    await pgM.locator('select.troca-cargo-sel').selectOption(cargo); await esp(1100);
+    cargoAtual = cargo;
+    const entradas = await naColuna();
+    if (cargo === 'coordenador') {
+      cobrar('a coordenação vê menos de vinte entradas na coluna, e não trinta', entradas.length < 20 && entradas.length > 10, `${entradas.length}: ${entradas.join(' · ')}`);
+      cobrar('o topo diz a casa de trabalho dela, e não Escopo institucional',
+        /AI3/.test(await pgM.locator('.appbar .quem .sub').innerText()) && (await pgM.locator('.casa-aberta').count()) === 0);
+    }
+    const familias = await pgM.locator('.portas-lateral button.familia').count();
+    for (let i = 0; i < familias; i++) {
+      const familia = pgM.locator('.portas-lateral button.familia').nth(i);
+      const nome = (await familia.locator('.rotulo').innerText()).trim();
+      await familia.click(); await esp(450);
+      const irmas = await pgM.locator('.irmas-lista button').allInnerTexts();
+      if (irmas.length < 2) semIrma.push(`${cargo}: ${nome} abriu sem a faixa das irmãs`);
+      for (const irma of irmas) {
+        await pgM.locator('.irmas-lista button').filter({ hasText: new RegExp(`^${irma.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).click();
+        await esp(400);
+        const aberta = await pgM.locator('.irmas-lista button.on').innerText().catch(() => '');
+        if (aberta !== irma || (await pgM.locator('.barreira-de-erro').count())) semIrma.push(`${cargo}: ${nome} > ${irma} não abriu`);
+        soma++;
+      }
+    }
+  }
+  cobrar('toda família abre cada irmã pela faixa do alto, nos sete cargos', semIrma.length === 0 && soma > 40, semIrma.join(' | ') || `${soma} irmãs`);
+
+  /* O atalho: fixar a escala na coluna, e ele é da pessoa. */
+  await pgM.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(1100);
+  cargoAtual = 'coordenador';
+  await pgM.locator('.portas-lateral button.familia', { hasText: 'Plantão' }).click(); await esp(500);
+  await pgM.locator('.irmas-lista button', { hasText: 'A escala de plantão' }).click(); await esp(500);
+  await pgM.locator('.irmas-fixar').click(); await esp(400);
+  cobrar('fixar põe a tela nos atalhos, no alto da coluna',
+    (await pgM.locator('.portas-lateral .atalhos button .rotulo').allInnerTexts()).join('|') === 'A escala de plantão');
+  await pgM.locator('nav.tabbar button', { hasText: 'Chamada' }).click(); await esp(500);
+  await pgM.locator('.portas-lateral .atalhos button').first().click(); await esp(600);
+  cobrar('e o atalho leva à tela com um toque', (await pgM.locator('main.conteudo').getAttribute('data-tela')) === 'escala');
+  await pgM.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(1100);
+  cobrar('a colega que entra no mesmo aparelho não herda o atalho', (await pgM.locator('.portas-lateral .atalhos').count()) === 0);
+  await pgM.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(1100);
+  cobrar('e quem fixou continua com ele', (await pgM.locator('.portas-lateral .atalhos button').count()) === 1);
+
+  /* A lista inteira continua a um toque, e o aparelho lembra. */
+  const curtas = (await naColuna()).length;
+  await pgM.locator('.menu-modo-botao').click(); await esp(500);
+  const inteiras = (await naColuna()).length;
+  cobrar('o Mostrar todas as telas devolve a lista inteira', inteiras > curtas + 8, `${curtas} → ${inteiras}`);
+  await pgM.locator('.menu-modo-botao').click(); await esp(400);
+
+  /* A BARREIRA DE ERRO: a tela que não consegue se desenhar para nela, com o menu de pé.
+     O ensaio troca o componente da tela por um que lança, que é o que um defeito faria. */
+  await pgM.locator('nav.tabbar button', { hasText: 'Chamada' }).click(); await esp(800);
+  const trocado = await pgM.evaluate(() => {
+    const no = document.querySelector('main.conteudo > :not(nav):not(.notice)');
+    const chave = no && Object.keys(no).find((k) => k.startsWith('__reactFiber$'));
+    let f = chave ? no[chave] : null; let daTela = null;
+    while (f && !(f.stateNode && typeof f.stateNode.componentDidCatch === 'function')) {
+      if (typeof f.type === 'function') daTela = f;
+      f = f.return;
+    }
+    if (!daTela || !f) return false;
+    const lanca = () => { throw new Error('quebra de ensaio'); };
+    daTela.type = lanca; daTela.elementType = lanca;
+    if (daTela.alternate) { daTela.alternate.type = lanca; daTela.alternate.elementType = lanca; }
+    return true;
+  });
+  await pgM.locator('main.conteudo button').filter({ visible: true }).first().click().catch(() => {});
+  await esp(900);
+  cobrar('a tela quebrada de propósito para na barreira, com o menu e o topo de pé',
+    trocado && (await pgM.locator('.barreira-de-erro').count()) === 1
+    && (await pgM.locator('nav.tabbar button').count()) > 2 && (await pgM.locator('.appbar').count()) === 1);
+  await pgM.locator('nav.tabbar button', { hasText: 'Acolhidos' }).click(); await esp(800);
+  cobrar('e ir a outra tela pelo menu desfaz a barreira',
+    (await pgM.locator('.barreira-de-erro').count()) === 0 && (await pgM.locator('main.conteudo').getAttribute('data-tela')) === 'acolhidos');
+  cobrar('nenhuma exceção fora a provocada', errosM.filter((e) => !/quebra de ensaio/.test(e)).length === 0, errosM.find((e) => !/quebra de ensaio/.test(e)));
+
+  /* O PERFIL NO MONITOR: a ficha ao lado da foto, e Trocar e Tirar dentro do Ver a foto. */
+  await pgM.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(1100);
+  cargoAtual = 'equipe_tecnica';
+  await pgM.locator('nav.tabbar button', { hasText: 'Acolhidos' }).click(); await esp(800);
+  await pgM.locator('main.conteudo button', { hasText: 'Alice' }).first().click(); await esp(1500);
+  cobrar('no monitor a ficha fica ao lado da foto, e não repetida na Geral',
+    (await pgM.locator('.ficha-no-topo').isVisible()) && !(await pgM.locator('.ficha-na-geral').isVisible())
+    && /Idade[\s\S]*Casa[\s\S]*Escola/.test(await pgM.locator('.ficha-no-topo').innerText()));
+  cobrar('Trocar e Tirar foto saíram de baixo do retrato',
+    (await pgM.locator('.perfil-topo').getByRole('button', { name: /^(Trocar foto|Tirar foto)$/ }).count()) === 0);
+  await pgM.getByRole('button', { name: 'Ver a foto', exact: true }).click(); await esp(500);
+  cobrar('e moram dentro do Ver a foto, para quem pode mexer',
+    (await pgM.locator('.foto-ampliada-acoes button').allInnerTexts()).join('|') === 'Trocar foto|Tirar foto');
+  await pgM.locator('.foto-ampliada-acoes button', { hasText: 'Tirar foto' }).click(); await esp(500);
+  cobrar('o Tirar foto abre a folha que pede o motivo', (await pgM.locator('.overlay .sheet').filter({ hasText: /Tirar a foto/ }).count()) === 1);
+  await pgM.locator('.overlay').getByRole('button', { name: 'Cancelar' }).click(); await esp(300);
+  await ctxM.close();
 }
 
 await colherPrincipal();

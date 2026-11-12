@@ -177,6 +177,12 @@ for (const largura of LARGURAS) {
     isMobile: celular, hasTouch: celular, deviceScaleFactor: celular ? 2 : 1,
     locale: 'pt-BR', timezoneId: 'America/Sao_Paulo',
   });
+  /* A COLUNA CURTA (fase 315): sob o ensaio a coluna nasce inteira, para o percurso achar
+     todas as portas; `ENSAIO_MENU=curto` mede a coluna como a pessoa a vê. */
+  if (process.env.ENSAIO_MENU) {
+    await pg.addInitScript((modo) => { try { localStorage.setItem('rede-acolher.menu', modo); } catch { /* sem armazenamento */ } },
+      process.env.ENSAIO_MENU);
+  }
   const erros = [];
   pg.on('pageerror', (e) => erros.push(e.message));
   /* A letra escolhida, guardada no aparelho antes de a página abrir (vale também no recomeço). */

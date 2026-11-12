@@ -108,6 +108,12 @@ const medir = (pg) => pg.evaluate(() => {
 for (const ap of APARELHOS) {
   const cel = ap.w < 1080;
   const pg = await nav.newPage({ viewport: { width: ap.w, height: ap.h }, isMobile: cel, hasTouch: cel, deviceScaleFactor: 1, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
+  /* A COLUNA CURTA (fase 315): sob o ensaio a coluna nasce inteira, para o percurso achar
+     todas as portas; `ENSAIO_MENU=curto` mede a coluna como a pessoa a vê. */
+  if (process.env.ENSAIO_MENU) {
+    await pg.addInitScript((modo) => { try { localStorage.setItem('rede-acolher.menu', modo); } catch { /* sem armazenamento */ } },
+      process.env.ENSAIO_MENU);
+  }
   const erros = [];
   pg.on('pageerror', (e) => erros.push('erro de página: ' + e.message.slice(0, 140)));
   await pg.goto(`file://${ARQ}`);

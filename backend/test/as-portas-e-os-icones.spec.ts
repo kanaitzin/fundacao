@@ -184,4 +184,75 @@ describe('As portas do sistema e os desenhos delas', () => {
       expect([nome, emoji.test(semComentario(fonte))]).toEqual([nome, false]);
     }
   });
+  /*
+   * AS FAMÍLIAS DE TELAS IRMÃS (fase 315). A coluna curta do monitor mostra uma
+   * entrada por família, e a faixa do alto da tela oferece as irmãs. Se uma porta
+   * nomear uma família que não existe, ela some da coluna curta sem erro nenhum:
+   * a tela existe, o cargo a alcança, e não há porta. É a armadilha da fase 150,
+   * por outro caminho.
+   */
+  describe('as famílias de telas irmãs', () => {
+    const familias = [...portasTs.slice(portasTs.indexOf('export const FAMILIAS'), portasTs.indexOf('export type EntradaDaColuna'))
+      .matchAll(/\{ cod: '([a-z_]+)', titulo: '([^']+)', icone: '([a-z_]+)', grupo: '([a-z]+)' \}/g)]
+      .map((m) => ({ cod: m[1], titulo: m[2], icone: m[3], grupo: m[4] }));
+    const daPorta = (aba: string) => {
+      const corpo = portasTs.slice(portasTs.indexOf('export const PORTAS'));
+      const bloco = corpo.split('{ aba:').slice(1).find((b) => b.trimStart().startsWith(`'${aba}'`)) ?? '';
+      return /familia: '([a-z_]+)'/.exec(bloco.split('},')[0])?.[1] ?? null;
+    };
+
+    it('a leitura acha as famílias', () => {
+      expect(familias.length).toBeGreaterThanOrEqual(5);
+    });
+
+    it('toda família que uma porta nomeia existe, e toda família tem ao menos duas irmãs', () => {
+      const cods = new Set(familias.map((f) => f.cod));
+      const nomeadas = lista.map((p) => [p.aba, daPorta(p.aba)] as const).filter(([, f]) => f);
+      expect(nomeadas.filter(([, f]) => !cods.has(f!))).toEqual([]);
+      for (const f of familias) {
+        expect([f.cod, nomeadas.filter(([, g]) => g === f.cod).length >= 2]).toEqual([f.cod, true]);
+      }
+    });
+
+    it('toda família tem desenho que existe e grupo que a coluna desenha', () => {
+      const desenhados = new Set(
+        [...iconesTsx.matchAll(/^\s{2}([a-z_]+):\s*\[/gm)].map((m) => m[1]));
+      const grupos = new Set([...portasTs.matchAll(/\{ cod: '([a-z]+)', titulo: '[^']+' \}/g)].map((m) => m[1]));
+      expect(familias.filter((f) => !desenhados.has(f.icone)).map((f) => f.cod)).toEqual([]);
+      expect(familias.filter((f) => !grupos.has(f.grupo)).map((f) => f.cod)).toEqual([]);
+    });
+
+    it('o nome de uma família não repete o de uma porta de fora dela', () => {
+      /* "Saúde" é família e é porta: vale, porque a porta é irmã da família. O que
+         não pode é a coluna ter duas entradas com o mesmo nome levando a lugares
+         diferentes. */
+      const repetidas = familias.filter((f) => lista.some((p) => p.titulo === f.titulo && daPorta(p.aba) !== f.cod));
+      expect(repetidas.map((f) => f.titulo)).toEqual([]);
+    });
+
+    it('a tela aberta oferece as irmãs, e a troca da forma da coluna fica fora da nav das portas', () => {
+      expect(appTsx).toContain('irmasDe(String(abaEfetiva), ve)');
+      expect(appTsx).toContain('className="irmas"');
+      /* Os ensaios apertam cada botão de `nav.portas-lateral`: o botão que troca a
+         forma da coluna mora depois dela. */
+      const nav = appTsx.slice(appTsx.indexOf('<nav className={`portas-lateral'), appTsx.indexOf('<div className="menu-modo">'));
+      expect(nav).toContain('</nav>');
+      expect(nav).not.toContain('guardarMenu(');
+    });
+  });
+
+  /*
+   * A BARREIRA DE ERRO (fase 315). Sem ela, um erro ao desenhar uma tela deixava a
+   * página em branco, sem menu e sem Sair. Esta cobrança é estática de propósito:
+   * o defeito que ela guarda é alguém tirar a barreira ao mexer no `App.tsx`.
+   */
+  it('o conteúdo e a raiz têm barreira de erro, e ela não manda o erro a lugar nenhum', () => {
+    const barreira = readFileSync(join(FRONT, 'barreira-de-erro.tsx'), 'utf8');
+    const main = readFileSync(join(FRONT, 'main.tsx'), 'utf8');
+    expect(appTsx).toMatch(/<BarreiraDeErro key=\{String\(abaEfetiva\)\} alcance="tela"/);
+    expect(main).toMatch(/<BarreiraDeErro alcance="sistema">\s*<App \/>/);
+    expect(barreira).toContain('getDerivedStateFromError');
+    const semComentario = barreira.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    expect(/fetch\(|api\(|sendBeacon|XMLHttpRequest/.test(semComentario)).toBe(false);
+  });
 });

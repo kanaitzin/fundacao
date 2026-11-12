@@ -6149,8 +6149,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: eu.id, email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id),
       fullName: eu.fullName, role: eu.role,
       mustChangePassword: false, semSenha: eu.senha === null,
-      /* A Coordenação Geral não tem casa de trabalho (1634). */
-      assignments: TODAS_AS_CASAS.has(eu.id) ? [] : [{ code: CASA.code, name: CASA.name, role: eu.role }],
+      /* A Coordenação Geral não tem casa de trabalho (1634), e quem atende todas as casas
+         por função (Gestor Geral, Enfermagem, Líder Noturno Geral) também não: como no
+         servidor, o vínculo de casa é de quem trabalha numa casa (fase 315). */
+      assignments: TODAS_AS_CASAS.has(eu.id) || ['gestor_geral', 'enfermagem', 'lider_noturno_geral'].includes(eu.role)
+        ? [] : [{ code: CASA.code, name: CASA.name, role: eu.role }],
       todasAsCasas: TODAS_AS_CASAS.has(eu.id),
     };
   }
