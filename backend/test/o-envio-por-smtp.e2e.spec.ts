@@ -228,6 +228,54 @@ describe('O envio por SMTP', () => {
     expect(html).toContain('href="https://exemplo.dev/entrar?convite=abc&amp;x=&quot;1&quot;"');
   });
 
+  it('pela API do Gmail, a mesma mensagem sai num pedido só, e o log não leva a autorização nem o link', async () => {
+    for (const k of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']) delete process.env[k];
+    Object.assign(process.env, {
+      EMAIL_MODO: 'gmail', EMAIL_REMETENTE: 'Rede Acolher <nao-responda@paodospobres.dev>',
+      GMAIL_TOKEN: 'autorizacao-de-teste-123',
+    });
+    const pedidos: { url: string; init: any }[] = [];
+    const deVerdade = global.fetch;
+    global.fetch = (async (url: any, init: any) => {
+      pedidos.push({ url: String(url), init });
+      return new Response(JSON.stringify({ id: 'mensagem-1' }), { status: 200 });
+    }) as any;
+    let r: any, p: { id: string; email: string };
+    try {
+      p = await novaPessoa();
+      r = await convidar(p.id);
+    } finally { global.fetch = deVerdade; }
+    expect(r.status).toBe(201);
+
+    expect(pedidos).toHaveLength(1);
+    expect(pedidos[0].url).toBe('https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
+    expect(pedidos[0].init.headers.authorization).toBe('Bearer autorizacao-de-teste-123');
+    const inteira = Buffer.from(JSON.parse(pedidos[0].init.body).raw, 'base64url').toString('utf8');
+    expect(inteira).toMatch(new RegExp(`^To: ${p!.email}`, 'm'));
+    expect(inteira).toMatch(/Content-Type: multipart\/alternative/i);
+    expect(inteira).toMatch(new RegExp(`Content-ID: <${CID_DO_LOGO}>`, 'i'));
+    const token = texto(inteira).match(/convite=([A-Za-z0-9_-]+)/)?.[1];
+    expect(token).toBeTruthy();
+
+    expect(logs.some((l) => l.includes(`e-mail enviado para ${p!.email}`) && l.includes('gmail mensagem-1'))).toBe(true);
+    expect(logs.join('\n')).not.toContain(token!);
+    expect(logs.join('\n')).not.toContain('autorizacao-de-teste-123');
+  });
+
+  it('pela API do Gmail, a autorização recusada responde em português, com 503', async () => {
+    Object.assign(process.env, {
+      EMAIL_MODO: 'gmail', EMAIL_REMETENTE: 'Rede Acolher <nao-responda@paodospobres.dev>',
+      GMAIL_TOKEN: 'autorizacao-vencida',
+    });
+    const deVerdade = global.fetch;
+    global.fetch = (async () => new Response('{}', { status: 401 })) as any;
+    let r: any;
+    try { r = await convidar((await novaPessoa()).id); } finally { global.fetch = deVerdade; }
+    expect(r.status).toBe(503);
+    expect(r.body.message).toMatch(/não saiu/);
+    expect(logs.some((l) => l.includes('NÃO saiu · gmail 401'))).toBe(true);
+  });
+
   it('com conta e senha do SMTP, entra com elas', async () => {
     const cap = servidorDeCaptura({ auth: true });
     smtp(await cap.abrir(), { SMTP_USER: 'rede-acolher', SMTP_PASS: 'senha-de-aplicativo' });
