@@ -520,7 +520,7 @@ cobrar('nenhuma exceção no turno do educador', erros.length === 0, erros[0]);
 console.log('\n☀️ Líder Diurno');
 await trocar('lider_diurno');
 erros.length = 0;
-cobrar('o Painel do Plantão está em "Mais"', await doMais('Plantão'));
+cobrar('o Painel do Plantão está em "Mais"', await doMais('Painel do plantão'));
 cobrar('o painel diz quem está em quê', (await conteudo()).length > 120);
 /* O PEDIDO DE SUBSTITUIÇÃO SE DECIDE NO PAINEL (fase 248). Até 27/10 o painel, cujo
    título é "aguardando você", só oferecia recusar; passar a atividade a outra pessoa

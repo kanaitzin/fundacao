@@ -84,7 +84,7 @@ const TAREFAS = [
   {
     cargo: 'lider_diurno', secao: '2.2',
     nome: 'Descubra quem está em cada atividade agora — Painel do Plantão',
-    caminho: [{ mais: 'Plantão' }],
+    caminho: [{ mais: 'Painel do plantão' }],
     procurar: [/plantão/i],
   },
   {
@@ -549,8 +549,14 @@ async function andar(passo) {
      * aparece em três itens do menu do gestor. Com o título, `/^Unidades$/`
      * escolhe um só (fase 98).
      */
-    const porta = pg.locator('.overlay .sheet button.card.row')
-      .filter({ has: pg.locator('b.ff', { hasText: passo.mais }) });
+    /* Pelo título EXATO primeiro (fase 315): a folha Mais está em ordem alfabética, e o
+       primeiro título que contém "Equipe" é o Combinados da equipe. */
+    const cartoes = pg.locator('.overlay .sheet button.card.row');
+    const exata = typeof passo.mais === 'string'
+      ? cartoes.filter({ has: pg.locator('b.ff', { hasText: new RegExp(`^\\s*${passo.mais.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }) })
+      : cartoes.filter({ has: pg.locator('b.ff', { hasText: passo.mais }) });
+    const porta = (await exata.count()) ? exata
+      : cartoes.filter({ has: pg.locator('b.ff', { hasText: passo.mais }) });
     if (!(await porta.count())) {
       await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
       return `"${passo.mais}" não está em "Mais" para este cargo`;

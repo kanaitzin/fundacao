@@ -93,7 +93,7 @@ discordavam entre si.
 | **256 migrações** | `.sql` dentro das partições |
 | **155 tabelas** | `CREATE TABLE` nas migrações |
 | **178 suítes** | `backend/test/*.spec.ts` |
-| **1568 testes** | `it(` / `test(` nas suítes |
+| **1572 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **15 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
