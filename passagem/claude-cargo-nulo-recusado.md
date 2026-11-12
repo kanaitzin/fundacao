@@ -1,7 +1,7 @@
 # Frente: o banco recusa quem chega sem cargo, a passagem de turno entre as contas e o e-mail com apresentação
 
 - **Branch:** `claude/cargo-nulo-recusado` (aberto a partir do `cf6ea5b`, a ponta da frente do visual em 12/11)
-- **Atualizado em:** 2026-11-12T09:34-03:00
+- **Atualizado em:** 2026-11-12T09:36-03:00
 - **Situação:** esperando o dono (o código está pronto e medido; falta o fechamento nos documentos, que é da frente do visual)
 - **Fase:** 316, reservada. Não está escrita em documento nenhum ainda.
 - **Pedido do dono:** em 12/11, *veja o que você pode fazer sem entrar no que ele está fazendo* (a outra conta ajusta o visual do perfil e dos menus); e depois, *crie uma pasta em que você e a outra conta consigam ver o que está sendo feito quando o limite acaba*; e *o sistema consegue mandar uma mensagem bonita quando pedirem uma senha nova no esqueci?*
@@ -30,7 +30,7 @@ Nada pela metade. O que falta é de quem fechar a fase, na ordem:
 - `backend/src/modules/identity/migrations/1717_o_cargo_que_nao_veio_e_recusado.sql`
 - `backend/test/o-cargo-que-nao-veio-e-recusado.e2e.spec.ts`
 - `passagem/` e `scripts/passagem.sh`
-- `backend/src/modules/identity/mensagem-do-email.ts` (novo), `mail.gateway.ts` e
+- `backend/src/modules/identity/mensagem-do-email.ts` e `logo-do-email.ts` (novos), `scripts/logo-do-email.mjs` (novo), `mail.gateway.ts` e
   `invite.service.ts` (só os dois trechos que montam o e-mail)
 - `backend/test/o-envio-por-smtp.e2e.spec.ts` (dois casos novos)
 - `CLAUDE.md`: só a seção nova *Duas contas, uma passagem de turno*
@@ -75,8 +75,9 @@ conserto da cobrança (só a suíte nova, sozinha).
 - **As duas rotas de tirar foto** que o `CLAUDE.md` anota como candidatas fortes do
   `rotas-sem-teste.mjs` já são chamadas pela `a-foto-que-nao-se-apaga`; o script não as vê
   porque a suíte monta a URL por um auxiliar. A anotação pode sair no fechamento.
-- **O e-mail:** o texto é o de antes, frase por frase; o HTML não tem imagem, script nem
-  endereço de fora, e o nome de quem recebe é escapado. No modo arquivo, a última mensagem
+- **O e-mail:** o texto é o de antes, frase por frase; o HTML leva o logo da Fundação dentro
+  da própria mensagem (`cid:`, pedido do dono em 12/11; é o `logo.png` da tela, e trocou lá,
+  roda o `node scripts/logo-do-email.mjs`), e não tem script nem endereço de fora, e o nome de quem recebe é escapado. No modo arquivo, a última mensagem
   fica em `EMAIL_DIR/ultima-mensagem.html`, para abrir e ver. **Não provado:** um Gmail e um
   Outlook de verdade (só o Chromium), e o envio real, que depende do SMTP da implantação. No
   fechamento entra no §12.8 do documento e nas Novidades. O assunto do convite ainda leva

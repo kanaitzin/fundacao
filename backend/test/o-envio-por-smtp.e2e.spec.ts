@@ -22,6 +22,9 @@ import { createServer, Server, Socket } from 'net';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
 import { emHtml } from '../src/modules/identity/mensagem-do-email';
+import { CID_DO_LOGO, LOGO_DO_EMAIL } from '../src/modules/identity/logo-do-email';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -179,7 +182,7 @@ describe('O envio por SMTP', () => {
     expect(logs.join('\n')).not.toContain(token!);
   });
 
-  it('a mensagem sai em texto e com apresentação, as duas com o mesmo link e nada buscado de fora', async () => {
+  it('a mensagem sai em texto e com apresentação, com o logo da Fundação dentro, o mesmo link e nada buscado de fora', async () => {
     const cap = servidorDeCaptura();
     smtp(await cap.abrir());
     const p = await novaPessoa();
@@ -192,7 +195,7 @@ describe('O envio por SMTP', () => {
     expect(corpo).toMatch(/Content-Type: multipart\/alternative/i);
     expect(corpo).toMatch(/Content-Type: text\/plain/i);
     expect(corpo).toMatch(/Content-Type: text\/html/i);
-    const html = corpo.slice(corpo.search(/<!DOCTYPE html>/i));
+    const html = corpo.slice(corpo.search(/<!DOCTYPE html>/i), corpo.search(/<\/html>/i));
     expect(html).toContain('Escolher a minha senha');
     expect(html).toContain('Fundação O Pão dos Pobres');
 
@@ -200,10 +203,19 @@ describe('O envio por SMTP', () => {
     const links = [...corpo.matchAll(/convite=([A-Za-z0-9_-]+)/g)].map((m) => m[1]);
     expect(links.length).toBeGreaterThanOrEqual(3);
     expect(new Set(links).size).toBe(1);
-    const enderecos = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
+    const enderecos = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
     expect(enderecos.length).toBeGreaterThan(0);
     for (const e of enderecos) expect(e).toMatch(/\/entrar\?convite=/);
-    expect(html).not.toMatch(/<img|<script|<form|<link|@import|url\(/i);
+    expect(html).not.toMatch(/<script|<form|<link|@import|url\(/i);
+
+    /* A única imagem é o logo, e ele vai DENTRO da mensagem: a etiqueta aponta para a parte
+       de mesmo nome, e essa parte é o logo da tela, byte por byte. */
+    const imagens = [...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((m) => m[1]);
+    expect(imagens).toEqual([`cid:${CID_DO_LOGO}`]);
+    expect(html).toContain('alt="Fundação O Pão dos Pobres"');
+    expect(cap.recebidos[0].dados).toMatch(new RegExp(`Content-ID: <${CID_DO_LOGO}>`, 'i'));
+    expect(cap.recebidos[0].dados).toMatch(/Content-Disposition: inline/i);
+    expect(LOGO_DO_EMAIL.equals(readFileSync(join(__dirname, '../../frontend/src/assets/logo.png')))).toBe(true);
   });
 
   it('o nome de quem recebe entra na mensagem como texto, nunca como HTML', () => {
@@ -211,7 +223,7 @@ describe('O envio por SMTP', () => {
       resumo: 'r', nome: 'Ana <img src=x onerror=alert(1)> & "Cia"', titulo: 't', antes: ['a'],
       botao: 'b', link: 'https://exemplo.dev/entrar?convite=abc&x="1"', validade: 'v', depois: ['d'],
     });
-    expect(html).not.toContain('<img');
+    expect(html).not.toContain('<img src=x');
     expect(html).toContain('Ana &lt;img src=x onerror=alert(1)&gt; &amp; &quot;Cia&quot;');
     expect(html).toContain('href="https://exemplo.dev/entrar?convite=abc&amp;x=&quot;1&quot;"');
   });

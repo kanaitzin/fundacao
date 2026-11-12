@@ -6,6 +6,10 @@
  * a versão com apresentação, e o que não mostra HTML (ou a pessoa que desligou)
  * lê o texto de sempre. As duas dizem a mesma coisa, frase por frase.
  *
+ * O LOGO DA FUNDAÇÃO vai DENTRO da mensagem (`cid:`, `logo-do-email.ts`), como
+ * parte dela. Onde o programa de e-mail não mostra imagem, aparece o nome da
+ * Fundação escrito, no mesmo lugar.
+ *
  * O QUE ESTE HTML NÃO TEM, DE PROPÓSITO:
  *  - imagem, fonte ou folha de estilo buscada de fora: o programa de e-mail
  *    bloqueia, a mensagem chega quebrada, e a busca conta a quem hospeda a
@@ -18,6 +22,8 @@
  * TUDO O QUE VEM DE FORA É ESCAPADO: o nome da pessoa foi digitado por alguém
  * e entra aqui como texto, nunca como HTML.
  */
+
+import { CID_DO_LOGO } from './logo-do-email';
 
 export interface PartesDaMensagem {
   /** A linha que aparece na lista de mensagens, ao lado do assunto. */
@@ -84,11 +90,14 @@ export function emHtml(m: PartesDaMensagem): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${FUNDO};">
 <tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
-<tr><td style="background-color:${MARCA};border-radius:12px 12px 0 0;padding:22px 28px;">
-<div style="${FONTE}font-size:20px;line-height:26px;font-weight:bold;color:#FFFFFF;">Rede Acolher</div>
-<div style="${FONTE}font-size:13px;line-height:18px;color:#D6E8F5;">Fundação O Pão dos Pobres</div>
+<tr><td style="background-color:${MARCA};border-radius:12px 12px 0 0;height:8px;line-height:8px;font-size:8px;">&nbsp;</td></tr>
+<tr><td align="center" style="background-color:#FFFFFF;padding:26px 28px 6px 28px;">
+<img src="cid:${CID_DO_LOGO}" width="168" height="101" alt="Fundação O Pão dos Pobres" style="display:block;border:0;outline:none;width:168px;height:101px;${FONTE}font-size:18px;line-height:24px;font-weight:bold;color:${MARCA};">
 </td></tr>
-<tr><td style="background-color:#FFFFFF;padding:28px 28px 8px 28px;">
+<tr><td align="center" style="background-color:#FFFFFF;padding:6px 28px 18px 28px;">
+<span style="display:inline-block;background-color:${MARCA_CLARA};border-radius:999px;padding:5px 14px;${FONTE}font-size:13px;line-height:18px;font-weight:bold;color:${MARCA};">Rede Acolher</span>
+</td></tr>
+<tr><td style="background-color:#FFFFFF;border-top:1px solid #E3E8ED;padding:24px 28px 8px 28px;">
 <h1 style="margin:0 0 18px 0;${FONTE}font-size:22px;line-height:28px;font-weight:bold;color:${TINTA};">${escapar(m.titulo)}</h1>
 ${p(`${m.nome},`)}
 ${m.antes.map((t) => p(t)).join('\n')}

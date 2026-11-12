@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { createTransport, type Transporter } from 'nodemailer';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { anotarImplantacao } from '../../kernel/implantacao/anotar';
+import { CID_DO_LOGO, LOGO_DO_EMAIL } from './logo-do-email';
 
 /**
  * PORTA PARA O E-MAIL INSTITUCIONAL.
@@ -73,7 +74,12 @@ export class MailGateway {
     );
     /* A última mensagem com apresentação, para abrir no navegador e ver como chega.
        Mora na mesma caixa local do texto, que nunca sai para a rede. */
-    if (m.html) writeFileSync(join(this.caixa, 'ultima-mensagem.html'), m.html, 'utf8');
+    if (m.html) {
+      /* No arquivo, o logo vai escrito no próprio endereço da imagem: o navegador
+         não conhece o `cid:` de uma mensagem. */
+      const paraVer = m.html.replace(`cid:${CID_DO_LOGO}`, `data:image/png;base64,${LOGO_DO_EMAIL.toString('base64')}`);
+      writeFileSync(join(this.caixa, 'ultima-mensagem.html'), paraVer, 'utf8');
+    }
     // Metadado, não conteúdo: destinatário e assunto bastam para investigar
     // "o convite saiu?" sem que o log vire a chave da porta.
     this.log.log(`e-mail enfileirado para ${m.para} — ${m.assunto}`);
@@ -94,7 +100,15 @@ export class MailGateway {
     try {
       const info = await this.smtp(host).sendMail({
         from: remetente, to: m.para, subject: m.assunto, text: m.corpo,
-        ...(m.html ? { html: m.html } : {}),
+        /* O logo viaja dentro da mensagem, como parte do HTML (`cid:`), e vem da
+           memória: o transporte não lê arquivo nem endereço (ver `smtp`). */
+        ...(m.html ? {
+          html: m.html,
+          attachments: [{
+            filename: 'pao-dos-pobres.png', content: LOGO_DO_EMAIL, contentType: 'image/png',
+            cid: CID_DO_LOGO, contentDisposition: 'inline' as const,
+          }],
+        } : {}),
       });
       /* O mesmo metadado do modo arquivo, e o identificador que o servidor deu:
          é o que o provedor pede para rastrear. Nunca o corpo. */
