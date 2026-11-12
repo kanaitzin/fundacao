@@ -1,0 +1,70 @@
+# Frente: o banco recusa quem chega sem cargo, e a passagem de turno entre as contas
+
+- **Branch:** `claude/cargo-nulo-recusado` (aberto a partir do `cf6ea5b`, a ponta da frente do visual em 12/11)
+- **Atualizado em:** 2026-11-12T09:22-03:00
+- **Situação:** esperando o dono (o código está pronto e medido; falta o fechamento nos documentos, que é da frente do visual)
+- **Fase:** 316, reservada. Não está escrita em documento nenhum ainda.
+- **Pedido do dono:** em 12/11, *veja o que você pode fazer sem entrar no que ele está fazendo* (a outra conta ajusta o visual do perfil e dos menus); e depois, *crie uma pasta em que você e a outra conta consigam ver o que está sendo feito quando o limite acaba*.
+
+## O que está sendo feito agora
+
+Duas coisas, as duas escritas e enviadas: a guarda de cargo nulo no banco (identity/1717) e
+esta pasta, com o `scripts/passagem.sh`.
+
+## Onde parou, e o próximo passo
+
+Nada pela metade. O que falta é de quem fechar a fase, na ordem:
+
+1. Juntar este branch ao da frente do visual quando a 315 fechar
+   (`git merge origin/claude/cargo-nulo-recusado`; não há arquivo em comum além do
+   `CLAUDE.md` e do `session-start.sh`, em trechos que a 315 não mexeu).
+2. Pedir a revisão da 1717 ao `banco-de-dados` e ao `auditor-seguranca-lgpd`, como toda
+   migração de segurança. Não foram chamados aqui.
+3. Fechar a 316 nos documentos: a linha no §2 do `docs/REDE-ACOLHER.md`, a linha no alto das
+   Novidades, o *O que fazer agora* do `CLAUDE.md` (a guarda de cargo nulo da 1634 sai da
+   lista do que ficou do A4), e os números. O `numeros-da-documentacao` reprova até lá.
+
+## Arquivos desta frente
+
+- `backend/src/modules/identity/migrations/1717_o_cargo_que_nao_veio_e_recusado.sql`
+- `backend/test/o-cargo-que-nao-veio-e-recusado.e2e.spec.ts`
+- `passagem/` e `scripts/passagem.sh`
+- `CLAUDE.md`: só a seção nova *Duas contas, uma passagem de turno*
+- `.claude/hooks/session-start.sh`: só o bloco do fim, que roda a passagem
+
+Não toquei em tela, `styles.css`, `portas.ts`, `mock-casa.ts`, protótipo, ensaios, §2,
+Novidades nem no *O que fazer agora*.
+
+## O que rodou e o que não rodou
+
+Sobre o commit `c604c79` (a 1717 e a suíte dela, em cima do `cf6ea5b`):
+
+- os dois `tsc`, sem erro;
+- a suíte inteira no relógio real: 1580 de 1584 antes de consertar a cobrança da suíte nova,
+  e a suíte nova sozinha depois, 9 de 9;
+- a suíte inteira às 22h30 de Porto Alegre (`relogio-adiantado.sh --rodar`): 1581 de 1584;
+- **as três reprovações que sobram nas duas rodadas são do `numeros-da-documentacao`**
+  (migrações, suítes e testes), e só fecham com os documentos; parte da diferença já vem
+  dos testes que a própria 315 acrescentou;
+- sem a 1717, os nove casos da suíte nova reprovam; com ela, passam;
+- a reescrita conferida no catálogo: 67 funções mudaram de corpo, nenhuma mudou de
+  permissão, de `search_path`, de `SECURITY DEFINER` nem de volatilidade.
+
+**Não rodou:** nenhum ensaio de navegador (nenhuma tela mudou), a simulação contra o
+servidor, as revisões dos dois subagentes, e a suíte inteira no relógio real depois do
+conserto da cobrança (só a suíte nova, sozinha).
+
+## Para quem chegar
+
+- **O achado:** 76 comparações do cargo de quem chama, em 67 funções plpgsql, deixavam o
+  cargo nulo passar (sem identidade ou conta desativada). Nas três que medi como o papel da
+  aplicação, nada foi gravado nem lido: a casa, o RLS ou um NOT NULL seguravam depois. As
+  outras 64 não foram tentadas uma a uma.
+- **A regra que fica:** função nova compara o cargo de quem chama com
+  `coalesce(app_current_role()::text, '')`, e guarda o cargo só na variável `v_role`. A
+  suíte lê o catálogo e reprova o resto.
+- **As duas rotas de tirar foto** que o `CLAUDE.md` anota como candidatas fortes do
+  `rotas-sem-teste.mjs` já são chamadas pela `a-foto-que-nao-se-apaga`; o script não as vê
+  porque a suíte monta a URL por um auxiliar. A anotação pode sair no fechamento.
+- **O ambiente desta conta:** o `preparar-ambiente.sh` foi recusado pela permissão
+  automática da sessão; o PostgreSQL e o `faketime` subiram à mão, com os mesmos passos.
