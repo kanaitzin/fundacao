@@ -113,7 +113,7 @@ export class InviteService {
     };
     await this.mail.enviar({
       para: r.out_email,
-      assunto: 'Rede Acolher — criar sua senha',
+      assunto: 'Rede Acolher: criar a sua senha',
       corpo: emTexto(convite),
       html: emHtml(convite),
     });

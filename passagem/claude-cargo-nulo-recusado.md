@@ -1,7 +1,7 @@
 # Frente: o banco recusa quem chega sem cargo, a passagem de turno entre as contas e o e-mail com apresentação
 
 - **Branch:** `claude/cargo-nulo-recusado` (aberto a partir do `cf6ea5b`, a ponta da frente do visual em 12/11)
-- **Atualizado em:** 2026-11-12T09:36-03:00
+- **Atualizado em:** 2026-11-12T09:42-03:00
 - **Situação:** esperando o dono (o código está pronto e medido; falta o fechamento nos documentos, que é da frente do visual)
 - **Fase:** 316, reservada. Não está escrita em documento nenhum ainda.
 - **Pedido do dono:** em 12/11, *veja o que você pode fazer sem entrar no que ele está fazendo* (a outra conta ajusta o visual do perfil e dos menus); e depois, *crie uma pasta em que você e a outra conta consigam ver o que está sendo feito quando o limite acaba*; e *o sistema consegue mandar uma mensagem bonita quando pedirem uma senha nova no esqueci?*
@@ -33,6 +33,7 @@ Nada pela metade. O que falta é de quem fechar a fase, na ordem:
 - `backend/src/modules/identity/mensagem-do-email.ts` e `logo-do-email.ts` (novos), `scripts/logo-do-email.mjs` (novo), `mail.gateway.ts` e
   `invite.service.ts` (só os dois trechos que montam o e-mail)
 - `backend/test/o-envio-por-smtp.e2e.spec.ts` (dois casos novos)
+- `frontend/src/screens/PrimeiroAcesso.tsx` e `Login.tsx` (três frases e uma margem)
 - `CLAUDE.md`: só a seção nova *Duas contas, uma passagem de turno*
 - `.claude/hooks/session-start.sh`: só o bloco do fim, que roda a passagem
 
@@ -82,5 +83,14 @@ conserto da cobrança (só a suíte nova, sozinha).
   Outlook de verdade (só o Chromium), e o envio real, que depende do SMTP da implantação. No
   fechamento entra no §12.8 do documento e nas Novidades. O assunto do convite ainda leva
   travessão (*Rede Acolher — criar sua senha*); não mexi.
+- **O convite e o esqueci percorridos no navegador, contra o servidor local** (pedido de 12/11,
+  para a apresentação): convite, senha criada, esqueci, senha nova, a senha de antes recusada,
+  o link usado recusado; as telas a 320, 390 e 1366 px sem andar para o lado. Consertado: o
+  travessão da frase do cadeado e a lista do que falta na senha (`PrimeiroAcesso.tsx`), o
+  aviso do esqueci encostado no campo (`Login.tsx`) e o travessão do assunto do convite.
+  **O protótipo não foi regerado** (é da frente do visual), então essas duas telas mudam nele
+  na próxima geração. **O e-mail não foi enviado a uma caixa de verdade:** esta sessão não
+  alcança servidor de e-mail nem tem a conta de envio. Ficou igual, sem mexer: a mesma frase
+  *Falta …* no `SenhaPessoal.tsx`.
 - **O ambiente desta conta:** o `preparar-ambiente.sh` foi recusado pela permissão
   automática da sessão; o PostgreSQL e o `faketime` subiram à mão, com os mesmos passos.

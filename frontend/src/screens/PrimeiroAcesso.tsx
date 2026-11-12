@@ -15,6 +15,10 @@ import { FRASE_DA_SENHA, oQueFaltaNaSenha, senhaAceita } from '../../../backend/
  * A senha é digitada duas vezes porque não há como recuperá-la depois: nem a
  * coordenação vê senha de ninguém. Errar aqui custa um convite novo.
  */
+/** A lista como se fala: um, dois e três. */
+const emLista = (itens: string[]) =>
+  itens.length < 2 ? itens.join('') : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
+
 export function PrimeiroAcesso({ convite, onEntrou }: {
   convite: string;
   onEntrou: (token: string) => void;
@@ -100,7 +104,7 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
               placeholder="8 ou mais, com maiúscula e símbolo"
             />
             {senha && oQueFaltaNaSenha(senha).length > 0 && (
-              <p className="mutetxt" aria-live="polite">Falta {oQueFaltaNaSenha(senha).join(', ')}.</p>
+              <p className="mutetxt" aria-live="polite">Ainda falta: {emLista(oQueFaltaNaSenha(senha))}.</p>
             )}
 
             <label className="f" htmlFor="repetida">Repita a senha</label>
@@ -111,7 +115,7 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
             />
 
             <p className="loginhint">
-              <Icone nome="cadeado" /> Ninguém da Fundação vê a sua senha — nem a coordenação, nem o suporte.
+              <Icone nome="cadeado" /> Ninguém da Fundação vê a sua senha, nem a coordenação, nem o suporte.
               Se alguém pedir a sua senha, não é do sistema.
             </p>
 
