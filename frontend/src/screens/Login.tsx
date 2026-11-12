@@ -75,7 +75,7 @@ export function Login({ onSubmit, erro, ocupado }: {
 
   return (
     <div className="loginwrap">
-      {/* SÓ O CARTÃO (pedido de 13/11): o lado da marca da fase 314, a frase do protótipo
+      {/* SÓ O CARTÃO (pedido de 12/11): o lado da marca da fase 314, a frase do protótipo
           e a da conta individual saíram. A entrada é o cartão, no meio da tela. */}
       <main className="logincard" role="main">
         <div className="loginbrand">
