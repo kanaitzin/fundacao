@@ -74,22 +74,9 @@ export function Login({ onSubmit, erro, ocupado }: {
   }
 
   return (
-    <div className="loginwrap com-lado">
-      {/* O LADO DA MARCA (fase 314): só no monitor, à esquerda do cartão. Diz em
-          três linhas o que o sistema guarda; no celular a entrada continua sendo
-          só o cartão, porque ali cada linha a mais empurra o campo da senha. */}
-      <aside className="loginlado" aria-label="O que é o Rede Acolher">
-        <p className="loginlado-sobre">Fundação O Pão dos Pobres · Acolhimento Institucional</p>
-        <p className="loginlado-frase">O cuidado de cada casa, registrado num lugar só.</p>
-        <ul>
-          <li><span className="ic"><Icone nome="conferido" tamanho={20} /></span>
-            O dia da casa, a chamada, a passagem de plantão e a ATA no mesmo registro.</li>
-          <li><span className="ic"><Icone nome="escrever" tamanho={20} /></span>
-            Cada registro leva o nome de quem escreveu e a hora em que foi feito.</li>
-          <li><span className="ic"><Icone nome="cadeado" tamanho={20} /></span>
-            Cada pessoa entra com a própria conta e vê o que é do seu trabalho.</li>
-        </ul>
-      </aside>
+    <div className="loginwrap">
+      {/* SÓ O CARTÃO (pedido de 13/11): o lado da marca da fase 314, a frase do protótipo
+          e a da conta individual saíram. A entrada é o cartão, no meio da tela. */}
       <main className="logincard" role="main">
         <div className="loginbrand">
           <span className="loginlogo">
@@ -153,11 +140,7 @@ export function Login({ onSubmit, erro, ocupado }: {
         {demoDisponivel && !esqueci && (
           <>
             <hr className="divider" />
-            <p className="loginsub" style={{ marginBottom: 8 }}>
-              Protótipo, com dados fictícios: toque numa função para preencher o e-mail e a senha
-              de demonstração, e depois em Entrar no sistema.
-            </p>
-            <div className="demochips">
+            <div className="demochips" role="group" aria-label="Contas de demonstração">
               {DEMO.map((d) => (
                 <button key={d.email} type="button" className="chipbtn"
                         onClick={() => { setEmail(d.email); setSenha(SENHA_DEMO); }}>
@@ -168,9 +151,6 @@ export function Login({ onSubmit, erro, ocupado }: {
           </>
         )}
 
-        <p className="loginfoot">
-          Conta individual. Ninguém assina, confirma ou registra em nome de outra pessoa.
-        </p>
       </main>
     </div>
   );

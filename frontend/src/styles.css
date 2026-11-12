@@ -2967,7 +2967,6 @@ label{ letter-spacing:-.005em }
 .loginbrand{ margin-bottom:18px }
 .logincard .btn.block{ margin-top:20px; min-height:48px; font-size:15.5px }
 .logincard .btn.ghost.block{ min-height:44px; font-size:14.5px; box-shadow:none }
-.loginlado{ display:none }
 .demochips{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px }
 .chipbtn{
   border-radius:10px; padding:9px 8px; min-height:40px; text-align:center; line-height:1.2;
@@ -2975,30 +2974,6 @@ label{ letter-spacing:-.005em }
   transition:background-color var(--mov-curto) var(--curva-padrao), border-color var(--mov-curto) var(--curva-padrao);
 }
 .chipbtn:last-child:nth-child(odd){ grid-column:1 / -1 }
-@media (min-width:980px){
-  .loginwrap.com-lado{
-    grid-template-columns:minmax(0, 520px) minmax(0, 430px); justify-content:center; gap:72px; padding:40px;
-  }
-  .loginlado{ display:block; color:#FFFFFF; max-width:520px }
-  .loginlado-sobre{
-    margin:0 0 18px; font-family:"Plus Jakarta Sans", sans-serif; font-size:12px; font-weight:800;
-    letter-spacing:.1em; text-transform:uppercase; color:#BFDCF2;
-  }
-  .loginlado-frase{
-    margin:0 0 28px; font-family:"Plus Jakarta Sans", sans-serif; font-weight:800;
-    font-size:40px; line-height:1.12; letter-spacing:-.03em; text-wrap:balance;
-  }
-  .loginlado ul{ list-style:none; margin:0; padding:0; display:grid; gap:14px }
-  .loginlado li{
-    display:grid; grid-template-columns:40px 1fr; gap:14px; align-items:center;
-    font-size:16px; line-height:1.4; color:#DCEBF7;
-  }
-  .loginlado .ic{
-    width:40px; height:40px; border-radius:12px; display:grid; place-items:center;
-    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); color:#FFFFFF;
-  }
-}
-
 /* ---------- A folha na tela, com o acabamento do papel (fase 314) ----------
    O Word segue a ABNT (texto todo preto, seções numeradas) e ganhou um fio
    embaixo de cada seção e o cabeçalho dos quadros num azul claro, o tom do
