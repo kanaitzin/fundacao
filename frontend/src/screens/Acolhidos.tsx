@@ -298,6 +298,9 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
   useEffect(() => { if (paraALista) { setAbertoId(null); setVendoAcervo(false); } }, [paraALista]);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
+  /* Os dois cartões do alto nascem curtos (fase 316). */
+  const [saidasAbertas, setSaidasAbertas] = useState(false);
+  const [familiaAberta, setFamiliaAberta] = useState(false);
   const [cadastrando, setCadastrando] = useState(false);
   const [aviso, setAviso] = useState('');
   const [acervo, setAcervo] = useState<Acervo | null>(null);
@@ -494,10 +497,19 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
         * motivo que o gerou.
         */}
       {observar.length > 0 && (
-        <div className="card stack" style={{ marginBottom: 12 }}>
+        <div className="card stack cartao-curto" style={{ marginBottom: 12 }}>
+          {/* CARTÃO CURTO (fase 316, decisão de 12/11): o nome e a situação ficam à vista, e o
+              motivo, desde quando e quem decidiu abrem com um toque. Aberto, o bloco empurrava
+              a lista das crianças para a segunda tela do celular. */}
           {/* Com a data por extenso (fase 276, avaliação de 05/11): "hoje" vira o dia. */}
-          <div className="eyebrow">
-            Saídas de hoje, {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })}: atenção
+          <div className="row" style={{ flexWrap: 'wrap', gap: '6px 10px' }}>
+            <div className="eyebrow grow" style={{ margin: 0 }}>
+              Saídas de hoje, {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })}: atenção
+            </div>
+            <button type="button" className="btn sm sec" aria-expanded={saidasAbertas}
+                    onClick={() => setSaidasAbertas((x) => !x)}>
+              {saidasAbertas ? 'Fechar' : 'Ver o motivo'}
+            </button>
           </div>
           {observar.map((o) => (
             <div key={o.personId}>
@@ -507,15 +519,15 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
                   {SAIDA_ROTULO[o.status]?.txt ?? o.status}
                 </span>
               </div>
-              <div className="mutetxt">{o.motivo}</div>
-              {(o.desde || o.decididoPor) && (
+              {saidasAbertas && <div className="mutetxt">{o.motivo}</div>}
+              {saidasAbertas && (o.desde || o.decididoPor) && (
                 <div className="mutetxt">
                   {o.desde ? `Vale desde ${dia(o.desde)}` : 'Vale'}
                   {o.decididoPor ? `, decidido por ${o.decididoPor}` : ''}
                   {o.onde ? `. Para: ${o.onde}` : ''}.
                 </div>
               )}
-              {o.aRevisar && (
+              {saidasAbertas && o.aRevisar && (
                 <div className="mutetxt">
                   <b>Combinado revisar até {new Date(o.ate!).toLocaleDateString('pt-BR')}.</b>{' '}
                   Continua valendo até alguém decidir outra coisa.
@@ -534,16 +546,26 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
         * coisa. Quem está fora continua contando na casa e na vaga.
         */}
       {fora.length > 0 && (
-        <div className="card stack" style={{ marginBottom: 12 }}>
-          <div className="eyebrow">Com a família</div>
+        <div className="card stack cartao-curto" style={{ marginBottom: 12 }}>
+          {/* CARTÃO CURTO (fase 316): o nome, a hora da volta e o Chegou ficam à vista; com
+              quem está, o Relato e os Remédios abrem com um toque. */}
+          <div className="row" style={{ flexWrap: 'wrap', gap: '6px 10px' }}>
+            <div className="eyebrow grow" style={{ margin: 0 }}>Com a família</div>
+            <button type="button" className="btn sm sec" aria-expanded={familiaAberta}
+                    onClick={() => setFamiliaAberta((x) => !x)}>
+              {familiaAberta ? 'Fechar' : 'Ver mais'}
+            </button>
+          </div>
           {fora.map((c) => (
             <div key={c.id} className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
               <div className="grow">
                 <b className="ff">{c.quem}</b>
-                <div className="mutetxt">
-                  com {c.comQuem} ({VINCULO[c.vinculo] ?? c.vinculo})
-                  {c.finalidade ? ` · ${c.finalidade}` : ''}
-                </div>
+                {familiaAberta && (
+                  <div className="mutetxt">
+                    com {c.comQuem} ({VINCULO[c.vinculo] ?? c.vinculo})
+                    {c.finalidade ? ` · ${c.finalidade}` : ''}
+                  </div>
+                )}
                 <div className="estado">
                   {/*
                     * Duas frases, nenhuma acusação. O sistema não chama isto de
@@ -571,7 +593,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
                   * lembrada da dose das 20h porque não é ela quem vai dar. Este
                   * botão fecha o buraco que essa decisão abriu.
                   */}
-                {VE_REMEDIO.includes(papel) && (
+                {familiaAberta && VE_REMEDIO.includes(papel) && (
                   <button className="btn sec sm" onClick={() => setRemedios(c)}>
                     <Icone nome="medicamento" /> Remédios
                   </button>
@@ -586,9 +608,11 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
                   * não há contador: um campo que cobra faz o educador
                   * perguntar de novo para a criança.
                   */}
-                <button className="btn sec sm" onClick={() => setRelatando(c)}>
-                  <Icone nome="escrever" /> Relato
-                </button>
+                {familiaAberta && (
+                  <button className="btn sec sm" onClick={() => setRelatando(c)}>
+                    <Icone nome="escrever" /> Relato
+                  </button>
+                )}
                 <button className="btn sec sm"
                         onClick={() => { setRecebendo(c); setNotaRetorno(''); setTrouxeRetorno(''); }}>
                   Chegou
@@ -598,6 +622,56 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
           ))}
         </div>
       )}
+
+      {/* A LISTA PRIMEIRO (fase 316, decisão de 12/11): a busca e as crianças vêm logo depois
+          dos dois cartões curtos. No celular do educador a primeira criança aparecia a 863 px,
+          na segunda tela. Cadastrar, registrar chegada e o acervo ficam depois da lista. */}
+      {/* Vinte nomes cabem na tela; a busca é para a casa que crescer, e para
+          quem está com pressa e sabe o nome. */}
+      {lista.length > 8 && (
+        <input className="field" type="search" value={busca} placeholder="Buscar pelo nome"
+               aria-label="Buscar pelo nome" onChange={(e) => setBusca(e.target.value)} />
+      )}
+
+      <ol className="pessoas">
+        {filtrada.map((p) => (
+          <li key={p.id}>
+            <button className="card row pessoa-cartao" onClick={() => setAbertoId(p.id)}>
+              <Avatar nome={p.nome} de={{ acolhido: p.id }} temFoto={p.temFoto} tamanho={52} />
+              <div className="grow" style={{ textAlign: 'left' }}>
+                <b className="ff">{p.nome}</b>
+                <div className="mutetxt">
+                  {p.idade} anos
+                  {/*
+                    * ONDE ELA ESTÁ, quando não está na casa.
+                    *
+                    * O educador não lê a internação — o motivo, o diário e a
+                    * medicação do hospital estão atrás do alcance dela. Mas ele
+                    * precisa saber que a criança está no hospital, porque ela
+                    * SUMIU da chamada dele: sem esta linha, ele conta dezenove
+                    * onde havia vinte e liga para a coordenação às onze da
+                    * noite para perguntar o que aconteceu.
+                    */}
+                  {p.noHospital && <> · no hospital</>}
+                </div>
+              </div>
+              {p.noHospital && (
+                <span className="pill c-info" title={`No ${p.noHospital}`}><Icone nome="internacao" tamanho={14} /></span>
+              )}
+              {p.alertasEssenciais > 0 && (
+                <span className="pill c-crit" title="Alertas essenciais">
+                  <Icone nome="alerta" /> {p.alertasEssenciais}
+                </span>
+              )}
+              {p.restricoesAlimentares > 0 && (
+                <span className="pill c-warn" title="Restrições alimentares">
+                  <Icone nome="refeicao" /> {p.restricoesAlimentares}
+                </span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ol>
 
       {remedios && (
         <FolhaRemedios convivencia={remedios} houseId={houseId}
@@ -689,52 +763,6 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
         </button>
       )}
 
-      {/* Vinte nomes cabem na tela; a busca é para a casa que crescer, e para
-          quem está com pressa e sabe o nome. */}
-      {lista.length > 8 && (
-        <input className="field" type="search" value={busca} placeholder="Buscar pelo nome"
-               aria-label="Buscar pelo nome" onChange={(e) => setBusca(e.target.value)} />
-      )}
-
-      <ol className="pessoas">
-        {filtrada.map((p) => (
-          <li key={p.id}>
-            <button className="card row pessoa-cartao" onClick={() => setAbertoId(p.id)}>
-              <Avatar nome={p.nome} de={{ acolhido: p.id }} temFoto={p.temFoto} tamanho={52} />
-              <div className="grow" style={{ textAlign: 'left' }}>
-                <b className="ff">{p.nome}</b>
-                <div className="mutetxt">
-                  {p.idade} anos
-                  {/*
-                    * ONDE ELA ESTÁ, quando não está na casa.
-                    *
-                    * O educador não lê a internação — o motivo, o diário e a
-                    * medicação do hospital estão atrás do alcance dela. Mas ele
-                    * precisa saber que a criança está no hospital, porque ela
-                    * SUMIU da chamada dele: sem esta linha, ele conta dezenove
-                    * onde havia vinte e liga para a coordenação às onze da
-                    * noite para perguntar o que aconteceu.
-                    */}
-                  {p.noHospital && <> · no hospital</>}
-                </div>
-              </div>
-              {p.noHospital && (
-                <span className="pill c-info" title={`No ${p.noHospital}`}><Icone nome="internacao" tamanho={14} /></span>
-              )}
-              {p.alertasEssenciais > 0 && (
-                <span className="pill c-crit" title="Alertas essenciais">
-                  <Icone nome="alerta" /> {p.alertasEssenciais}
-                </span>
-              )}
-              {p.restricoesAlimentares > 0 && (
-                <span className="pill c-warn" title="Restrições alimentares">
-                  <Icone nome="refeicao" /> {p.restricoesAlimentares}
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ol>
 
       {lista.length > 0 && filtrada.length === 0 && (
         <div className="card"><p className="mutetxt" style={{ margin: 0 }}>Nenhum nome com "{busca}".</p></div>

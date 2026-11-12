@@ -294,6 +294,23 @@ describe('As portas do sistema e os desenhos delas', () => {
   });
 
   /*
+   * O TÍTULO EM TODA TELA (fase 316). Treze telas abriam sem dizer o nome, e o App
+   * passou a pôr o nome da porta no alto delas. Se a lista citar uma tela que não é
+   * porta, o título sai vazio; e a faixa de abas com um botão só não volta.
+   */
+  it('toda tela da lista das sem título é uma porta, e o título sai do nome da porta', () => {
+    const bloco = /TELAS_SEM_TITULO_PROPRIO = new Set\(\[([\s\S]*?)\]\)/.exec(appTsx)?.[1] ?? '';
+    const telas = [...bloco.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+    expect(telas.length).toBeGreaterThanOrEqual(10);
+    const abas = new Set(lista.map((p) => p.aba));
+    expect(telas.filter((t) => !abas.has(t))).toEqual([]);
+    expect(appTsx).toMatch(/TELAS_SEM_TITULO_PROPRIO\.has\(String\(abaEfetiva\)\)/);
+    expect(appTsx).toMatch(/className="titulo-da-tela"/);
+    const ocorrencias = readFileSync(join(FRONT, 'screens', 'Ocorrencias.tsx'), 'utf8');
+    expect(ocorrencias).toMatch(/ANALISA\.includes\(papel\) \? \(\s*<div className="filtros" role="tablist"/);
+  });
+
+  /*
    * A BARREIRA DE ERRO (fase 315). Sem ela, um erro ao desenhar uma tela deixava a
    * página em branco, sem menu e sem Sair. Esta cobrança é estática de propósito:
    * o defeito que ela guarda é alguém tirar a barreira ao mexer no `App.tsx`.

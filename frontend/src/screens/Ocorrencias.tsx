@@ -327,18 +327,22 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
         </div>
       )}
 
-      <div className="filtros" role="tablist" aria-label="Ocorrências ou comunicações">
-        <button role="tab" aria-selected={aba === 'ocorrencias'}
-                className={aba === 'ocorrencias' ? 'on' : ''}
-                onClick={() => setAba('ocorrencias')}>Ocorrências</button>
-        {ANALISA.includes(papel) && (
+      {/* A FAIXA DE ABAS SÓ EXISTE COM DUAS ABAS (fase 316). Para o plantão, a Enfermagem e o
+          Líder Noturno havia uma faixa com um botão só, Ocorrências, do tamanho da tela e
+          aceso: parecia a ação principal e não fazia nada. O nome da tela vem do título que o
+          App põe no alto (`TELAS_SEM_TITULO_PROPRIO`). */}
+      {ANALISA.includes(papel) ? (
+        <div className="filtros" role="tablist" aria-label="Ocorrências ou comunicações">
+          <button role="tab" aria-selected={aba === 'ocorrencias'}
+                  className={aba === 'ocorrencias' ? 'on' : ''}
+                  onClick={() => setAba('ocorrencias')}>Ocorrências</button>
           <button role="tab" aria-selected={aba === 'comunicacoes'}
                   className={aba === 'comunicacoes' ? 'on' : ''}
                   onClick={() => { setAba('comunicacoes'); carregarComunicacoes(); }}>
             <Icone nome="enviar" /> Comunicações externas
           </button>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {aba === 'ocorrencias' && (
        <>

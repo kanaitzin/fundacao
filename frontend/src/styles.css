@@ -3128,3 +3128,45 @@ label{ letter-spacing:-.005em }
   .ficha-no-topo .ficha-geral li > b{ font-size:15px }
   .ficha-no-topo .ficha-geral li > small{ font-size:12.5px }
 }
+
+/* Fase 316: o título da tela que não tem faixa de abas, e o atalho para escrever na ATA. */
+.titulo-da-tela{ margin:0 0 12px; font-size:22px; letter-spacing:-.015em }
+.atalho-da-linha{ align-self:flex-start }
+#escrever-na-ata{ display:block; scroll-margin-top:90px }
+
+/* A FOLHA MAIS EM GRADE (fase 316): duas colunas, o desenho e o nome; com a busca, a
+   lista de uma coluna com a descrição. O alvo de toque fica com 60 px de altura. */
+.mais-grade{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px }
+.mais-grade > button.card.row{
+  margin:0; min-height:60px; padding:10px 12px; gap:10px; align-items:center; text-align:left;
+}
+.mais-grade > button.card.row b.ff{ font-size:14.5px; line-height:1.25; overflow-wrap:anywhere }
+.mais-grade > button.card.row .mutetxt{ display:none }
+.mais-grade > button.card.row .porta-icone{ flex:none }
+.mais-grade.com-busca{ grid-template-columns:minmax(0, 1fr) }
+.mais-grade.com-busca > button.card.row .mutetxt{ display:block }
+@media (max-width:339px){ .mais-grade{ grid-template-columns:minmax(0, 1fr) } }
+
+/* O ROTEIRO DO TURNO (fase 316): quatro passos no alto do Dia. No celular, dois por
+   linha; no monitor, os quatro numa linha. As cores são as de estado: atenção no que
+   espera alguém, o verde do feito, e neutro no que vem. */
+.roteiro-do-turno{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin:0 0 12px }
+@media (min-width:720px){ .roteiro-do-turno{ grid-template-columns:repeat(4, minmax(0, 1fr)) } }
+.roteiro-passo{
+  appearance:none; display:flex; align-items:center; gap:10px; min-height:56px; padding:8px 12px;
+  background:var(--surface); border:1px solid var(--line); border-radius:14px; cursor:pointer;
+  font:inherit; color:var(--ink); text-align:left; box-shadow:var(--shadow-1);
+}
+.roteiro-passo:hover{ border-color:var(--brand) }
+.roteiro-icone{ flex:none; width:32px; height:32px; border-radius:10px; display:grid; place-items:center;
+  background:var(--raised); color:var(--muted) }
+.roteiro-texto{ display:flex; flex-direction:column; min-width:0; line-height:1.25 }
+.roteiro-texto b{ font-family:"Plus Jakarta Sans", sans-serif; font-size:14.5px }
+.roteiro-texto small{ font-size:12.5px; color:var(--ink-2); overflow-wrap:anywhere }
+.roteiro-espera{ border-color:color-mix(in srgb, var(--c) 50%, transparent); background:color-mix(in srgb, var(--c) 12%, var(--surface)) }
+.roteiro-espera .roteiro-icone{ background:transparent; color:var(--ink) }
+.roteiro-espera .roteiro-texto small{ color:var(--ink); font-weight:700 }
+.roteiro-feito{ border-color:var(--feito-borda); background:var(--feito-fundo) }
+.roteiro-feito .roteiro-icone{ background:transparent; color:var(--ink) }
+.mais-grade > button.card.row{ flex-wrap:nowrap }
+.mais-grade > button.card.row > .grow{ min-width:0 }

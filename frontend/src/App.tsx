@@ -372,6 +372,16 @@ function BuscaCrianca({ houseId, onAbrir, telas, onTela }: {
   );
 }
 
+/**
+ * AS TELAS QUE NÃO DIZEM O PRÓPRIO NOME (fase 316). Medido abrindo cada tela de cada
+ * cargo no celular: estas não têm título no alto. Tela nova que nasça sem título entra
+ * aqui; a que ganhar título próprio sai, para o nome não aparecer duas vezes.
+ */
+export const TELAS_SEM_TITULO_PROPRIO = new Set([
+  'acompanhamentos', 'alinhamentos', 'arquivo', 'ata', 'casas', 'cofre', 'cozinha', 'equipe',
+  'escala', 'ocorrencias', 'saude', 'setores', 'transferencias',
+]);
+
 function TrocaCargo({ cargoAtual, onChange }: { cargoAtual: string; onChange: (role: string) => void }) {
   if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
   return (
@@ -1312,6 +1322,14 @@ export function App() {
             </nav>
           );
         })()}
+        {/* O TÍTULO EM TODA TELA (fase 316, decisão de 12/11). Treze telas abriam sem dizer o
+            nome: quem chegava pelo Mais no celular via só "Mais" aceso embaixo. As que já
+            têm título próprio ficam como estão; estas ganham o nome da porta, igual em todas. */}
+        {TELAS_SEM_TITULO_PROPRIO.has(String(abaEfetiva)) && (
+          <h2 className="titulo-da-tela">
+            {PORTAS.find((porta) => porta.aba === abaEfetiva)?.titulo}
+          </h2>
+        )}
         <BarreiraDeErro key={String(abaEfetiva)} alcance="tela" aoIrParaOInicio={() => setAba(null)}>
         {/*
           * Olhando uma casa que não é a sua: a faixa diz qual, e devolve. Sem
@@ -1566,16 +1584,19 @@ export function App() {
               * rolar o polegar é mais barato do que decidir em qual seção olhar,
               * e quem abre o "Mais" às 23h já sabe o nome do que procura.
               */}
-            {/* A BUSCA (fase 314): a folha continua corrida, sem grupos e na ordem de
-                sempre, com um campo para quem já sabe o nome do que procura. */}
+            {/* A BUSCA (fase 314) e A GRADE (fase 316, decisão de 12/11): as telas ficam em duas
+                colunas, com o desenho e o nome, de A a Z. Em cartões altos com a descrição, o
+                educador rolava nove cartões para chegar às Ocorrências; na grade, todas cabem em
+                pouco mais de uma tela. Quem procura pelo campo vê os achados com a descrição,
+                que são poucos. A descrição de cada tela continua no Guia do sistema. */}
             <label className="f" htmlFor="busca-mais" style={{ marginTop: 6 }}>Procurar uma tela</label>
             <input id="busca-mais" type="search" value={buscaMais} autoComplete="off"
                    placeholder="Por exemplo: escala, saúde, cozinha"
                    onChange={(e) => setBuscaMais(e.target.value)} />
             {!portasDoMais.length && <p className="mutetxt" role="status">Nenhuma tela com esse nome.</p>}
-            <div className="stack" style={{ marginTop: 12 }}>
+            <div className={`mais-grade${buscaMais.trim() ? ' com-busca' : ''}`} style={{ marginTop: 12 }}>
               {portasDoMais.map((porta) => (
-                <button key={porta.aba} className="card row"
+                <button key={porta.aba} className="card row" title={porta.descricao}
                         onClick={() => { setAba(porta.aba as typeof aba); setMais(false); }}>
                   <span className="porta-icone"><Icone nome={porta.icone} /></span>
                   <div className="grow" style={{ textAlign: 'left' }}>

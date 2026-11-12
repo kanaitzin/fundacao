@@ -116,14 +116,20 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
       : (partes[0] ?? '');
     return (
       <section className="card stack o-que-mudou o-que-mudou-curto" aria-labelledby="t-o-que-mudou">
-        <div className="row" style={{ flexWrap: 'wrap' }}>
+        {/* O botão mora na linha do título (fase 316): numa linha só dele, e com a data
+            por extenso, o cartão curto ocupava um terço da tela do celular. A data
+            continua na forma aberta. */}
+        <div className="row" style={{ flexWrap: 'wrap', gap: '6px 10px' }}>
           <div className="grow">
             <h3 id="t-o-que-mudou" style={{ margin: 0 }}>O que mudou desde o seu último plantão</h3>
-            <p className="mutetxt" style={{ margin: '2px 0 0' }}>
-              {resumo ? `${resumo.charAt(0).toUpperCase()}${resumo.slice(1)}. ` : ''}{desde}
-            </p>
+            {resumo && (
+              <p className="mutetxt" style={{ margin: '2px 0 0' }}>
+                {`${resumo.charAt(0).toUpperCase()}${resumo.slice(1)}.`}
+              </p>
+            )}
           </div>
-          <span className="pill c-info">Para ler</span>
+          <button className="btn sm sec" aria-expanded={false}
+                  onClick={() => { setVeioDe('curto'); setModo('aberto'); }}>Ver o que mudou</button>
         </div>
         {/* O remédio que mudou e o recado do turno ficam à vista mesmo no cartão curto:
             são o que não pode esperar um toque. */}
@@ -139,7 +145,6 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
             <b>O que ficou para o próximo turno:</b> {r.ata.pendencias}
           </div>
         )}
-        <button className="btn sec" aria-expanded={false} onClick={() => { setVeioDe('curto'); setModo('aberto'); }}>Ver o que mudou</button>
       </section>
     );
   }

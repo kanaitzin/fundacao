@@ -433,6 +433,21 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
         )}
       </div>
 
+      {/* O ROTEIRO DO TURNO (fase 316, decisão de 12/11): os quatro passos de todo plantão,
+          com a situação de cada um e um toque para ir. Sai da própria linha do dia. */}
+      {!soLe && dados && filtro !== 'os20' && (
+        <RoteiroDoTurno eventos={dados.eventos} alcanca={alcanca} irPara={irPara}
+          irParaADose={(id) => {
+            setFiltro('pendentes'); setParte('dia');
+            window.setTimeout(() => {
+              document.querySelector(`[data-ev="${id}"]`)?.scrollIntoView({
+                block: 'center',
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+              });
+            }, 60);
+          }} />
+      )}
+
       {/* O que mudou desde o último plantão (fase 186): antes do filtro do dia,
           porque é a primeira coisa que quem chega precisa saber. */}
       <OQueMudou pessoa={pessoa} papel={papel} houseId={houseId} irPara={irPara} alcanca={alcanca} />
@@ -527,7 +542,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
           {i === indiceDoAgora && (
             <li className="agora" aria-hidden="true"><span>agora · {hhmm(new Date().toISOString())}</span></li>
           )}
-          <li
+          <li data-ev={ev.id}
               className={`ev ${categoriaDe(ev.kind).classe} ${ev.feito ? 'feito feito-ok' : FINALIZADOS.has(ev.state) ? 'feito' : ''}`}>
             <div className="hora">{hhmm(ev.at)}</div>
             <div className="corpo">
@@ -1773,6 +1788,91 @@ export const COR_DA_FREQUENCIA: Record<string, string> = {
   presente: 'c-ok', ausente: 'c-info', sem_aula: 'c-mute', nao_verificado: 'c-warn',
 };
 
+/**
+ * O ROTEIRO DO TURNO (fase 316, decisão de 12/11).
+ *
+ * Todo plantão passa por quatro coisas: a passagem, a chamada, as doses e a ATA. Elas
+ * já existiam, cada uma na sua tela, e a linha do dia as mistura com o resto. Aqui
+ * ficam lado a lado, com a situação de cada uma e um toque para ir.
+ *
+ * NÃO HÁ DADO NOVO: tudo sai dos eventos que a linha do dia já recebeu. Por isso a
+ * passagem diz quantas foram assinadas no plantão, e não se a SUA foi: o servidor
+ * manda a mesma linha para todos. E não há número de pessoa nem comparação: são as
+ * tarefas da casa neste momento.
+ *
+ * A cor é a de estado: atenção no que já passou da hora e espera alguém, o verde do
+ * feito com o visto, e neutro no que ainda vem. Só aparece o passo que o cargo abre.
+ */
+function RoteiroDoTurno({ eventos, alcanca, irPara, irParaADose }: {
+  eventos: Evento[]; alcanca: (aba: string) => boolean; irPara: (aba: string) => void;
+  irParaADose: (id: string) => void;
+}) {
+  const agora = Date.now();
+  const naHora = (e: Evento) => new Date(e.at).getTime() <= agora;
+  const espera = (e: Evento) => !e.feito && !FINALIZADOS.has(e.state);
+  type Passo = { cod: string; nome: string; icone: string; situacao: string; tom: 'espera' | 'feito' | 'neutro'; ir: () => void };
+  const passos: Passo[] = [];
+
+  const plantoes = eventos.filter((e) => e.kind === 'plantao');
+  const aberto = plantoes.filter((e) => e.actions?.some((a) => a.command === 'handover.sign'))
+    .sort((a, b) => b.at.localeCompare(a.at))[0];
+  if (alcanca('passagem')) {
+    passos.push({
+      cod: 'passagem', nome: 'Passagem', icone: 'passagem',
+      situacao: aberto ? aberto.state.replace(/^Plantão aberto,\s*/i, '') : 'Nenhum plantão aberto',
+      tom: 'neutro', ir: () => irPara('passagem'),
+    });
+  }
+
+  const doTipo = (tipos: string[], comando: string) => eventos
+    .filter((e) => tipos.includes(e.kind) && (e.feito || e.actions?.some((a) => a.command === comando) || !espera(e)))
+    .sort((a, b) => a.at.localeCompare(b.at));
+  const resumo = (lista: Evento[]): Pick<Passo, 'situacao' | 'tom'> & { alvo: Evento | null } => {
+    const devidas = lista.filter((e) => espera(e) && naHora(e));
+    const proxima = lista.find((e) => espera(e) && !naHora(e)) ?? null;
+    if (devidas.length) return { situacao: `${devidas.length} para confirmar`, tom: 'espera', alvo: devidas[0] };
+    if (proxima) return { situacao: `Próxima às ${hhmm(proxima.at)}`, tom: 'neutro', alvo: proxima };
+    if (lista.length) return { situacao: 'Em dia', tom: 'feito', alvo: null };
+    return { situacao: 'Nenhuma hoje', tom: 'neutro', alvo: null };
+  };
+
+  if (alcanca('chamada')) {
+    const r = resumo(doTipo(['chamada', 'refeicao'], 'check.open'));
+    passos.push({ cod: 'chamada', nome: 'Chamada', icone: 'chamada', situacao: r.situacao, tom: r.tom, ir: () => irPara('chamada') });
+  }
+  const doses = doTipo(['medicamento'], 'medication.confirm');
+  if (doses.length) {
+    const r = resumo(doses);
+    passos.push({
+      cod: 'doses', nome: 'Doses', icone: 'medicamento', situacao: r.situacao, tom: r.tom,
+      ir: () => (r.alvo ? irParaADose(r.alvo.id) : alcanca('saude') ? irPara('saude') : undefined),
+    });
+  }
+  if (alcanca('ata')) {
+    const fechado = plantoes.filter((e) => e.actions?.some((a) => a.command === 'ata.view'))
+      .sort((a, b) => b.at.localeCompare(a.at))[0];
+    passos.push({
+      cod: 'ata', nome: 'ATA', icone: 'ata',
+      situacao: aberto ? 'Aberta, para escrever' : fechado ? fechado.state.replace(/^ATA\s*/i, '').replace(/^./, (c) => c.toUpperCase()) : 'Abrir',
+      tom: !aberto && fechado?.feito ? 'feito' : 'neutro', ir: () => irPara('ata'),
+    });
+  }
+  if (passos.length < 2) return null;
+  return (
+    <nav className="roteiro-do-turno" aria-label="O roteiro do turno">
+      {passos.map((p) => (
+        <button key={p.cod} type="button" className={`roteiro-passo roteiro-${p.tom}${p.tom === 'espera' ? ' c-warn' : ''}`} onClick={p.ir}>
+          <span className="roteiro-icone"><Icone nome={p.tom === 'feito' ? 'conferido' : p.icone} tamanho={18} /></span>
+          <span className="roteiro-texto">
+            <b>{p.nome}</b>
+            <small>{p.situacao}</small>
+          </span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 function FoiAAula({ houseId }: { houseId: string }) {
   const [dados, setDados] = useState<{ dia: string; marca: boolean; vinculos: VinculoDoDia[] } | null>(null);
   const [folha, setFolha] = useState<{ v: VinculoDoDia; situacao: 'ausente' | 'sem_aula' } | null>(null);
@@ -1796,9 +1896,12 @@ function FoiAAula({ houseId }: { houseId: string }) {
         {faltam > 0
           ? <span className="pill c-warn">{quantos(faltam, 'a verificar', 'a verificar')}</span>
           : <span className="pill c-ok"><Icone nome="conferido" tamanho={14} /> Todos verificados</span>}
+        {/* O nome curto cabe na linha do título no celular (fase 316); o nome inteiro vai
+            para quem ouve a tela. */}
         <button type="button" className="btn sm sec" aria-expanded={aberto} aria-controls="foi-a-aula-lista"
+                aria-label={aberto ? 'Fechar a frequência' : faltam > 0 && dados.marca ? 'Marcar a frequência' : 'Ver a frequência'}
                 onClick={() => setAberto((a) => !a)}>
-          {aberto ? 'Fechar' : faltam > 0 && dados.marca ? 'Marcar a frequência' : 'Ver a frequência'}
+          {aberto ? 'Fechar' : faltam > 0 && dados.marca ? 'Marcar' : 'Ver'}
         </button>
       </div>
       {recado && <div className="notice c-ok" role="status">{recado}</div>}

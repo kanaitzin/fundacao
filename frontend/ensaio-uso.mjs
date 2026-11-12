@@ -1779,6 +1779,12 @@ await fechar();
  */
 cobrar('a técnica volta à lista da casa', await aba('Acolhidos'));
 await pg.waitForTimeout(600);
+/* O cartão Com a família nasce curto (fase 316): com quem está, o Relato e os Remédios
+   abrem com o Ver mais. */
+{
+  const verMais = pg.locator('main .cartao-curto').getByRole('button', { name: 'Ver mais', exact: true });
+  if (await verMais.count()) { await verMais.first().click(); await pg.waitForTimeout(300); }
+}
 /* O Felipe abre o protótipo na casa da mãe, a Gessi: a folha tem de dizer os dois. */
 const remediosDoFelipe = pg.locator('main .card .row').filter({ hasText: /Felipe/ })
   .filter({ hasText: /Gessi/ }).locator('button', { hasText: /Remédios/ }).first();
@@ -1828,6 +1834,10 @@ cobrar('o educador vê a Alice entre quem está com a família',
  * é o que permite registrar o telefonema de sábado.
  */
 if (await linhaDaAlice.count()) {
+  {
+    const verMais = pg.locator('main .cartao-curto').getByRole('button', { name: 'Ver mais', exact: true });
+    if (await verMais.count()) { await verMais.first().click(); await pg.waitForTimeout(300); }
+  }
   await linhaDaAlice.locator('button', { hasText: /Relato/ }).first().click();
   await pg.waitForTimeout(800);
   const folhaDoRelato = await pg.locator('.overlay .sheet').innerText();

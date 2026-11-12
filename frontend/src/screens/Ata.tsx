@@ -795,6 +795,22 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   {plantao.fechadoEm ? ` · fechado às ${hhmm(plantao.fechadoEm)}` : ''}
                   {ata ? ` · versão ${ata.versao}` : ''}
                 </div>
+                {/* O ATALHO PARA ESCREVER (fase 316). A caixa da linha fica depois das passagens
+                    e do livro: no celular do educador, a mais de uma tela do alto, e escrever
+                    uma linha é o que ele veio fazer. O botão leva até ela e põe o cursor lá;
+                    nada muda de lugar. Só aparece para quem tem a caixa. */}
+                {papel !== SO_LE_A_ATA && !lendoAnterior && plantao.ata && ['rascunho', 'reaberta'].includes(plantao.ata.status) && (
+                  <button type="button" className="btn sm atalho-da-linha"
+                          onClick={() => {
+                            const caixa = document.getElementById('linha-ata');
+                            const alvo = caixa ?? document.getElementById('escrever-na-ata');
+                            if (!alvo) return;
+                            alvo.scrollIntoView({ block: caixa ? 'center' : 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+                            caixa?.focus({ preventScroll: true });
+                          }}>
+                    <Icone nome="escrever" tamanho={16} /> Escrever na ATA
+                  </button>
+                )}
 
                 <div className="eyebrow">Passagens do plantão</div>
                 <ul className="lista">
@@ -2239,6 +2255,9 @@ function QuemEscreveNaAta({ ataId, children }: { ataId: string; children: React.
   };
   return (
     <>
+      {/* A âncora do atalho Escrever na ATA (fase 316): vale para quem escreve e para
+          quem precisa pedir, que chega aqui e lê o que fazer. */}
+      <span id="escrever-na-ata" />
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
       {estado.decide && esperando.length > 0 && (
