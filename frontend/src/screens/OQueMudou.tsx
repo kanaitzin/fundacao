@@ -1,3 +1,4 @@
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 import { useEffect, useState } from 'react';
 import { QUEM_LE_O_QUE_MUDOU } from '../../../backend/src/modules/reports/o-que-mudou.regra';
 import { api } from '../api';
@@ -59,7 +60,17 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
   alcanca: (aba: string) => boolean;
 }) {
   const [r, setR] = useState<OQueMudouResposta | null>(null);
-  const [aberto, setAberto] = useState(false);
+  /*
+   * TRÊS FORMAS (fase 315, decisão de 12/11: "cartões curtos no alto"). No celular
+   * do educador o cartão aberto ocupava mais de uma tela, e a primeira tarefa da
+   * linha do dia só aparecia depois de duas telas de rolagem.
+   *   curto  - quem ainda não leu: quantas coisas mudaram, o remédio que mudou e o
+   *            recado que ficou para o turno, com "Ver o que mudou";
+   *   aberto - tudo, como sempre foi, com o "Entendi" no fim;
+   *   lido   - a linha que reabre.
+   * O "Entendi" só existe na forma aberta: ninguém confirma que leu o que não abriu.
+   */
+  const [modo, setModo] = useState<'curto' | 'aberto' | 'lido'>('lido');
 
   useEffect(() => {
     let vivo = true;
@@ -71,7 +82,7 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
         if (!vivo) return;
         setR(x);
         const tem = x.ocorrencias.length + x.remedios.length > 0 || !!x.ata;
-        setAberto(tem && !jaLeu(chave(pessoa, houseId, x.desde)));
+        setModo(tem && !jaLeu(chave(pessoa, houseId, x.desde)) ? 'curto' : 'lido');
       })
       .catch(() => { if (vivo) setR(null); });
     return () => { vivo = false; };
@@ -83,11 +94,50 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
     ? `Desde o fim do seu último plantão, ${quando(r.desde)}.`
     : 'Nas últimas 24 horas. Você não está na escala desta casa.';
 
-  if (!aberto) {
+  if (modo === 'lido') {
     return (
-      <button className="btn sec block" onClick={() => setAberto(true)}>
+      <button className="btn sec block" onClick={() => setModo('aberto')}>
         O que mudou desde o seu último plantão{n ? ` (${n})` : ''}
       </button>
+    );
+  }
+
+  if (modo === 'curto') {
+    const partes = [
+      r.ocorrencias.length > 0 && quantos(r.ocorrencias.length, 'ocorrência', 'ocorrências'),
+      r.remedios.length > 0 && quantos(r.remedios.length, 'remédio que mudou', 'remédios que mudaram'),
+      r.ata && 'a ATA anterior',
+    ].filter((x): x is string => !!x);
+    const resumo = partes.length > 1
+      ? `${partes.slice(0, -1).join(', ')} e ${partes[partes.length - 1]}`
+      : (partes[0] ?? '');
+    return (
+      <section className="card stack o-que-mudou o-que-mudou-curto" aria-labelledby="t-o-que-mudou">
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <div className="grow">
+            <h3 id="t-o-que-mudou" style={{ margin: 0 }}>O que mudou desde o seu último plantão</h3>
+            <p className="mutetxt" style={{ margin: '2px 0 0' }}>
+              {resumo ? `${resumo.charAt(0).toUpperCase()}${resumo.slice(1)}. ` : ''}{desde}
+            </p>
+          </div>
+          <span className="pill c-info">Para ler</span>
+        </div>
+        {/* O remédio que mudou e o recado do turno ficam à vista mesmo no cartão curto:
+            são o que não pode esperar um toque. */}
+        {r.remedios.length > 0 && (
+          <ul className="lista">
+            {r.remedios.map((m, i) => (
+              <li key={i}><b>{m.crianca}</b> · {m.medicamento}{m.dose && <> {m.dose}</>} {MUDANCA[m.tipo]}</li>
+            ))}
+          </ul>
+        )}
+        {r.ata?.pendencias && (
+          <div className="notice c-warn" style={{ margin: 0 }}>
+            <b>O que ficou para o próximo turno:</b> {r.ata.pendencias}
+          </div>
+        )}
+        <button className="btn sec" aria-expanded={false} onClick={() => setModo('aberto')}>Ver o que mudou</button>
+      </section>
     );
   }
 
@@ -169,7 +219,7 @@ export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
         )}
       </div>
 
-      <button className="btn block" onClick={() => { marcarLido(chave(pessoa, houseId, r.desde)); setAberto(false); }}>
+      <button className="btn block" onClick={() => { marcarLido(chave(pessoa, houseId, r.desde)); setModo('lido'); }}>
         Entendi
       </button>
     </section>

@@ -884,6 +884,13 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               {numeros?.geral.diasNoAcolhimento != null ? ` · no acolhimento há ${duracao(numeros.geral.diasNoAcolhimento)}` : ''}
             </div>
           </div>
+          {/* OS DADOS PRINCIPAIS AO LADO DA FOTO (fase 315, decisão de 12/11): no monitor
+              o cabeçalho tinha um espaço vazio do tamanho de meia tela. A ficha sobe para
+              cá e acompanha todas as abas; abaixo de 1080 px ela continua na Geral, para
+              a alergia não descer no celular. */}
+          <div className="ficha-no-topo" aria-label={`Quem é ${p.nome}`}>
+            <FichaQuemE perfil={p} numeros={numeros} />
+          </div>
         </div>
       </div>
 
@@ -2048,6 +2055,59 @@ const TIPO_DE_ATENDIMENTO_DE_SAUDE: Record<string, string> = {
 };
 
 /*
+ * QUEM É (fase 221), num componente só desde a 315: a mesma ficha aparece na aba
+ * Geral, no celular e no tablet, e no cabeçalho do perfil, no monitor, onde havia
+ * um espaço vazio ao lado da foto. Uma ficha, dois lugares; nunca as duas à vista.
+ */
+function FichaQuemE({ perfil: p, numeros }: { perfil: Perfil; numeros: NumerosDaCrianca | null }) {
+  const g = numeros?.geral;
+  const escola = p.escola && (p.escola.nome || p.escola.serie) ? p.escola : null;
+  return (
+    <ul className="ficha-geral">
+      <li>
+        <span>Idade</span><b>{p.idade} anos</b>
+        <small>nasceu em {dia(p.nascimento)}</small>
+      </li>
+      <li>
+        <span>Casa</span><b>{p.casaAtual ? p.casaAtual.nome : 'Sem casa no momento'}</b>
+        {p.casaAtual && (
+          <small>desde {dia(p.casaAtual.desde)}{g?.diasNaCasa != null ? `, há ${duracao(g.diasNaCasa)}` : ''}</small>
+        )}
+      </li>
+      <li>
+        <span>No acolhimento</span>
+        <b>{g?.diasNoAcolhimento != null ? `há ${duracao(g.diasNoAcolhimento)}` : 'Sem a data de entrada'}</b>
+        {g?.acolhidaDesde && (
+          <small>
+            desde {dia(g.acolhidaDesde)}
+            {g.episodios > 1 ? ` · ${g.episodio}º acolhimento` : ''}
+            {g.casasNesteAcolhimento > 1 ? ` · ${g.casasNesteAcolhimento} casas neste acolhimento` : ''}
+          </small>
+        )}
+      </li>
+      <li>
+        <span>Escola</span><b>{escola?.nome ?? 'Escola não informada'}</b>
+        {escola && <small>{[escola.serie, escola.turno].filter(Boolean).join(' · ') || 'Série e turno não informados'}</small>}
+      </li>
+      {g?.pia && (
+        <li>
+          <span>PIA</span>
+          <b>{!g.pia.vence ? 'Sem PIA com validade' : g.pia.dias! < 0 ? 'Vencido' : `Vale até ${dia(g.pia.vence)}`}</b>
+          <small>
+            {!g.pia.vence ? 'O PIA vai no dossiê, com a validade.'
+              : g.pia.dias! < 0 ? `venceu em ${dia(g.pia.vence)}, há ${duracao(-g.pia.dias!)}`
+              : `faltam ${duracao(g.pia.dias!)}`}
+          </small>
+        </li>
+      )}
+      <li>
+        <span>Equipe de referência</span><b>{p.equipeReferencia ?? 'Não informada'}</b>
+      </li>
+    </ul>
+  );
+}
+
+/*
  * A GERAL (fase 221): os dados DELA, que mudam devagar. É a primeira aba, e é
  * a que a técnica abre antes de uma audiência e a educadora nova abre no
  * primeiro plantão: quem é, onde mora, há quanto tempo está acolhida, em que
@@ -2068,49 +2128,11 @@ function VisaoGeral({ perfil: p, numeros, papel, houseId, onAba }: {
   ].filter(Boolean) as [string, string][];
   return (
     <>
-      <section className="passagem" aria-label={`Quem é ${p.nome}`} id="perfil-geral">
+      {/* No monitor a ficha mora no cabeçalho do perfil, ao lado da foto, e vale para
+          todas as abas (fase 315); aqui ela fica para o celular e o tablet. */}
+      <section className="passagem ficha-na-geral" aria-label={`Quem é ${p.nome}`} id="perfil-geral">
         <div className="eyebrow">Quem é {p.nome}</div>
-        <ul className="ficha-geral">
-          <li>
-            <span>Idade</span><b>{p.idade} anos</b>
-            <small>nasceu em {dia(p.nascimento)}</small>
-          </li>
-          <li>
-            <span>Casa</span><b>{p.casaAtual ? p.casaAtual.nome : 'Sem casa no momento'}</b>
-            {p.casaAtual && (
-              <small>desde {dia(p.casaAtual.desde)}{g?.diasNaCasa != null ? `, há ${duracao(g.diasNaCasa)}` : ''}</small>
-            )}
-          </li>
-          <li>
-            <span>No acolhimento</span>
-            <b>{g?.diasNoAcolhimento != null ? `há ${duracao(g.diasNoAcolhimento)}` : 'Sem a data de entrada'}</b>
-            {g?.acolhidaDesde && (
-              <small>
-                desde {dia(g.acolhidaDesde)}
-                {g.episodios > 1 ? ` · ${g.episodio}º acolhimento` : ''}
-                {g.casasNesteAcolhimento > 1 ? ` · ${g.casasNesteAcolhimento} casas neste acolhimento` : ''}
-              </small>
-            )}
-          </li>
-          <li>
-            <span>Escola</span><b>{escola?.nome ?? 'Escola não informada'}</b>
-            {escola && <small>{[escola.serie, escola.turno].filter(Boolean).join(' · ') || 'Série e turno não informados'}</small>}
-          </li>
-          {g?.pia && (
-            <li>
-              <span>PIA</span>
-              <b>{!g.pia.vence ? 'Sem PIA com validade' : g.pia.dias! < 0 ? 'Vencido' : `Vale até ${dia(g.pia.vence)}`}</b>
-              <small>
-                {!g.pia.vence ? 'O PIA vai no dossiê, com a validade.'
-                  : g.pia.dias! < 0 ? `venceu em ${dia(g.pia.vence)}, há ${duracao(-g.pia.dias!)}`
-                  : `faltam ${duracao(g.pia.dias!)}`}
-              </small>
-            </li>
-          )}
-          <li>
-            <span>Equipe de referência</span><b>{p.equipeReferencia ?? 'Não informada'}</b>
-          </li>
-        </ul>
+        <FichaQuemE perfil={p} numeros={numeros} />
       </section>
 
       <section className="passagem" aria-label={`A família de ${p.nome}`}>
@@ -3343,19 +3365,14 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
         </div>
       )}
 
-      {podeTrocar && (
+      {/* AS FOTOS NUM LUGAR SÓ (fase 315, decisão de 12/11): Trocar e Tirar saíram de
+          baixo do retrato e moram dentro do Ver a foto, para quem pode mexer. Sem foto
+          não há o que ver, e o Pôr foto fica aqui. */}
+      {podeTrocar && !perfil.foto && (
         <button type="button" className="btn sm ghost" style={{ marginTop: 6 }}
                 onClick={() => { setErro(''); setPondoFoto(true); }}>
-          {ocupado ? 'Enviando…' : (perfil.foto ? 'Trocar foto' : 'Pôr foto')}
+          {ocupado ? 'Enviando…' : 'Pôr foto'}
         </button>
-      )}
-      {podeTrocar && perfil.foto && (
-        <div>
-          <button type="button" className="btn sm ghost" style={{ marginTop: 2 }}
-                  onClick={() => { setErro(''); setTirando(true); }}>
-            Tirar foto
-          </button>
-        </div>
       )}
       {erro && <div className="mutetxt">{erro}</div>}
       {tirando && (
@@ -3372,7 +3389,19 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
           baixar: ela é vista aqui, e quem precisar dela num documento pede. */}
       {vendoMaior && (
         <FotoAmpliada src={src} nome={perfil.nome} legenda="Foto de identificação"
-                      onFechar={() => setVendoMaior(false)} />
+                      onFechar={() => setVendoMaior(false)}
+                      acoes={podeTrocar && perfil.foto ? (
+                        <>
+                          <button type="button" className="btn sm sec"
+                                  onClick={() => { setVendoMaior(false); setErro(''); setPondoFoto(true); }}>
+                            {ocupado ? 'Enviando…' : 'Trocar foto'}
+                          </button>
+                          <button type="button" className="btn sm ghost"
+                                  onClick={() => { setVendoMaior(false); setErro(''); setTirando(true); }}>
+                            Tirar foto
+                          </button>
+                        </>
+                      ) : undefined} />
       )}
 
       {/* A CONFIRMAÇÃO. O texto pergunta as duas coisas que dão errado: é a

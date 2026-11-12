@@ -3129,3 +3129,27 @@ label{ letter-spacing:-.005em }
 
 /* A barreira de erro (fase 315): um cartão comum, com o título do tamanho do de uma tela. */
 .barreira-de-erro h2{ margin:0 }
+
+/* O cartão da linha do dia mais baixo (fase 315): a situação e o Ver detalhes na mesma linha. */
+.linha .ev .estado{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px }
+.linha .ev .estado .ver-detalhes{ margin:0; flex:none }
+.o-que-mudou-curto .lista{ margin:0 }
+.foi-a-aula > .row{ gap:8px 10px }
+.o-que-mudou-curto h3{ font-size:17px; line-height:1.25 }
+
+/* O PERFIL (fase 315): a ficha "Quem é" ao lado da foto no monitor, e as ações da foto
+   dentro do visor. Abaixo de 1080 px a ficha continua na aba Geral. */
+.ficha-no-topo{ display:none }
+.foto-ampliada-acoes{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:10px }
+.foto-ampliada-acoes .btn.ghost{ background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.5) }
+.foto-ampliada-acoes .btn.ghost:hover{ background:rgba(255,255,255,.22) }
+@media (min-width:1080px){
+  .ficha-na-geral{ display:none }
+  .perfil-topo > .row{ flex-wrap:wrap }
+  .perfil-topo > .row > .grow{ flex:1 1 220px; min-width:200px }
+  .ficha-no-topo{ display:block; flex:3 1 520px; min-width:0; margin-top:64px }
+  .ficha-no-topo .ficha-geral{ grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px }
+  .ficha-no-topo .ficha-geral li{ padding:8px 12px }
+  .ficha-no-topo .ficha-geral li > b{ font-size:15px }
+  .ficha-no-topo .ficha-geral li > small{ font-size:12.5px }
+}

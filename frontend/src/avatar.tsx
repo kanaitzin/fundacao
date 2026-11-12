@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { api, casaDaTela } from './api';
 
 /**
@@ -110,8 +110,10 @@ export function useComFoto(houseId: string): Set<string> | null {
  * pessoa, e o X fecha. Fecha também com Esc e tocando fora. Não há botão de
  * baixar: a foto se olha aqui, e ninguém precisa levá-la para o aparelho.
  */
-export function FotoAmpliada({ src, nome, legenda, onFechar }: {
+export function FotoAmpliada({ src, nome, legenda, onFechar, acoes }: {
   src: string | null; nome: string; legenda?: string; onFechar: () => void;
+  /** O que quem pode mexer na foto faz com ela (fase 315): Trocar e Tirar, no perfil. */
+  acoes?: ReactNode;
 }) {
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); };
@@ -133,6 +135,7 @@ export function FotoAmpliada({ src, nome, legenda, onFechar }: {
                  onContextMenu={(e) => e.preventDefault()} />
           : <div className="foto-ampliada-espera">Carregando a foto…</div>}
         <figcaption><b>{nome}</b>{legenda ? <span>{legenda}</span> : null}</figcaption>
+        {acoes && <div className="foto-ampliada-acoes">{acoes}</div>}
       </figure>
     </div>
   );

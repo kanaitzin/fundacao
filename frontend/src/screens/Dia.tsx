@@ -557,15 +557,17 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
                 <span className={`pill ${ev.feito ? 'c-ok pill-feito' : TOM_SEVERIDADE[ev.severity]}`}>
                   {ev.feito && <Icone nome="conferido" tamanho={14} />}{ev.state}
                 </span>
+                {/* VER DETALHES (fase 278): o resumo do que já existe e a porta para o
+                    registro de origem, sem copiar o registro para cá. Desde a 315 mora
+                    na linha da situação: numa linha só dele, cada cartão ficava um botão
+                    mais alto, e eram quinze cartões por dia. */}
+                <button type="button" className="btn sm ghost ver-detalhes" aria-expanded={detalhe === ev.id}
+                        onClick={() => setDetalhe(detalhe === ev.id ? null : ev.id)}>
+                  {detalhe === ev.id ? 'Fechar os detalhes' : 'Ver detalhes'}
+                </button>
               </div>
               {ev.note && <div className="mutetxt">{ev.note}</div>}
 
-              {/* VER DETALHES (fase 278): o resumo do que já existe e a porta para o
-                  registro de origem, sem copiar o registro para cá. */}
-              <button type="button" className="btn sm ghost ver-detalhes" aria-expanded={detalhe === ev.id}
-                      onClick={() => setDetalhe(detalhe === ev.id ? null : ev.id)}>
-                {detalhe === ev.id ? 'Fechar os detalhes' : 'Ver detalhes'}
-              </button>
               {detalhe === ev.id && (
                 <dl className="detalhes-do-dia">
                   <dt>Quando</dt><dd>{hhmm(ev.at)}, {categoriaDe(ev.kind).rotulo.toLowerCase()}</dd>
@@ -1776,6 +1778,9 @@ function FoiAAula({ houseId }: { houseId: string }) {
   const [folha, setFolha] = useState<{ v: VinculoDoDia; situacao: 'ausente' | 'sem_aula' } | null>(null);
   const [recado, setRecado] = useState('');
   const [erro, setErro] = useState('');
+  /* Recolhido até alguém abrir (fase 315, decisão de 12/11): aberto, o cartão empurrava
+     a linha do dia uma tela para baixo. O que falta verificar continua dito na pílula. */
+  const [aberto, setAberto] = useState(false);
   const carregar = useCallback(async () => {
     try { setDados(await api(`/nursing/education-attendance?houseId=${houseId}`)); }
     catch { setDados(null); }
@@ -1786,13 +1791,19 @@ function FoiAAula({ houseId }: { houseId: string }) {
 
   return (
     <section className="card foi-a-aula" aria-labelledby="t-foi-a-aula">
-      <div className="row">
+      <div className="row" style={{ flexWrap: 'wrap' }}>
         <h2 id="t-foi-a-aula" className="grow" style={{ margin: 0, fontSize: 17 }}>Foi à aula hoje?</h2>
-        {faltam > 0 && <span className="pill c-warn">{quantos(faltam, 'a verificar', 'a verificar')}</span>}
+        {faltam > 0
+          ? <span className="pill c-warn">{quantos(faltam, 'a verificar', 'a verificar')}</span>
+          : <span className="pill c-ok"><Icone nome="conferido" tamanho={14} /> Todos verificados</span>}
+        <button type="button" className="btn sm sec" aria-expanded={aberto} aria-controls="foi-a-aula-lista"
+                onClick={() => setAberto((a) => !a)}>
+          {aberto ? 'Recolher' : faltam > 0 && dados.marca ? 'Marcar a frequência' : 'Ver a frequência'}
+        </button>
       </div>
       {recado && <div className="notice c-ok" role="status">{recado}</div>}
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
-      <ul className="foi-a-aula-lista">
+      {aberto && <ul className="foi-a-aula-lista" id="foi-a-aula-lista">
         {dados.vinculos.map((v) => (
           <li key={v.id}>
             <div className="row">
@@ -1822,7 +1833,7 @@ function FoiAAula({ houseId }: { houseId: string }) {
             )}
           </li>
         ))}
-      </ul>
+      </ul>}
       {folha && (
         <FolhaFrequencia titulo={`${folha.v.nome}: ${folha.situacao === 'ausente' ? 'não foi à aula' : 'não teve aula'}`}
           situacaoFixa={folha.situacao} corrige={false} onFechar={() => setFolha(null)}
