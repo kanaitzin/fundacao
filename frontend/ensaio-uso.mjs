@@ -5128,8 +5128,11 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   const aberta = await pgP.locator('main.conteudo nav.abas-perfil [aria-selected=true]').innerText();
   const geral = await pgP.locator('main.conteudo').innerText();
   cobrar('o perfil abre na Geral', /Geral/.test(aberta), aberta);
-  cobrar('a Geral traz idade, casa, tempo de acolhimento, escola e PIA',
-    /Quem é Alice/i.test(geral) && /Idade/.test(geral) && /No acolhimento/.test(geral) && /há \d/.test(geral)
+  /* Desde a 315, no monitor a ficha Quem é mora no cabeçalho do perfil, ao lado da foto, e
+     vale para todas as abas; a página deste bloco tem 1280 px. */
+  cobrar('o perfil traz idade, casa, tempo de acolhimento, escola e PIA, ao lado da foto',
+    (await pgP.locator('.ficha-no-topo').isVisible())
+    && /Idade/.test(geral) && /No acolhimento/.test(geral) && /há \d/.test(geral)
     && /Escola/.test(geral) && /PIA/.test(geral), geral.slice(0, 400));
   cobrar('a Geral traz a família dela', /A família · \d/i.test(geral) && /Genitora|Madrinha/.test(geral));
   cobrar('o perfil não tem mais a aba Hoje nem o remédio de hoje',

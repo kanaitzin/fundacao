@@ -1,5 +1,5 @@
 import { comecarEscrita } from './botao-que-grava';
-import { fraseSemSinal } from './frase-sem-sinal';
+import { fraseSemSinal, fraseSemResposta, esperaDoPedido } from './frase-sem-sinal';
 import { enfileirar, definirEnviador, ligarFila, RecusaDaFila, type AoEnfileirar, type RespostaPush } from './fila-offline';
 
 const BASE = '/api/v1';
@@ -38,6 +38,18 @@ export class SemConexao extends Error {
   constructor(message = 'Sem conexão com o servidor.') {
     super(message);
     this.name = 'SemConexao';
+  }
+}
+
+/**
+ * O servidor recebeu o pedido e não respondeu a tempo (fase 315). É uma falta de
+ * conexão para quem decide o que fazer depois (a fila do aparelho guarda o que é
+ * dela), com a frase própria: aqui não dá para dizer que NÃO foi salvo.
+ */
+export class SemResposta extends SemConexao {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SemResposta';
   }
 }
 
@@ -125,22 +137,43 @@ async function pedir<T>(path: string, init?: RequestInit): Promise<T> {
       throw e;
     }
   }
-  let res: Response;
+  /* O LIMITE DE ESPERA (fase 315): o pedido que a rede aceita e nunca responde é
+     cortado, e a pessoa lê o que aconteceu. O relógio vale até o corpo da resposta
+     chegar inteiro, e não só até os cabeçalhos. */
+  /* Entrar não registra nada: a frase de quem tentou entrar é a da leitura, sem o
+     "confira antes de registrar de novo" (visto na prova do pedido sem resposta). */
+  const naoGrava = path === '/auth/login';
+  const corte = new AbortController();
+  let venceu = false;
+  const relogio = setTimeout(() => { venceu = true; corte.abort(); },
+    esperaDoPedido(init?.method, typeof init?.body === 'string' ? init.body.length : 0));
   try {
-    res = await fetch(`${BASE}${path}`, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...init?.headers,
-      },
-    });
-  } catch {
-    throw new SemConexao(fraseSemSinal(init?.method));
-  }
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        ...init,
+        signal: corte.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...init?.headers,
+        },
+      });
+    } catch {
+      if (venceu) throw new SemResposta(fraseSemResposta(naoGrava ? 'GET' : init?.method));
+      throw new SemConexao(fraseSemSinal(init?.method));
+    }
 
-  if (!res.ok) await recusa(res, path);
-  return res.json();
+    if (!res.ok) await recusa(res, path);
+    try {
+      return await res.json();
+    } catch (e) {
+      if (venceu) throw new SemResposta(fraseSemResposta(naoGrava ? 'GET' : init?.method));
+      throw e;
+    }
+  } finally {
+    clearTimeout(relogio);
+  }
 }
 
 async function recusa(res: Response, path: string): Promise<never> {

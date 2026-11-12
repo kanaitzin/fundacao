@@ -10,7 +10,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fraseDoFeito } from '../../frontend/src/botao-que-grava.regra';
-import { fraseSemSinal } from '../../frontend/src/frase-sem-sinal';
+import {
+  fraseSemSinal, fraseSemResposta, esperaDoPedido, ESPERA_DA_LEITURA_MS, ESPERA_DA_ESCRITA_MS,
+} from '../../frontend/src/frase-sem-sinal';
 
 
 const SRC = join(__dirname, '..', '..', 'frontend', 'src');
@@ -54,7 +56,7 @@ describe('O botão que grava', () => {
   });
 
   it('sem sinal, a escrita diz que NÃO foi salva, e só a fila diz que guardou (fase 267)', () => {
-    expect(ler('api.ts')).toMatch(/import \{ fraseSemSinal \} from '\.\/frase-sem-sinal'/);
+    expect(ler('api.ts')).toMatch(/import \{ fraseSemSinal, [^}]*\} from '\.\/frase-sem-sinal'/);
     /* A frase antiga prometia guardar em toda escrita, e só a fila guarda. */
     for (const f of ['api.ts', 'mock.ts']) {
       const fonte = ler(f).split('\n').filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l)).join('\n');
@@ -65,6 +67,26 @@ describe('O botão que grava', () => {
     expect(fraseSemSinal('PATCH')).toMatch(/NÃO foi salvo/);
     expect(fraseSemSinal('GET')).not.toMatch(/salvo/);
     expect(fraseSemSinal()).not.toMatch(/salvo/);
+  });
+
+  it('o pedido que o servidor não responde é cortado, e a escrita não diz que NÃO foi salva (fase 315)', () => {
+    /* Sem o corte, o pedido que a rede aceita e nunca devolve ficava aberto para
+       sempre, e o botão que grava, que espera a resposta, ficava preso e mudo. */
+    const fonte = ler('api.ts');
+    expect(fonte).toMatch(/signal: corte\.signal/);
+    expect(fonte).toMatch(/esperaDoPedido\(init\?\.method/);
+    expect(fonte).toMatch(/new SemResposta\(fraseSemResposta\(/);
+    expect(fonte).toMatch(/class SemResposta extends SemConexao/);
+    /* Sem resposta, o servidor PODE ter gravado: a frase manda conferir, e não
+       registrar de novo. Dizer "NÃO foi salvo" aqui é linha repetida na ATA. */
+    expect(fraseSemResposta('POST')).toMatch(/Pode ter gravado ou não/);
+    expect(fraseSemResposta('POST')).not.toMatch(/NÃO foi salvo/);
+    expect(fraseSemResposta('GET')).not.toMatch(/grav|salv/);
+    /* A leitura espera menos que a escrita, e o envio grande ganha tempo pelo tamanho. */
+    expect(esperaDoPedido('GET')).toBe(ESPERA_DA_LEITURA_MS);
+    expect(esperaDoPedido('POST')).toBe(ESPERA_DA_ESCRITA_MS);
+    expect(esperaDoPedido('POST', 20_000_000)).toBeGreaterThan(ESPERA_DA_ESCRITA_MS + 900_000);
+    expect(ESPERA_DA_LEITURA_MS).toBeLessThan(ESPERA_DA_ESCRITA_MS);
   });
 
   it('nenhuma escrita nova vai ao servidor por fora do api()', () => {
