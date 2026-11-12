@@ -28,6 +28,74 @@ export interface Porta {
   grupo: 'comeco' | 'cotidiano' | 'registro' | 'gestao' | 'sistema';
   titulo: string;
   descricao: string;
+  /**
+   * A família de telas irmãs (fase 315). Na coluna curta do monitor, as portas
+   * da mesma família aparecem como UMA entrada, e quem entra troca de irmã pela
+   * faixa do alto da tela. Sem família, a porta aparece sozinha, como sempre.
+   */
+  familia?: Familia['cod'];
+}
+
+/**
+ * AS FAMÍLIAS DE TELAS IRMÃS (fase 315, pedido de 12/11: "temos muitos menus na
+ * lateral"). Medido antes: a coordenação via 30 opções de uma vez, a técnica 26,
+ * o gestor 29. Com as famílias, a coluna da coordenação tem 17.
+ *
+ * NADA SOME E NENHUMA CHAVE MUDA: a `aba` de cada porta é a de sempre, o Guia, a
+ * Acolhe+AI, os avisos e o alcance continuam levando à mesma tela. A família é
+ * só o jeito de a coluna mostrar. Quem vê uma porta só da família vê a própria
+ * porta, com o nome dela.
+ *
+ * A ordem das irmãs na faixa é a ordem delas em `PORTAS`.
+ */
+export interface Familia {
+  cod: 'plantao' | 'saude' | 'equipe' | 'casas' | 'guardados' | 'sistema';
+  titulo: string;
+  icone: string;
+  grupo: Porta['grupo'];
+}
+
+export const FAMILIAS: Familia[] = [
+  { cod: 'plantao', titulo: 'Plantão', icone: 'bussola', grupo: 'cotidiano' },
+  { cod: 'saude', titulo: 'Saúde', icone: 'saude', grupo: 'registro' },
+  { cod: 'equipe', titulo: 'Equipe', icone: 'equipe', grupo: 'gestao' },
+  { cod: 'casas', titulo: 'As casas', icone: 'unidades', grupo: 'gestao' },
+  { cod: 'guardados', titulo: 'Arquivo e acessos', icone: 'arquivo', grupo: 'sistema' },
+  { cod: 'sistema', titulo: 'Sistema', icone: 'sincronizacao', grupo: 'sistema' },
+];
+
+/** Uma linha da coluna curta: uma porta sozinha, ou uma família com as irmãs que o cargo vê. */
+export type EntradaDaColuna =
+  | { tipo: 'porta'; grupo: Porta['grupo']; porta: Porta }
+  | { tipo: 'familia'; grupo: Porta['grupo']; familia: Familia; irmas: Porta[] };
+
+/**
+ * A coluna curta de um cargo: cada família vira uma entrada, no lugar da primeira
+ * irmã que o cargo alcança. Família com uma irmã só à vista volta a ser a porta.
+ */
+export function colunaCurta(ve: (aba: string) => boolean): EntradaDaColuna[] {
+  const saida: EntradaDaColuna[] = [];
+  const feitas = new Set<string>();
+  for (const porta of PORTAS) {
+    if (!ve(porta.aba)) continue;
+    if (!porta.familia) { saida.push({ tipo: 'porta', grupo: porta.grupo, porta }); continue; }
+    if (feitas.has(porta.familia)) continue;
+    feitas.add(porta.familia);
+    const familia = FAMILIAS.find((f) => f.cod === porta.familia)!;
+    const irmas = PORTAS.filter((p) => p.familia === porta.familia && ve(p.aba));
+    if (irmas.length === 1) saida.push({ tipo: 'porta', grupo: porta.grupo, porta });
+    else saida.push({ tipo: 'familia', grupo: familia.grupo, familia, irmas });
+  }
+  return saida;
+}
+
+/** As irmãs da tela aberta que o cargo alcança; vazio quando ela não tem irmã à vista. */
+export function irmasDe(aba: string, ve: (aba: string) => boolean): { familia: Familia; irmas: Porta[] } | null {
+  const porta = PORTAS.find((p) => p.aba === aba);
+  if (!porta?.familia) return null;
+  const irmas = PORTAS.filter((p) => p.familia === porta.familia && ve(p.aba));
+  if (irmas.length < 2) return null;
+  return { familia: FAMILIAS.find((f) => f.cod === porta.familia)!, irmas };
 }
 
 /** Como cada grupo se chama na barra lateral. */
@@ -45,40 +113,40 @@ export const PORTAS: Porta[] = [
   { aba: 'guia', icone: 'livros', grupo: 'comeco',
     titulo: 'Guia do sistema',
     descricao: 'Cada tela explicada, com o link para abrir, e o que a Acolhe+AI faz em cada uma.' },
-  { aba: 'unidades', icone: 'linha_do_dia', grupo: 'cotidiano',
+  { aba: 'unidades', icone: 'linha_do_dia', grupo: 'cotidiano', familia: 'casas',
     titulo: 'O dia, em ordem',
     descricao: 'Todas as unidades que você acompanha, das 00h às 23h59.' },
-  { aba: 'plantao', icone: 'bussola', grupo: 'cotidiano',
+  { aba: 'plantao', icone: 'bussola', grupo: 'cotidiano', familia: 'plantao',
     titulo: 'Painel do plantão',
     descricao: 'Quem está em quê agora, neste turno.' },
   { aba: 'agenda', icone: 'agenda', grupo: 'cotidiano',
     titulo: 'Agenda',
     descricao: 'O que está marcado e o que vem pela frente.' },
-  { aba: 'rotina', icone: 'rotina', grupo: 'cotidiano',
+  { aba: 'rotina', icone: 'rotina', grupo: 'cotidiano', familia: 'plantao',
     titulo: 'A rotina da casa',
     descricao: 'O molde do dia — e as versões que a casa já seguiu.' },
-  { aba: 'escala', icone: 'escala', grupo: 'cotidiano',
+  { aba: 'escala', icone: 'escala', grupo: 'cotidiano', familia: 'plantao',
     titulo: 'A escala de plantão',
     descricao: 'Quem assume cada dia e cada turno — e o que já passou.' },
-  { aba: 'equipe', icone: 'equipe', grupo: 'gestao',
+  { aba: 'equipe', icone: 'equipe', grupo: 'gestao', familia: 'equipe',
     titulo: 'Equipe',
     descricao: 'Quem trabalha nesta casa, por setor.' },
-  { aba: 'trabalho', icone: 'trabalho', grupo: 'gestao',
+  { aba: 'trabalho', icone: 'trabalho', grupo: 'gestao', familia: 'equipe',
     titulo: 'O trabalho da equipe',
     descricao: 'O que cada pessoa e cada setor registrou, em ordem. Sem contar nada.' },
-  { aba: 'periodo', icone: 'periodo', grupo: 'gestao',
+  { aba: 'periodo', icone: 'periodo', grupo: 'gestao', familia: 'casas',
     titulo: 'O período da casa',
     descricao: 'Como foi a casa na semana, no mês ou no intervalo que você escolher.' },
   { aba: 'cozinha', icone: 'cozinha', grupo: 'cotidiano',
     titulo: 'Cozinha',
     descricao: 'Pedir lanche e cesta básica, e gerar as folhas para a cozinha.' },
-  { aba: 'campos_do_perfil', icone: 'olho', grupo: 'gestao',
+  { aba: 'campos_do_perfil', icone: 'olho', grupo: 'gestao', familia: 'equipe',
     titulo: 'O que o plantão vê',
     descricao: 'Liga e desliga campos do perfil para quem está no turno.' },
   { aba: 'portaria', icone: 'portaria', grupo: 'cotidiano',
     titulo: 'Portaria',
     descricao: 'Quem pode visitar cada criança, e a folha em Word para a guarita.' },
-  { aba: 'setores', icone: 'setores', grupo: 'gestao',
+  { aba: 'setores', icone: 'setores', grupo: 'gestao', familia: 'equipe',
     titulo: 'O que cada setor enxerga',
     descricao: 'A resposta escrita, sem entrar com a conta de ninguém.' },
   { aba: 'ocorrencias', icone: 'ocorrencias', grupo: 'registro',
@@ -87,43 +155,43 @@ export const PORTAS: Porta[] = [
   { aba: 'ata', icone: 'ata', grupo: 'registro',
     titulo: 'ATA',
     descricao: 'A da casa e a Geral Noturna, e o calendário com as ATAs dos dias anteriores.' },
-  { aba: 'impacto', icone: 'impacto', grupo: 'gestao',
+  { aba: 'impacto', icone: 'impacto', grupo: 'gestao', familia: 'casas',
     titulo: 'O trabalho social',
     descricao: 'As oito casas pelo que o acolhimento produziu, e não pelo turno de hoje.' },
-  { aba: 'internacao', icone: 'internacao', grupo: 'registro',
+  { aba: 'internacao', icone: 'internacao', grupo: 'registro', familia: 'saude',
     titulo: 'Internação hospitalar',
     descricao: 'Quem está no hospital, o diário do período e a medicação de lá.' },
-  { aba: 'saude', icone: 'saude', grupo: 'registro',
+  { aba: 'saude', icone: 'saude', grupo: 'registro', familia: 'saude',
     titulo: 'Saúde',
     descricao: 'Doses do dia, estoque, triagem e resumo de saúde.' },
-  { aba: 'alinhamentos', icone: 'alinhamentos', grupo: 'registro',
+  { aba: 'alinhamentos', icone: 'alinhamentos', grupo: 'registro', familia: 'equipe',
     titulo: 'Combinados da equipe',
     descricao: 'O que ficou estabelecido nas reuniões, e o que está valendo agora.' },
   { aba: 'acompanhamentos', icone: 'acompanhamentos', grupo: 'registro',
     titulo: 'Acompanhamentos',
     descricao: 'Eixos obrigatórios, aprovação e relatórios.' },
-  { aba: 'painel', icone: 'unidades', grupo: 'gestao',
+  { aba: 'painel', icone: 'unidades', grupo: 'gestao', familia: 'casas',
     titulo: 'Painel das unidades',
     descricao: 'Ocupação, entradas e saídas, e o quadro de cada mês. Sem ranking.' },
-  { aba: 'sincronizacao', icone: 'sincronizacao', grupo: 'sistema',
+  { aba: 'sincronizacao', icone: 'sincronizacao', grupo: 'sistema', familia: 'sistema',
     titulo: 'Sincronização',
     descricao: 'O que ficou pendurado entre o aparelho e o servidor, e o que espera decisão da equipe.' },
-  { aba: 'sugestoes', icone: 'lampada', grupo: 'sistema',
+  { aba: 'sugestoes', icone: 'lampada', grupo: 'sistema', familia: 'sistema',
     titulo: 'Sugestões de melhoria',
     descricao: 'O que a equipe pediu à Acolhe+AI para o sistema melhorar, com o nome de quem pediu.' },
-  { aba: 'implantacao', icone: 'pulso', grupo: 'sistema',
+  { aba: 'implantacao', icone: 'pulso', grupo: 'sistema', familia: 'sistema',
     titulo: 'Saúde da implantação',
     descricao: 'O relógio, o backup, o e-mail e a fila do Drive: o que roda sozinho está rodando?' },
-  { aba: 'arquivo', icone: 'arquivo', grupo: 'sistema',
+  { aba: 'arquivo', icone: 'arquivo', grupo: 'sistema', familia: 'guardados',
     titulo: 'Arquivo documental',
     descricao: 'Cópia do que fechou, com versões e fila de envio.' },
-  { aba: 'transferencias', icone: 'transferencias', grupo: 'sistema',
+  { aba: 'transferencias', icone: 'transferencias', grupo: 'sistema', familia: 'guardados',
     titulo: 'Transferências',
     descricao: 'Pedidos enviados e recebidos, com conversa entre coordenações.' },
-  { aba: 'cofre', icone: 'cofre', grupo: 'sistema',
+  { aba: 'cofre', icone: 'cofre', grupo: 'sistema', familia: 'guardados',
     titulo: 'Cofre de acessos',
     descricao: 'Contas do acolhido. Pede a sua senha de novo e é auditado.' },
-  { aba: 'casas', icone: 'casas', grupo: 'gestao',
+  { aba: 'casas', icone: 'casas', grupo: 'gestao', familia: 'casas',
     titulo: 'Unidades',
     descricao: 'As unidades no seu alcance.' },
 ];

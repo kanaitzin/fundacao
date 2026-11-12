@@ -7,7 +7,8 @@ import {
 } from './tema';
 import { Icone } from './icones';
 import { Cargo } from './cargos';
-import { PORTAS, GRUPOS } from './portas';
+import { PORTAS, GRUPOS, colunaCurta, irmasDe } from './portas';
+import { BarreiraDeErro } from './barreira-de-erro';
 import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
 import { CameraNesteAparelho } from './camera';
 import { DitadoNosCampos } from './ditado';
@@ -514,6 +515,57 @@ export function App() {
       return Array.isArray(lido) ? lido.filter((g): g is string => typeof g === 'string') : [];
     } catch { return []; }
   });
+  /*
+   * A COLUNA CURTA E OS ATALHOS (fase 315, pedido de 12/11: "temos muitos menus na
+   * lateral"). A coluna do monitor nasce curta: as telas irmãs viram uma entrada só
+   * (`FAMILIAS`, em `portas.ts`) e quem entra troca de irmã pela faixa do alto da tela.
+   * Quem prefere a lista inteira, como era, liga "Mostrar todas as telas", e o aparelho
+   * lembra.
+   *
+   * SOB O ENSAIO (`navigator.webdriver`) O PADRÃO É A LISTA INTEIRA: oito ensaios
+   * percorrem o sistema pelos botões da coluna, e a coluna curta os deixaria sem ver
+   * as irmãs. A coluna curta tem medição própria: o ensaio que quer medi-la grava
+   * `rede-acolher.menu = curto` antes de abrir a página (`ENSAIO_MENU=curto`).
+   */
+  const [menuCompleto, setMenuCompleto] = useState<boolean>(() => {
+    try {
+      const guardado = localStorage.getItem('rede-acolher.menu');
+      if (guardado === 'completo') return true;
+      if (guardado === 'curto') return false;
+    } catch { /* segue o padrão */ }
+    return typeof navigator !== 'undefined' && navigator.webdriver === true;
+  });
+  const guardarMenu = (completo: boolean) => {
+    setMenuCompleto(completo);
+    try { localStorage.setItem('rede-acolher.menu', completo ? 'completo' : 'curto'); } catch { /* vale até fechar */ }
+  };
+  /* Os atalhos são DA PESSOA, e não do aparelho: o tablet é da casa, e o que uma
+     educadora fixou não aparece para a colega que entra depois. */
+  const chaveDosAtalhos = me ? `rede-acolher.atalhos.${me.id}` : null;
+  const [atalhos, setAtalhos] = useState<string[]>([]);
+  useEffect(() => {
+    if (!chaveDosAtalhos) { setAtalhos([]); return; }
+    try {
+      const lido: unknown = JSON.parse(localStorage.getItem(chaveDosAtalhos) ?? '[]');
+      setAtalhos(Array.isArray(lido) ? lido.filter((x): x is string => typeof x === 'string') : []);
+    } catch { setAtalhos([]); }
+  }, [chaveDosAtalhos]);
+  const fixarAtalho = (destino: string, fixar: boolean) => {
+    setAtalhos((antes) => {
+      const depois = fixar ? (antes.includes(destino) ? antes : [...antes, destino]) : antes.filter((x) => x !== destino);
+      if (chaveDosAtalhos) {
+        try { localStorage.setItem(chaveDosAtalhos, JSON.stringify(depois)); } catch { /* vale até fechar */ }
+      }
+      return depois;
+    });
+  };
+  /* A irmã em que a pessoa esteve por último em cada família, nesta sessão: tocar na
+     família de novo volta para ela, e não para a primeira da lista. */
+  const [ultimaDaFamilia, setUltimaDaFamilia] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const familia = PORTAS.find((porta) => porta.aba === aba)?.familia;
+    if (familia && aba) setUltimaDaFamilia((antes) => (antes[familia] === aba ? antes : { ...antes, [familia]: aba }));
+  }, [aba]);
   const guardarGrupo = (cod: string, aberto: boolean) => {
     setGruposFechados((antes) => {
       const depois = aberto ? antes.filter((g) => g !== cod) : antes.includes(cod) ? antes : [...antes, cod];
@@ -1069,8 +1121,57 @@ export function App() {
           * desenhado (o CSS o esconde) e quem procura usa a folha "Mais", que
           * lê a MESMA tabela. Uma lista, duas formas.
           */}
-        <nav className="portas-lateral" aria-label="Todas as telas">
-          {GRUPOS.map((grupo) => {
+        <nav className={`portas-lateral${menuCompleto ? '' : ' coluna-curta'}`} aria-label="Todas as telas">
+          {/* OS ATALHOS DA PESSOA (fase 315): só na coluna curta, onde a irmã fixada
+              deixa de pedir dois toques. */}
+          {!menuCompleto && atalhos.some((a) => ve(a) && PORTAS.some((porta) => porta.aba === a)) && (
+            <div className="grupo atalhos">
+              <h2 className="grupo-titulo">Meus atalhos</h2>
+              {PORTAS.filter((porta) => atalhos.includes(porta.aba) && ve(porta.aba)).map((porta) => (
+                <button key={porta.aba} className={`atalho${aba === porta.aba ? ' on' : ''}`}
+                        title={porta.descricao}
+                        onClick={() => tocarAba(porta.aba)}>
+                  <Icone nome={porta.icone} /> <span className="rotulo">{porta.titulo}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!menuCompleto && GRUPOS.map((grupo) => {
+            if (grupo.cod === 'comeco') return null;
+            const dele = colunaCurta(ve).filter((entrada) => entrada.grupo === grupo.cod
+              && !(entrada.tipo === 'porta' && entrada.porta.grupo === 'comeco'));
+            if (!dele.length) return null;
+            const temAAberta = dele.some((entrada) => entrada.tipo === 'porta'
+              ? entrada.porta.aba === aba : entrada.irmas.some((irma) => irma.aba === aba));
+            const aberto = !gruposFechados.includes(grupo.cod) || temAAberta;
+            return (
+              <details key={grupo.cod} className="grupo" open={aberto}
+                       onToggle={(e) => guardarGrupo(grupo.cod, (e.currentTarget as HTMLDetailsElement).open)}>
+                <summary><h2>{grupo.titulo}</h2></summary>
+                {dele.map((entrada) => entrada.tipo === 'porta' ? (
+                  <button key={entrada.porta.aba} className={aba === entrada.porta.aba ? 'on' : ''}
+                          title={entrada.porta.descricao}
+                          onClick={() => tocarAba(entrada.porta.aba)}>
+                    <Icone nome={entrada.porta.icone} /> <span className="rotulo">{entrada.porta.titulo}</span>
+                  </button>
+                ) : (
+                  <button key={entrada.familia.cod}
+                          className={`familia${entrada.irmas.some((irma) => irma.aba === aba && !atalhos.includes(irma.aba)) ? ' on' : ''}`}
+                          title={entrada.irmas.map((irma) => irma.titulo).join(' · ')}
+                          aria-label={`${entrada.familia.titulo}: ${entrada.irmas.length} telas`}
+                          onClick={() => {
+                            const guardada = ultimaDaFamilia[entrada.familia.cod];
+                            const destino = entrada.irmas.find((irma) => irma.aba === guardada) ?? entrada.irmas[0];
+                            tocarAba(destino.aba);
+                          }}>
+                    <Icone nome={entrada.familia.icone} /> <span className="rotulo">{entrada.familia.titulo}</span>
+                    <span className="familia-conta" aria-hidden="true">{entrada.irmas.length}</span>
+                  </button>
+                ))}
+              </details>
+            );
+          })}
+          {menuCompleto && GRUPOS.map((grupo) => {
             if (grupo.cod === 'comeco') return null;
             const dele = PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba));
             if (!dele.length) return null;
@@ -1093,6 +1194,17 @@ export function App() {
             );
           })}
         </nav>
+        {/* Fora da `nav` das portas, de propósito: os ensaios apertam cada botão da
+            coluna, e este troca a forma dela. */}
+        {PORTAS.filter((porta) => ve(porta.aba)).length > colunaCurta(ve).length && (
+          <div className="menu-modo">
+            <button className="menu-modo-botao" aria-pressed={menuCompleto}
+                    onClick={() => guardarMenu(!menuCompleto)}>
+              <Icone nome={menuCompleto ? 'conferido' : 'mais'} tamanho={16} />
+              <span>{menuCompleto ? 'Mostrando todas as telas' : 'Mostrar todas as telas'}</span>
+            </button>
+          </div>
+        )}
         </div>
       )}
 
@@ -1111,6 +1223,46 @@ export function App() {
         * sobrevive à mudança de alcance.
         */}
       <main className="conteudo" data-tela={String(abaEfetiva)} key={`${me.role}:${casaAtual?.id ?? 'sem-casa'}`}>
+        {/* A BARREIRA DE ERRO (fase 315): a tela que não consegue se desenhar para
+            aqui, com o menu e o topo de pé. A `key` a refaz a cada troca de tela,
+            para o erro de uma não ficar preso na seguinte. */}
+        {/*
+          * A FAIXA DAS TELAS IRMÃS (fase 315). A tela aberta diz a que família
+          * pertence e oferece as irmãs que este cargo alcança, no monitor e no
+          * celular. É ela que deixa a coluna ter uma entrada só por família sem
+          * ninguém perder o caminho. Fica FORA da barreira de erro: se a tela
+          * quebrar, a troca para a irmã continua à mão.
+          */}
+        {(() => {
+          const daFamilia = irmasDe(String(abaEfetiva), ve);
+          if (!daFamilia) return null;
+          const fixada = atalhos.includes(String(abaEfetiva));
+          return (
+            <nav className="irmas" aria-label={`Telas de ${daFamilia.familia.titulo}`}>
+              <span className="irmas-titulo">
+                <Icone nome={daFamilia.familia.icone} tamanho={16} /> {daFamilia.familia.titulo}
+              </span>
+              <span className="irmas-lista">
+                {daFamilia.irmas.map((irma) => (
+                  <button key={irma.aba} className={abaEfetiva === irma.aba ? 'on' : ''}
+                          aria-current={abaEfetiva === irma.aba ? 'page' : undefined}
+                          title={irma.descricao}
+                          onClick={() => tocarAba(irma.aba)}>
+                    {irma.titulo}
+                  </button>
+                ))}
+              </span>
+              {!menuCompleto && (
+                <button className="irmas-fixar" aria-pressed={fixada}
+                        title={fixada ? 'Tirar esta tela dos seus atalhos da coluna' : 'Pôr esta tela nos seus atalhos, no alto da coluna'}
+                        onClick={() => fixarAtalho(String(abaEfetiva), !fixada)}>
+                  <Icone nome={fixada ? 'conferido' : 'mais'} tamanho={14} /> {fixada ? 'Nos meus atalhos' : 'Fixar nos atalhos'}
+                </button>
+              )}
+            </nav>
+          );
+        })()}
+        <BarreiraDeErro key={String(abaEfetiva)} alcance="tela" aoIrParaOInicio={() => setAba(null)}>
         {/*
           * Olhando uma casa que não é a sua: a faixa diz qual, e devolve. Sem
           * ela, quem trocou de casa lê a tela inteira achando que é a dele — e
@@ -1320,6 +1472,7 @@ export function App() {
             </p>
           </>
         )}
+        </BarreiraDeErro>
       </main>
 
       {/* A ACOLHE+AI (fase 192): minimizada em todas as telas. Ela oferece só as

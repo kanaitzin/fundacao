@@ -3068,3 +3068,64 @@ label{ letter-spacing:-.005em }
   .tabbar button{ font-size:10px; padding-left:1px; padding-right:1px; letter-spacing:-.02em }
   .navegacao .tabbar{ padding-left:3px; padding-right:3px; gap:2px }
 }
+
+/* ==========================================================================
+   A COLUNA CURTA, OS ATALHOS E A FAIXA DAS TELAS IRMÃS (fase 315)
+   --------------------------------------------------------------------------
+   A coluna do monitor mostra uma entrada por família de telas; quem entra troca
+   de irmã pela faixa do alto. Nada aqui usa cor de estado, de autor, de cargo
+   nem de casa: a faixa é moldura (linha, marca suave), e o item aberto segue o
+   botão aberto da coluna.
+   ========================================================================== */
+.irmas{
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;
+  margin:0 0 14px; padding:6px 8px 6px 12px;
+  background:var(--surface); border:1px solid var(--line); border-radius:14px;
+}
+.irmas-titulo{
+  display:inline-flex; align-items:center; gap:6px; flex:none;
+  font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+}
+.irmas-titulo .icone{ color:var(--brand) }
+.irmas-lista{ display:flex; flex-wrap:wrap; gap:4px; flex:1 1 240px; min-width:0 }
+.irmas-lista button{
+  appearance:none; border:1px solid transparent; background:transparent; color:var(--ink);
+  font:inherit; font-size:14px; font-weight:700; line-height:1.2; text-align:left;
+  min-height:40px; padding:8px 12px; border-radius:10px; cursor:pointer; max-width:100%;
+}
+.irmas-lista button:hover{ background:var(--brand-soft); color:var(--brand-ink,var(--ink)) }
+.irmas-lista button.on{ background:var(--brand-soft); border-color:var(--brand); color:var(--brand-ink,var(--ink)) }
+.irmas-fixar{
+  display:none; appearance:none; align-items:center; gap:6px; flex:none; margin-left:auto;
+  border:1px dashed var(--line-strong,var(--line)); background:transparent; color:var(--muted);
+  font:inherit; font-size:12.5px; font-weight:700; min-height:36px; padding:6px 10px; border-radius:10px; cursor:pointer;
+}
+.irmas-fixar:hover{ color:var(--ink); border-color:var(--brand) }
+.irmas-fixar[aria-pressed="true"]{ border-style:solid; border-color:var(--brand); color:var(--brand-ink,var(--ink)); background:var(--brand-soft) }
+.menu-modo{ display:none }
+@media (min-width:1080px){
+  .irmas-fixar{ display:inline-flex }
+  .portas-lateral .grupo-titulo{ padding:0 10px; margin:0 0 6px; display:flex; align-items:center; gap:8px }
+  .portas-lateral .grupo.atalhos{ margin-bottom:16px }
+  .portas-lateral button.familia .familia-conta{
+    margin-left:auto; flex:none; min-width:22px; padding:1px 6px; border-radius:999px;
+    font-size:11px; font-weight:800; line-height:1.5; text-align:center;
+    background:var(--raised); color:var(--muted); border:1px solid var(--line);
+  }
+  .portas-lateral button.familia.on .familia-conta{ background:transparent; color:inherit; border-color:currentColor; opacity:.85 }
+  .menu-modo{ display:block; margin:14px 0 4px; padding:10px 6px 0; border-top:1px solid var(--line) }
+  .menu-modo-botao{
+    appearance:none; display:flex; align-items:center; gap:8px; width:100%;
+    border:0; background:transparent; color:var(--muted); cursor:pointer;
+    font:inherit; font-size:12.5px; font-weight:700; text-align:left; min-height:36px; padding:6px 8px; border-radius:10px;
+  }
+  .menu-modo-botao:hover{ background:var(--raised); color:var(--ink) }
+}
+@media (max-width:520px){
+  .irmas{ padding:6px 8px }
+  .irmas-titulo{ flex:1 0 100% }
+  .irmas-lista button{ font-size:13.5px; padding:8px 10px }
+}
+
+/* A barreira de erro (fase 315): um cartão comum, com o título do tamanho do de uma tela. */
+.barreira-de-erro h2{ margin:0 }
