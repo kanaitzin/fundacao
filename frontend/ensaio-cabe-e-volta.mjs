@@ -235,7 +235,10 @@ for (const largura of LARGURAS) {
       const mais = pg.locator('nav.tabbar button', { hasText: 'Mais' });
       if (!(await mais.count())) return false;
       await mais.first().click({ timeout: 5000 }).catch(() => {}); await esp(pg, 300);
-      const porta = pg.locator('.overlay .sheet button.card.row').filter({ hasText: nome });
+      /* Pelo título exato: a folha Mais está em ordem alfabética (fase 315). */
+      const cartoes = pg.locator('.overlay .sheet button.card.row');
+      const exata = cartoes.filter({ has: pg.locator('b.ff', { hasText: new RegExp(`^\\s*${String(nome).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }) });
+      const porta = (await exata.count()) ? exata : cartoes.filter({ hasText: nome });
       if (!(await porta.count())) { await fecharTudo(); return false; }
       await porta.first().click({ timeout: 5000 }).catch(() => {}); await esp(pg, 800);
       return true;

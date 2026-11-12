@@ -53,15 +53,22 @@ export interface Familia {
   titulo: string;
   icone: string;
   grupo: Porta['grupo'];
+  /**
+   * A tela que a família abre no primeiro toque. Sem isto ela abria a primeira da
+   * lista, e tocar em Saúde levava à Internação hospitalar (achado do teste da
+   * ordem alfabética, em 12/11). Quem não alcança a principal abre a primeira irmã
+   * em ordem alfabética.
+   */
+  principal: string;
 }
 
 export const FAMILIAS: Familia[] = [
-  { cod: 'plantao', titulo: 'Plantão', icone: 'bussola', grupo: 'cotidiano' },
-  { cod: 'saude', titulo: 'Saúde', icone: 'saude', grupo: 'registro' },
-  { cod: 'equipe', titulo: 'Equipe', icone: 'equipe', grupo: 'gestao' },
-  { cod: 'casas', titulo: 'As casas', icone: 'unidades', grupo: 'gestao' },
-  { cod: 'guardados', titulo: 'Arquivo e acessos', icone: 'arquivo', grupo: 'sistema' },
-  { cod: 'sistema', titulo: 'Sistema', icone: 'sincronizacao', grupo: 'sistema' },
+  { cod: 'plantao', titulo: 'Plantão', icone: 'bussola', grupo: 'cotidiano', principal: 'plantao' },
+  { cod: 'saude', titulo: 'Saúde', icone: 'saude', grupo: 'registro', principal: 'saude' },
+  { cod: 'equipe', titulo: 'Equipe', icone: 'equipe', grupo: 'gestao', principal: 'equipe' },
+  { cod: 'casas', titulo: 'As casas', icone: 'unidades', grupo: 'gestao', principal: 'casas' },
+  { cod: 'guardados', titulo: 'Arquivo e acessos', icone: 'arquivo', grupo: 'sistema', principal: 'arquivo' },
+  { cod: 'sistema', titulo: 'Sistema', icone: 'sincronizacao', grupo: 'sistema', principal: 'sincronizacao' },
 ];
 
 /** Uma linha da coluna curta: uma porta sozinha, ou uma família com as irmãs que o cargo vê. */
@@ -89,6 +96,13 @@ export function colunaCurta(ve: (aba: string) => boolean): EntradaDaColuna[] {
   return saida;
 }
 
+/** A irmã que a família abre: a guardada desta sessão, a principal, ou a primeira de A a Z. */
+export function irmaQueAbre(familia: Familia, irmas: Porta[], guardada?: string): Porta {
+  return irmas.find((irma) => irma.aba === guardada)
+    ?? irmas.find((irma) => irma.aba === familia.principal)
+    ?? porOrdemAlfabetica(irmas, (irma) => irma.titulo)[0];
+}
+
 /** As irmãs da tela aberta que o cargo alcança; vazio quando ela não tem irmã à vista. */
 export function irmasDe(aba: string, ve: (aba: string) => boolean): { familia: Familia; irmas: Porta[] } | null {
   const porta = PORTAS.find((p) => p.aba === aba);
@@ -96,6 +110,18 @@ export function irmasDe(aba: string, ve: (aba: string) => boolean): { familia: F
   const irmas = PORTAS.filter((p) => p.familia === porta.familia && ve(p.aba));
   if (irmas.length < 2) return null;
   return { familia: FAMILIAS.find((f) => f.cod === porta.familia)!, irmas };
+}
+
+/**
+ * A ORDEM ALFABÉTICA DOS MENUS (pedido de 12/11: "dentro do dia a dia poderia ficar
+ * de A a Z, pensando na facilidade"). Vale para os itens de cada grupo da coluna, para
+ * os atalhos, para a faixa das telas irmãs e para a folha Mais do celular. O nome é
+ * comparado como está escrito na tela, sem diferença de acento nem de maiúscula:
+ * quem procura lê a primeira letra do que vê. As abas do turno ficam na ordem do
+ * plantão, e o Guia continua sendo o primeiro.
+ */
+export function porOrdemAlfabetica<T>(itens: T[], nome: (item: T) => string): T[] {
+  return [...itens].sort((a, b) => nome(a).localeCompare(nome(b), 'pt-BR', { sensitivity: 'base' }));
 }
 
 /** Como cada grupo se chama na barra lateral. */

@@ -58,7 +58,10 @@ await pg.waitForTimeout(1200);
 async function abrirDoMais(nome) {
   await pg.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
   await pg.waitForTimeout(350);
-  await pg.locator('.overlay .sheet button.card.row', { hasText: nome }).first().click();
+  /* Pelo título exato: a folha Mais está em ordem alfabética (fase 315). */
+  const cartoes = pg.locator('.overlay .sheet button.card.row');
+  const exata = cartoes.filter({ has: pg.locator('b.ff', { hasText: new RegExp(`^\\s*${String(nome).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }) });
+  await ((await exata.count()) ? exata : cartoes.filter({ hasText: nome })).first().click();
   await pg.waitForTimeout(1200);
 }
 

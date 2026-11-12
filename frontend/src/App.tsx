@@ -7,7 +7,7 @@ import {
 } from './tema';
 import { Icone } from './icones';
 import { Cargo } from './cargos';
-import { PORTAS, GRUPOS, colunaCurta, irmasDe } from './portas';
+import { PORTAS, GRUPOS, colunaCurta, irmasDe, irmaQueAbre, porOrdemAlfabetica } from './portas';
 import { BarreiraDeErro } from './barreira-de-erro';
 import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
 import { CameraNesteAparelho } from './camera';
@@ -769,11 +769,14 @@ export function App() {
      é a única área que depende da marca. */
   const ve = (area: string) => (area === 'implantacao' && me.role === 'coordenador'
     ? !!me.todasAsCasas : alcanca(me.role, area));
-  /* A folha Mais, filtrada pelo que a pessoa escreveu. A ORDEM é a da tabela de
-     portas, a de sempre: quem já sabe onde o cartão fica continua achando, e os
-     ensaios entram pelo primeiro cartão com o nome. */
+  /* A folha Mais, filtrada pelo que a pessoa escreveu. A ORDEM é a alfabética
+     (pedido de 12/11), com o Guia na frente, que é o Comece aqui. Os ensaios entram
+     pelo cartão com o nome EXATO, e não mais pelo primeiro que contém o nome. */
   const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const portasDoMais = PORTAS.filter((porta) => ve(porta.aba))
+  const portasDoMais = [
+    ...PORTAS.filter((porta) => porta.grupo === 'comeco'),
+    ...porOrdemAlfabetica(PORTAS.filter((porta) => porta.grupo !== 'comeco'), (porta) => porta.titulo),
+  ].filter((porta) => ve(porta.aba))
     .filter((porta) => !buscaMais.trim()
       || semAcento(`${porta.titulo} ${porta.descricao}`).includes(semAcento(buscaMais.trim())));
   const administra = ve('equipe');
@@ -1175,7 +1178,7 @@ export function App() {
           {!menuCompleto && atalhos.some((a) => ve(a) && PORTAS.some((porta) => porta.aba === a)) && (
             <div className="grupo atalhos">
               <h2 className="grupo-titulo">Meus atalhos</h2>
-              {PORTAS.filter((porta) => atalhos.includes(porta.aba) && ve(porta.aba)).map((porta) => (
+              {porOrdemAlfabetica(PORTAS.filter((porta) => atalhos.includes(porta.aba) && ve(porta.aba)), (porta) => porta.titulo).map((porta) => (
                 <button key={porta.aba} className={`atalho${aba === porta.aba ? ' on' : ''}`}
                         title={porta.descricao}
                         onClick={() => tocarAba(porta.aba)}>
@@ -1186,8 +1189,9 @@ export function App() {
           )}
           {!menuCompleto && GRUPOS.map((grupo) => {
             if (grupo.cod === 'comeco') return null;
-            const dele = colunaCurta(ve).filter((entrada) => entrada.grupo === grupo.cod
-              && !(entrada.tipo === 'porta' && entrada.porta.grupo === 'comeco'));
+            const dele = porOrdemAlfabetica(colunaCurta(ve).filter((entrada) => entrada.grupo === grupo.cod
+              && !(entrada.tipo === 'porta' && entrada.porta.grupo === 'comeco')),
+              (entrada) => (entrada.tipo === 'porta' ? entrada.porta.titulo : entrada.familia.titulo));
             if (!dele.length) return null;
             const temAAberta = dele.some((entrada) => entrada.tipo === 'porta'
               ? entrada.porta.aba === aba : entrada.irmas.some((irma) => irma.aba === aba));
@@ -1208,9 +1212,7 @@ export function App() {
                           title={entrada.irmas.map((irma) => irma.titulo).join(' · ')}
                           aria-label={`${entrada.familia.titulo}: ${entrada.irmas.length} telas`}
                           onClick={() => {
-                            const guardada = ultimaDaFamilia[entrada.familia.cod];
-                            const destino = entrada.irmas.find((irma) => irma.aba === guardada) ?? entrada.irmas[0];
-                            tocarAba(destino.aba);
+                            tocarAba(irmaQueAbre(entrada.familia, entrada.irmas, ultimaDaFamilia[entrada.familia.cod]).aba);
                           }}>
                     <Icone nome={entrada.familia.icone} /> <span className="rotulo">{entrada.familia.titulo}</span>
                     <span className="familia-conta" aria-hidden="true">{entrada.irmas.length}</span>
@@ -1221,7 +1223,7 @@ export function App() {
           })}
           {menuCompleto && GRUPOS.map((grupo) => {
             if (grupo.cod === 'comeco') return null;
-            const dele = PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba));
+            const dele = porOrdemAlfabetica(PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba)), (porta) => porta.titulo);
             if (!dele.length) return null;
             /* O GRUPO SE RECOLHE (fase 314): quem tem vinte e tantas telas na coluna
                fecha os grupos que não usa no turno, e o aparelho lembra. O grupo da
@@ -1291,7 +1293,7 @@ export function App() {
                 <Icone nome={daFamilia.familia.icone} tamanho={16} /> {daFamilia.familia.titulo}
               </span>
               <span className="irmas-lista">
-                {daFamilia.irmas.map((irma) => (
+                {porOrdemAlfabetica(daFamilia.irmas, (irma) => irma.titulo).map((irma) => (
                   <button key={irma.aba} className={abaEfetiva === irma.aba ? 'on' : ''}
                           aria-current={abaEfetiva === irma.aba ? 'page' : undefined}
                           title={irma.descricao}

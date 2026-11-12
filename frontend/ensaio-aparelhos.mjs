@@ -529,7 +529,10 @@ async function asFolhas(navegador) {
     for (const [tela, viaMais] of [...telas.map((t) => [t, false]), ...doMais.map((t) => [t, true])]) {
       if (viaMais) {
         await mais.click(); await esp(pg, 400);
-        await pg.locator('.overlay .sheet button.card.row', { hasText: tela }).first().click().catch(() => undefined);
+        /* Pelo título exato: a folha Mais está em ordem alfabética (fase 315). */
+        await pg.locator('.overlay .sheet button.card.row')
+          .filter({ has: pg.locator('b.ff', { hasText: new RegExp(`^\\s*${String(tela).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }) })
+          .first().click().catch(() => undefined);
       } else await pg.locator('nav.tabbar button', { hasText: tela }).first().click();
       await esp(pg, 900);
       const n = await pg.locator('main.conteudo [data-acolhe-abre]').count();

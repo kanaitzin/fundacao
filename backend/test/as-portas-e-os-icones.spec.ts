@@ -25,6 +25,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const FRONT = join(__dirname, '..', '..', 'frontend', 'src');
+import { porOrdemAlfabetica, colunaCurta, irmaQueAbre } from '../../frontend/src/portas';
+
 const portasTs = readFileSync(join(FRONT, 'portas.ts'), 'utf8');
 const iconesTsx = readFileSync(join(FRONT, 'icones.tsx'), 'utf8');
 const appTsx = readFileSync(join(FRONT, 'App.tsx'), 'utf8');
@@ -193,7 +195,7 @@ describe('As portas do sistema e os desenhos delas', () => {
    */
   describe('as famílias de telas irmãs', () => {
     const familias = [...portasTs.slice(portasTs.indexOf('export const FAMILIAS'), portasTs.indexOf('export type EntradaDaColuna'))
-      .matchAll(/\{ cod: '([a-z_]+)', titulo: '([^']+)', icone: '([a-z_]+)', grupo: '([a-z]+)' \}/g)]
+      .matchAll(/\{ cod: '([a-z_]+)', titulo: '([^']+)', icone: '([a-z_]+)', grupo: '([a-z]+)', principal: '[a-z_]+' \}/g)]
       .map((m) => ({ cod: m[1], titulo: m[2], icone: m[3], grupo: m[4] }));
     const daPorta = (aba: string) => {
       const corpo = portasTs.slice(portasTs.indexOf('export const PORTAS'));
@@ -238,6 +240,56 @@ describe('As portas do sistema e os desenhos delas', () => {
       const nav = appTsx.slice(appTsx.indexOf('<nav className={`portas-lateral'), appTsx.indexOf('<div className="menu-modo">'));
       expect(nav).toContain('</nav>');
       expect(nav).not.toContain('guardarMenu(');
+    });
+  });
+
+  /*
+   * A ORDEM ALFABÉTICA DOS MENUS (pedido de 12/11: "dentro do dia a dia poderia
+   * ficar de A a Z, pensando na facilidade"). O que esta cobrança guarda é alguém
+   * acrescentar uma lista de telas nova ao `App.tsx` e esquecer de ordená-la: a
+   * coluna ficaria em ordem numa parte e fora de ordem na outra.
+   */
+  describe('os menus em ordem alfabética', () => {
+    it('a ordem não diferencia acento nem maiúscula, e não muda a lista que recebeu', () => {
+      const nomes = ['Saúde', 'ATA', 'Ocorrências', 'acompanhamentos', 'Água'];
+      expect(porOrdemAlfabetica(nomes, (n) => n)).toEqual(['acompanhamentos', 'Água', 'ATA', 'Ocorrências', 'Saúde']);
+      expect(nomes[0]).toBe('Saúde');
+    });
+
+    it('a coluna, os atalhos, a faixa das irmãs e a folha Mais passam pela ordem', () => {
+      /* Quatro listas na coluna (os atalhos, a curta e a completa) e na faixa, e a da
+         folha Mais: toda vez que o App percorre portas para desenhar menu. */
+      expect((appTsx.match(/porOrdemAlfabetica\(/g) ?? []).length).toBeGreaterThanOrEqual(5);
+      expect(appTsx).toMatch(/porOrdemAlfabetica\(daFamilia\.irmas/);
+      expect(appTsx).toMatch(/porOrdemAlfabetica\(colunaCurta\(ve\)/);
+      /* O Guia continua na frente na folha Mais: é o Comece aqui. */
+      expect(appTsx).toMatch(/PORTAS\.filter\(\(porta\) => porta\.grupo === 'comeco'\),\s*\.\.\.porOrdemAlfabetica/);
+    });
+
+    it('a família abre na tela principal dela, e não na primeira da lista', () => {
+      /* Tocar em Saúde na coluna abre a Saúde, e não a Internação hospitalar, que vem
+         antes na tabela e no alfabeto. Era assim na primeira versão da coluna curta. */
+      const curta = colunaCurta(() => true);
+      const abre = (cod: string, guardada?: string) => {
+        const e = curta.find((x) => x.tipo === 'familia' && x.familia.cod === cod);
+        return e && e.tipo === 'familia' ? irmaQueAbre(e.familia, e.irmas, guardada).aba : null;
+      };
+      expect(abre('saude')).toBe('saude');
+      expect(abre('equipe')).toBe('equipe');
+      expect(abre('plantao')).toBe('plantao');
+      /* A irmã em que a pessoa esteve por último nesta sessão vem antes da principal. */
+      expect(abre('saude', 'internacao')).toBe('internacao');
+      /* Quem não alcança a principal abre a primeira irmã de A a Z. */
+      const semEquipe = colunaCurta((aba) => aba !== 'equipe').find((x) => x.tipo === 'familia' && x.familia.cod === 'equipe');
+      expect(semEquipe && semEquipe.tipo === 'familia'
+        ? irmaQueAbre(semEquipe.familia, semEquipe.irmas).aba : null).toBe('alinhamentos');
+    });
+
+    it('a tela principal de toda família é uma irmã dela', () => {
+      for (const e of colunaCurta(() => true)) {
+        if (e.tipo !== 'familia') continue;
+        expect([e.familia.cod, e.irmas.some((irma) => irma.aba === e.familia.principal)]).toEqual([e.familia.cod, true]);
+      }
     });
   });
 

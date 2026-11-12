@@ -142,7 +142,14 @@ async function doMais(nome) {
   }
   await m.first().click();
   await pg.waitForTimeout(350);
-  const porta = pg.locator('.overlay .sheet button.card.row', { hasText: nome });
+  /* PELO NOME EXATO (fase 315): a folha Mais está em ordem alfabética, e o primeiro
+     cartão que CONTÉM "Equipe" é o Combinados da equipe. O título do cartão decide;
+     só sem título igual vale o cartão que contém o nome. */
+  const cartoes = pg.locator('.overlay .sheet button.card.row');
+  const exata = typeof nome === 'string'
+    ? cartoes.filter({ has: pg.locator('b.ff', { hasText: new RegExp(`^\\s*${String(nome).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }) })
+    : cartoes.filter({ hasText: nome });
+  const porta = (await exata.count()) ? exata : cartoes.filter({ hasText: nome });
   if (!(await porta.count())) {
     await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
     return false;

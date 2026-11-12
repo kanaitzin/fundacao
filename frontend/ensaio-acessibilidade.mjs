@@ -226,7 +226,7 @@ await pg.waitForTimeout(700);
   else {
     await pg.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
     await pg.waitForTimeout(350);
-    await pg.locator('.overlay .sheet button.card.row', { hasText: 'ATA' }).first().click();
+    await pg.locator('.overlay .sheet button.card.row').filter({ has: pg.locator('b.ff', { hasText: /^\s*ATA\s*$/ }) }).first().click();
   }
   await pg.waitForTimeout(900);
   await pg.getByRole('tab', { name: /Atas do Mês/ }).click();
