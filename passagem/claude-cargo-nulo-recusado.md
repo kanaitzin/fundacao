@@ -1,9 +1,9 @@
 # Frente: o banco recusa quem chega sem cargo, a passagem de turno entre as contas e o e-mail com apresentação
 
 - **Branch:** `claude/cargo-nulo-recusado` (aberto a partir do `cf6ea5b`, a ponta da frente do visual em 12/11)
-- **Atualizado em:** 2026-11-12T14:52-03:00
+- **Atualizado em:** 2026-11-12T20:11-03:00
 - **Situação:** esperando o dono (o código está pronto e medido; falta o fechamento nos documentos, que é da frente do visual)
-- **Fase:** 316, reservada. Não está escrita em documento nenhum ainda.
+- **Fase:** 317. Tinha reservado a 316, que a frente do visual usou para o plantão no celular (fechada no `aec3b29`). Não está escrita em documento nenhum ainda.
 - **Pedido do dono:** em 12/11, *veja o que você pode fazer sem entrar no que ele está fazendo* (a outra conta ajusta o visual do perfil e dos menus); e depois, *crie uma pasta em que você e a outra conta consigam ver o que está sendo feito quando o limite acaba*; e *o sistema consegue mandar uma mensagem bonita quando pedirem uma senha nova no esqueci?*
 
 ## O que está sendo feito agora
@@ -21,7 +21,7 @@ Nada pela metade. O que falta é de quem fechar a fase, na ordem:
    `CLAUDE.md` e do `session-start.sh`, em trechos que a 315 não mexeu).
 2. Pedir a revisão da 1717 ao `banco-de-dados` e ao `auditor-seguranca-lgpd`, como toda
    migração de segurança. Não foram chamados aqui.
-3. Fechar a 316 nos documentos: a linha no §2 do `docs/REDE-ACOLHER.md`, a linha no alto das
+3. Fechar a 317 nos documentos: a linha no §2 do `docs/REDE-ACOLHER.md`, a linha no alto das
    Novidades, o *O que fazer agora* do `CLAUDE.md` (a guarda de cargo nulo da 1634 sai da
    lista do que ficou do A4), e os números. O `numeros-da-documentacao` reprova até lá.
 
