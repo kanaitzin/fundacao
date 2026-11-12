@@ -96,7 +96,7 @@ discordavam entre si.
 | **1561 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
-| **14 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
+| **15 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
 | protótipo com **≈9517 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
