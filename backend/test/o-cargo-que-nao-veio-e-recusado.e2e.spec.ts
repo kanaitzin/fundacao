@@ -73,7 +73,7 @@ describe('O cargo que não veio é recusado', () => {
 
   it('o cargo de quem chama só mora em app_current_role() ou na variável v_role', async () => {
     /* A cobrança acima procura esses dois nomes. Guardar o cargo noutra variável a deixaria cega. */
-    const { rows } = await admin.query(
+    const { rows } = await admin.query(String.raw
       `SELECT p.proname AS funcao, m[1] AS variavel
          FROM pg_proc p
          JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -87,7 +87,7 @@ describe('O cargo que não veio é recusado', () => {
   it('a guarda está de pé: o conserto alcançou as funções que comparam o cargo', async () => {
     /* Sem a 1717 esta contagem é zero, e a primeira cobrança é que reprova. Com ela, um número
        baixo aqui diria que a expressão da cobrança deixou de achar o que procura. */
-    const { rows } = await admin.query(
+    const { rows } = await admin.query(String.raw
       `SELECT count(*)::int AS n
          FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
         WHERE n.nspname = 'public'
