@@ -5,8 +5,8 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-12T20:11-03:00
-- **Situação:** fechada a 316, no commit `aec3b29`. Nada em andamento.
+- **Atualizado em:** 2026-11-12T23:37-03:00
+- **Situação:** em andamento: a 317, assumida depois de o limite da conta que a escreveu acabar.
 - **Fase:** 315 e 316, as duas fechadas. A próxima livre é a 317, reservada para o que está no branch `claude/cargo-nulo-recusado`.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
@@ -43,6 +43,8 @@ Nenhum achado, e nenhum código mudou depois do `6d67a49`.
 `cabe` dos outros sete cargos, a letra Maior e a simulação contra o servidor.
 
 ## Para quem chegar
+
+- **A 317 foi assumida em 12/11, às 23h37, a partir do `a8933e4`**, pela conta que escreveu a 315 e a 316, a pedido do dono (*pode continuar e finalizar, lá acabou o limite*). O código está todo escrito; falta a medida (a suíte nas duas condições, o `ensaio:uso` e o do celular sobre o protótipo de agora, que gerado de novo sai igual) e as revisões da 1717 pelo `banco-de-dados` e pelo `auditor-seguranca-lgpd`, que estão rodando. Depois, o `MEDIDO-317` no `CLAUDE.md`, o commit que fecha e a publicação da 316 e da 317 no site, que o dono autorizou.
 
 - Dois `ensaio:cabe` ao mesmo tempo se atrapalham: um saiu com erro e sem registro, e sozinho
   passou. Um de cada vez.
