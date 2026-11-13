@@ -81,7 +81,7 @@ describe('Corrigir o cadastro depois da admissão', () => {
   afterAll(async () => {
     // Os fixtures saem por SAÍDA, não por DELETE: é assim que a instituição
     // encerra um acolhimento, e é o que mantém a contagem das outras suítes.
-    for (const id of [ids.crianca, ids.comJudicial].filter(Boolean)) {
+    for (const id of [ids.crianca, ids.comJudicial, ids.outra].filter(Boolean)) {
       await request(http).post(`/api/v1/people/${id}/discharge`)
         .set(auth(tokens.coord)).send({ motivo: 'Encerramento de fixture de teste' });
     }
@@ -215,6 +215,45 @@ describe('Corrigir o cadastro depois da admissão', () => {
     const doEducador = await request(http).get(`/api/v1/people/${ids.comJudicial}/judicial`)
       .set(auth(tokens.educador));
     expect([403, 404]).toContain(doEducador.status);
+  });
+
+  /*
+   * O CPF QUE CHEGOU DEPOIS (fase 318). A criança que entra sem CPF fica com a
+   * pendência no perfil; o CPF entra por esta correção, só com os números, só se
+   * fechar a conta, e nunca com o número de outra criança.
+   */
+  it('o CPF que chegou depois entra só com os números, e a pendência sai', async () => {
+    const res = await corrigir(tokens.tecnica,
+      { cpf: '318.318.318-80', motivo: 'O CPF chegou depois do ingresso.' });
+    expect(res.status).toBe(201);
+    const { rows: [p] } = await admin.query(
+      `SELECT cpf, cpf_pending FROM person WHERE id = $1`, [ids.crianca]);
+    expect(p).toEqual({ cpf: '31831831880', cpf_pending: false });
+    /* E o histórico diz que mudou, sem o número. */
+    const cpf = (await correcoes(tokens.educador)).find((c: any) => c.campo === 'CPF');
+    expect(cpf).toMatchObject({ antes: '(estava em branco)', depois: '(passou a ter CPF)' });
+    expect(JSON.stringify(cpf)).not.toMatch(/318/);
+  });
+
+  it('o CPF que não fecha a conta é recusado, e o cadastrado continua', async () => {
+    const res = await corrigir(tokens.tecnica,
+      { cpf: '318.318.318-81', motivo: 'Teste do número trocado.' });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/CPF inválido/);
+    const { rows: [p] } = await admin.query(`SELECT cpf FROM person WHERE id = $1`, [ids.crianca]);
+    expect(p.cpf).toBe('31831831880');
+  });
+
+  it('o CPF de outra criança é recusado com frase, e não com erro do banco', async () => {
+    const outra = await request(http).post('/api/v1/people').set(auth(tokens.tecnica))
+      .send({ houseId: ids.AI3, fullName: 'Lise Ribero (fictícia)', birthDate: '2017-05-02',
+              provisionalReason: 'Ingresso de teste automatizado — dados fictícios' });
+    expect(outra.status).toBe(201);
+    ids.outra = outra.body.personId;
+    const res = await request(http).post(`/api/v1/people/${ids.outra}/corrigir-identificacao`)
+      .set(auth(tokens.tecnica)).send({ cpf: '31831831880', motivo: 'O CPF chegou depois do ingresso.' });
+    expect(res.status).toBe(409);
+    expect(res.body.message).toMatch(/outra criança/);
   });
 
   it('tudo ficou auditado, com autor e sem o conteúdo (regra 6, §20)', async () => {

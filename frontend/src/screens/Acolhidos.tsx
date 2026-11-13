@@ -28,6 +28,7 @@ import { QUEM_POE_FOTO } from '../../../backend/src/modules/people/foto.regra';
 import { Explica } from '../explica';
 import { FolhaFrequencia, COR_DA_FREQUENCIA } from './Dia';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
+import { isValidCpf } from '../../../backend/src/kernel/common/cpf';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -306,6 +307,9 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
   const [acervo, setAcervo] = useState<Acervo | null>(null);
   const [vendoAcervo, setVendoAcervo] = useState(false);
   const [retornando, setRetornando] = useState<NoAcervo | null>(null);
+  /* O cadastro que achou a criança no acervo pelo CPF (fase 318) leva direto ao
+     retorno dela: o acervo abre, e a folha do retorno abre sozinha nela. */
+  const [retornoDe, setRetornoDe] = useState<string | null>(null);
   /* Quem está com a família (1010), e quem já devia ter voltado. */
   const [fora, setFora] = useState<Convivencia[]>([]);
   const [recebendo, setRecebendo] = useState<Convivencia | null>(null);
@@ -343,6 +347,12 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
   /* Entrar no acervo só muda o estado; a leitura vem daqui (fase 196: o botão de
      entrar tem a marca de entrada da Acolhe+AI, e o clique dele só pode mudar estado). */
   useEffect(() => { if (vendoAcervo) void carregarAcervo(); }, [vendoAcervo, carregarAcervo]);
+  useEffect(() => {
+    if (!retornoDe || !acervo) return;
+    const quem = acervo.pessoas.find((x) => x.id === retornoDe);
+    if (quem) setRetornando(quem);
+    setRetornoDe(null);
+  }, [retornoDe, acervo]);
 
   /**
    * Registrar o retorno.
@@ -372,6 +382,10 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
       <>
         <button className="btn sm ghost" onClick={() => setCadastrando(false)}>← Acolhidos</button>
         <Cadastro houseId={houseId} casaLabel={casaLabel}
+                  onAbrirPerfil={(personId) => { setCadastrando(false); setAbertoId(personId); }}
+                  onRegistrarRetorno={REGISTRA_SAIDA.includes(papel)
+                    ? (personId) => { setCadastrando(false); setRetornoDe(personId); setVendoAcervo(true); }
+                    : undefined}
                   onPronto={async (personId, msg) => {
                     setCadastrando(false); setAviso(msg);
                     await carregar();
@@ -960,6 +974,14 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             O CPF continua pendente — enquanto estiver assim, documento, benefício e
             matrícula esbarram nisso.
           </div>
+          {/* O CPF que chegou entra por aqui (fase 318): o aviso dizia que faltava e
+              não levava a lugar nenhum. */}
+          {QUEM_CADASTRA.includes(papel) && (
+            <button className="btn sm sec" style={{ marginTop: 8 }}
+                    onClick={() => setCorrigindo(true)}>
+              Pôr o CPF
+            </button>
+          )}
         </div>
       )}
 
@@ -2927,9 +2949,18 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
   perfil: Perfil; onFechar: () => void;
   onCorrigir: (d: { nome?: string; nomeSocial?: string | null; nascimento?: string;
                     rg?: string | null; cns?: string | null; filiacao?: string | null;
-                    motivo: string }) => void;
+                    cpf?: string; motivo: string }) => void;
 }) {
   const [nome, setNome] = useState(perfil.nomeCivil ?? perfil.nome);
+  /*
+   * O CPF QUE CHEGOU DEPOIS (fase 318). A criança que entrou sem CPF ficava com
+   * a pendência no perfil e nenhum campo para resolvê-la. Aqui ele entra com o
+   * motivo, como o resto da identificação, e só se o número fechar a conta.
+   */
+  const [cpf, setCpf] = useState('');
+  const digitosCpf = cpf.replace(/\D/g, '');
+  const cpfCerto = digitosCpf.length === 11 && isValidCpf(digitosCpf);
+  const cpfAvisa = digitosCpf.length > 0 && !cpfCerto;
   const [social, setSocial] = useState(perfil.nome ?? '');
   const [nascimento, setNascimento] = useState(String(perfil.nascimento ?? '').slice(0, 10));
   /*
@@ -2943,7 +2974,7 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
   const [cns, setCns] = useState(perfil.cns ?? '');
   const [filiacao, setFiliacao] = useState(perfil.filiacao ?? '');
   const [motivo, setMotivo] = useState('');
-  const pode = motivo.trim().length >= 10 && nome.trim().length >= 2 && nascimento !== '';
+  const pode = motivo.trim().length >= 10 && nome.trim().length >= 2 && nascimento !== '' && !cpfAvisa;
   /* O que o papel conferido sugere (fase 235): só preenche os campos marcados; quem corrige é a pessoa. */
   const preencher = (campos: Partial<Record<CampoDoPapel, string>>, papel: string) => {
     if (campos.nome) setNome(campos.nome);
@@ -2980,6 +3011,31 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
         <input id="cor-nasc" type="date" value={nascimento}
                onChange={(e) => setNascimento(e.target.value)} />
 
+        <label className="f" htmlFor="cor-cpf">
+          CPF <small>{perfil.cpfPendente
+            ? '— o cadastro está sem CPF: escreva aqui quando ele chegar'
+            : '— deixe em branco para manter o que está cadastrado'}</small>
+        </label>
+        <input id="cor-cpf" inputMode="numeric" maxLength={18} value={cpf} autoFocus={perfil.cpfPendente}
+               aria-invalid={cpfAvisa && digitosCpf.length >= 11 ? true : undefined}
+               placeholder="000.000.000-00"
+               onChange={(e) => {
+                 const v = e.target.value; setCpf(v);
+                 const d = v.replace(/\D/g, '');
+                 if (perfil.cpfPendente && d.length === 11 && isValidCpf(d)) {
+                   setMotivo((m) => m.trim() ? m : 'O CPF chegou depois do ingresso.');
+                 }
+               }} />
+        {cpfAvisa && (
+          <p className={digitosCpf.length >= 11 ? 'notice c-warn' : 'mutetxt'} role="status" style={{ marginTop: 4 }}>
+            {digitosCpf.length < 11
+              ? `Falta${11 - digitosCpf.length === 1 ? '' : 'm'} ${quantos(11 - digitosCpf.length, 'número', 'números')}.`
+              : digitosCpf.length > 11
+                ? `O CPF tem 11 números, e aqui há ${digitosCpf.length}.`
+                : 'Este CPF não confere: algum número foi digitado trocado. Confira no documento.'}
+          </p>
+        )}
+
         <label className="f" htmlFor="cor-rg">RG</label>
         <input id="cor-rg" value={rg} onChange={(e) => setRg(e.target.value)}
                placeholder="deixe em branco se ainda não tem" />
@@ -3007,6 +3063,7 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
             nome: nome.trim(), nomeSocial: social.trim() || null,
             nascimento,
             rg: rg.trim() || null, cns: cns.trim() || null, filiacao: filiacao.trim() || null,
+            ...(cpfCerto ? { cpf: digitosCpf } : {}),
             motivo: motivo.trim(),
           })}>
             Corrigir, com este motivo

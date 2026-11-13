@@ -1,10 +1,10 @@
 import { COLUNAS_DO_CONTATO, contatoParaTela } from './contatos.service';
 import { CAMPOS_DO_PERFIL } from './campos-do-perfil';
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-import { maskCpf } from '../../kernel/common/cpf';
+import { isValidCpf, maskCpf, normalizeCpf } from '../../kernel/common/cpf';
 import { quantos } from '../../kernel/common/quantos';
 
 /** Categorias que cada papel pode ABRIR (§6.8). Espelha app_can_open_doc no banco. */
@@ -352,7 +352,17 @@ export class ProfileService {
     if (input.nome !== undefined) campos.full_name = input.nome;
     if (input.nomeSocial !== undefined) campos.social_name = input.nomeSocial;
     if (input.nascimento !== undefined) campos.birth_date = input.nascimento;
-    if (input.cpf !== undefined) campos.cpf = input.cpf;
+    /*
+     * O CPF que chegou depois (fase 318): só os números, e só se fecharem a conta
+     * (a mesma do cadastro). Sem isto a correção gravava o CPF com pontos ou com
+     * um dígito trocado, e o repetido caía na trava do banco como erro sem frase.
+     */
+    if (input.cpf !== undefined && input.cpf !== null && String(input.cpf).trim() !== '') {
+      const cpf = normalizeCpf(String(input.cpf));
+      if (!isValidCpf(cpf)) throw new BadRequestException('CPF inválido. Confira os números digitados.');
+      campos.cpf = cpf;
+    }
+    /* CPF em branco não apaga o que está cadastrado: correção corrige, não esvazia. */
     /*
      * Os três da lista da casa. A rota fala português — `filiacao`, e não
      * `filiation` — porque quem lê o contrato de rotas é quem escreve a tela,
@@ -391,6 +401,11 @@ export class ProfileService {
         throw new BadRequestException(
           'Nome civil e data de nascimento não podem ficar em branco. Se o que está lá é '
           + 'provisório, corrija para o que a certidão diz.');
+      }
+      if (e?.code === '23505' && m.includes('uq_person_cpf')) {
+        throw new ConflictException(
+          'Este CPF já está no cadastro de outra criança. Confira o número; se for a mesma '
+          + 'criança, fale com a coordenação antes de seguir.');
       }
       if (m.includes('campo_nao_corrigivel')) {
         throw new BadRequestException('Este campo não se corrige por aqui.');

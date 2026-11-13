@@ -196,6 +196,8 @@ interface Kid {
   restricoesExtras?: any[];
   cuidado?: string; serie: string; turno: string;
   semCpf?: boolean; provisorio?: string;
+  /** O CPF, só os números (fase 318): é por ele que o cadastro confere se a criança já tem perfil. */
+  cpfNumero?: string;
   judicial?: Record<string, string>;
   /* Os campos que vieram da lista que a equipe técnica mantinha à mão. */
   rg?: string; cns?: string; filiacao?: string;
@@ -4335,8 +4337,10 @@ const NOVOS: Kid[] = [];
  */
 interface NoAcervo { kid: Kid; saiuEm: string; motivo: string; episodios: number }
 const ACERVO: NoAcervo[] = [
+  /* O CPF da Marina (fase 318) deixa a demonstração mostrar o que o cadastro faz
+     com quem já esteve na casa: digitar 987.654.321-00 leva ao retorno dela. */
   { kid: { id: 'ac1', nome: 'Marina', civil: 'Marina', idade: 13,
-           nascimento: '2013-04-18' } as Kid,
+           nascimento: '2013-04-18', cpfNumero: '98765432100' } as Kid,
     saiuEm: new Date(Date.now() - 47 * 86_400_000).toISOString(),
     motivo: 'Reintegração familiar, com acompanhamento da rede de origem.', episodios: 1 },
   { kid: { id: 'ac2', nome: 'Tiago', civil: 'Tiago', idade: 16,
@@ -10024,7 +10028,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return todosKids().map((k) => ({
       id: k.id, nome: k.nome, nomeCivil: k.civil, idade: k.idade, nascimento: k.nascimento,
       temFoto: !!k.foto,
-      cpf: k.semCpf ? null : '***.***.123-**', cpfPendente: !!k.semCpf,
+      cpf: k.semCpf ? null : `***.***.${k.cpfNumero?.slice(6, 9) ?? '123'}-**`, cpfPendente: !!k.semCpf,
       alertasEssenciais: alertasDe(k).length, restricoesAlimentares: restricoesDe(k).length,
       /* Onde ela está — o FATO e o lugar, para todo mundo da casa. Nunca o
        * motivo, que continua atrás do alcance da internação. */
@@ -10053,12 +10057,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
   if (rota === '/people/check-cpf') {
+    /* A MESMA CONFERÊNCIA DO SERVIDOR (fase 318). Até aqui todo CPF que terminava
+       em 0 fingia ser de uma criança do acervo, e o cadastro travava no número que
+       todo mundo digita para testar (123.456.789-00). Agora o número tem de fechar
+       a conta, e o perfil existente é procurado pelo CPF que está cadastrado. */
     const digitos = String(b.cpf ?? '').replace(/\D/g, '');
-    if (digitos.length !== 11) return new Recusa(400, 'CPF inválido. Confira os números digitados.');
-    // No protótipo: um CPF terminado em 0 finge ser alguém que já tem perfil.
-    if (digitos.endsWith('0')) {
-      return { situacao: 'no_acervo', personId: 'p01',
+    if (!cpfConfere(digitos)) return new Recusa(400, 'CPF inválido. Confira os números digitados.');
+    const saiu = ACERVO.find((a) => a.kid.cpfNumero === digitos);
+    if (saiu) {
+      return { situacao: 'no_acervo', personId: saiu.kid.id,
                acao: 'Iniciar retorno — novo episódio no mesmo perfil' };
+    }
+    const aqui = todosKids().find((k) => k.cpfNumero === digitos);
+    if (aqui) {
+      return { situacao: 'ativo_mesma_casa', personId: aqui.id,
+               acao: 'Abrir o perfil existente nesta casa' };
     }
     return { situacao: 'livre', personId: null, acao: 'Cadastrar novo acolhido' };
   }
@@ -10103,6 +10116,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'descreva a justificativa. Ela fica registrada com o seu nome.');
     }
     const semCpf = !String(b.pessoa?.cpf ?? '').trim();
+    const cpfNumero = String(b.pessoa?.cpf ?? '').replace(/\D/g, '');
+    if (!semCpf && !cpfConfere(cpfNumero)) return new Recusa(400, 'CPF inválido. Confira os números digitados.');
+    if (!semCpf && [...todosKids(), ...ACERVO.map((a) => a.kid)].some((k) => k.cpfNumero === cpfNumero)) {
+      return new Recusa(409, 'Já existe cadastro com este CPF. Abra o perfil existente em vez de duplicar.');
+    }
     const nasc = String(b.pessoa?.birthDate ?? HOJE);
     const novo: Kid = {
       id: uid(), nome: b.pessoa?.socialName || b.pessoa?.fullName,
@@ -10110,6 +10128,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       idade: Math.max(0, new Date().getFullYear() - Number(nasc.slice(0, 4))),
       cuidado: b.pessoa?.essentialCare, serie: '—', turno: '—',
       semCpf, provisorio: semCpf ? `PROV-${uid().toUpperCase()}` : undefined,
+      cpfNumero: semCpf ? undefined : cpfNumero,
       /* A identificação complementar que o cadastro pede (fase 253): sem isto a
          criança cadastrada no protótipo perdia o gênero, a naturalidade e o NIS. */
       genero: b.pessoa?.gender || undefined, raca: b.pessoa?.race || undefined,
@@ -10185,6 +10204,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       if (enviado !== undefined && (enviado || null) !== atual) {
         trocas.push([chave, rotulo, atual, enviado ? String(enviado) : null]);
         (k as any)[chave] = enviado ? String(enviado) : undefined;
+      }
+    }
+    /* O CPF que chegou depois (fase 318): a mesma conferência do servidor, e a
+       lista de correções diz que mudou sem mostrar o número. */
+    if (b.cpf !== undefined && b.cpf !== null && String(b.cpf).trim() !== '') {
+      const d = String(b.cpf).replace(/\D/g, '');
+      if (!cpfConfere(d)) return new Recusa(400, 'CPF inválido. Confira os números digitados.');
+      if (d !== k.cpfNumero) {
+        if ([...todosKids(), ...ACERVO.map((a) => a.kid)].some((x) => x.id !== k.id && x.cpfNumero === d)) {
+          return new Recusa(409, 'Este CPF já está no cadastro de outra criança. Confira o número; se for a mesma '
+            + 'criança, fale com a coordenação antes de seguir.');
+        }
+        trocas.push(['cpf', 'CPF', k.semCpf ? '(estava em branco)' : '(havia um CPF)',
+                     '(passou a ter CPF)']);
+        k.cpfNumero = d; k.semCpf = false; k.provisorio = undefined;
       }
     }
     if (b.nome !== undefined && String(b.nome).trim() !== k.civil) {

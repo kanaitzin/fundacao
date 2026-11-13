@@ -5647,6 +5647,86 @@ console.log('\n🧒 A criança cadastrada pela tela (fase 253)');
 }
 
 /*
+ * O CPF NO CADASTRO (fase 318, pedido de 13/11: "coloquei um número e não passei
+ * pra outra tela"). No protótipo, todo CPF terminado em 0 fingia ser de uma
+ * criança do acervo, e o cadastro travava sem botão; o número com um dígito a
+ * mais mandava tocar num Conferir apagado; e a criança que entrava sem CPF não
+ * tinha onde receber o CPF depois. Aqui, os três caminhos de ponta a ponta.
+ */
+console.log('\n🪪 O CPF no cadastro (fase 318)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  const esp = (ms = 700) => pgC.waitForTimeout(ms);
+  const mainC = () => pgC.locator('main.conteudo');
+  const texto = async () => (await mainC().innerText().catch(() => '')).replace(/\s+/g, ' ');
+  await pgC.goto(`file://${ARQUIVO}`); await esp();
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgC.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  const abrirCadastro = async () => {
+    await pgC.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+    const volta = mainC().getByRole('button', { name: /← Acolhidos/ });
+    if (await volta.count()) { await volta.first().click(); await esp(); }
+    await mainC().getByRole('button', { name: /^Cadastrar acolhido/ }).click(); await esp();
+  };
+  const ateCadastrar = async (nome) => {
+    await pgC.locator('#nome').fill(nome); await pgC.locator('#nasc').fill('2015-08-20');
+    await mainC().getByRole('button', { name: /^Continuar$/ }).click(); await esp(400);
+    if (await pgC.locator('#mcap').count()) await pgC.locator('#mcap').fill('Irmão de acolhido já na casa; separar os dois seria pior.');
+    await mainC().getByRole('button', { name: /^Continuar$/ }).click(); await esp(400);
+    for (const id of ['mot', 'org']) {
+      const v = await pgC.locator(`#${id} option`).evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
+      await pgC.locator(`#${id}`).selectOption(v[0]);
+    }
+    await mainC().getByRole('button', { name: /^Continuar$/ }).click(); await esp(400);
+    await mainC().getByRole('button', { name: /^Cadastrar acolhido$/ }).click(); await esp(1500);
+  };
+
+  await abrirCadastro();
+  await pgC.locator('#cpf').pressSequentially('123.456.789-00', { delay: 20 }); await esp();
+  cobrar('o CPF inventado diz junto do campo que não confere, e oferece seguir sem CPF',
+    /Este CPF não confere/.test(await texto())
+      && await mainC().locator('.cpf-nao-confere').getByRole('button', { name: 'Seguir sem CPF por enquanto' }).isVisible());
+  await pgC.locator('#cpf').fill('529.982.247-251'); await esp(400);
+  {
+    const t = await texto();
+    cobrar('o número com um dígito a mais diz quantos números tem, e não manda tocar no Conferir apagado',
+      /O CPF tem 11 números, e aqui há 12/.test(t) && !/Toque em Conferir/.test(t), t.slice(0, 600));
+  }
+  await pgC.locator('#cpf').fill('123.456.789-00'); await esp(400);
+  await mainC().locator('.cpf-nao-confere').getByRole('button', { name: 'Seguir sem CPF por enquanto' }).click(); await esp(300);
+  await mainC().getByRole('button', { name: 'Chegou sem documentos' }).click(); await esp(300);
+  cobrar('tocar num motivo pronto preenche o motivo do cadastro sem CPF',
+    (await pgC.locator('#msc').inputValue()) === 'Chegou sem documentos.');
+  await ateCadastrar('Celina Ensaio da Rosa');
+  cobrar('o cadastro sem CPF grava e o perfil diz que o CPF está pendente',
+    /Celina/.test(await texto()) && /Cadastro sem CPF/.test(await texto()));
+  await mainC().getByRole('button', { name: 'Pôr o CPF' }).click(); await esp(400);
+  await pgC.locator('#cor-cpf').pressSequentially('318.777.318-46', { delay: 15 }); await esp(300);
+  await pgC.locator('[role=dialog]').getByRole('button', { name: /Corrigir, com este motivo/ }).click(); await esp(900);
+  cobrar('o CPF que chegou depois entra pelo perfil, e a pendência some', !/Cadastro sem CPF/.test(await texto()));
+
+  await abrirCadastro();
+  await pgC.locator('#cpf').pressSequentially('31877731846', { delay: 15 }); await esp(900);
+  cobrar('o CPF de quem já está na casa diz isso', /Esta criança já está nesta casa/.test(await texto()));
+  await mainC().getByRole('button', { name: 'Abrir o perfil dela' }).click(); await esp(900);
+  cobrar('e o botão abre o perfil dela, sem uma segunda ficha', /Celina/.test(await texto()));
+
+  await abrirCadastro();
+  await pgC.locator('#cpf').pressSequentially('987.654.321-00', { delay: 15 }); await esp(900);
+  cobrar('o CPF de quem está no acervo, mesmo terminado em 0, leva ao retorno dela',
+    /está no acervo/.test(await texto()));
+  await mainC().getByRole('button', { name: 'Registrar o retorno' }).click(); await esp(1200);
+  cobrar('e a folha do retorno abre na criança certa',
+    /Registrar o retorno de Marina/.test(await pgC.locator('[role=dialog]').innerText().catch(() => '')));
+  cobrar('nenhuma exceção no CPF do cadastro', errosC.length === 0, errosC[0]);
+  await pgC.close();
+}
+
+/*
  * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
  * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.
  * Antes, a mesma linha entrava duas vezes na ATA, e a linha da ATA não se apaga.

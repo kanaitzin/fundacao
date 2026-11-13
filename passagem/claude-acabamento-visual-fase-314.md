@@ -5,9 +5,9 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-13T09:10-03:00
-- **Situação:** fechada a 317 (o código da outra conta, mais a identity/1718 e os achados das duas revisões). Nada em andamento.
-- **Fase:** 315, 316 e 317, fechadas. A próxima livre é a 318.
+- **Atualizado em:** 2026-11-13T12:40-03:00
+- **Situação:** fechada a 318 (o cadastro do acolhido não trava no CPF), esperando o sim do dono para ir ao site (o site está na 317).
+- **Fase:** 315 a 318, fechadas. A próxima livre é a 319.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora
@@ -43,6 +43,8 @@ Nenhum achado, e nenhum código mudou depois do `6d67a49`.
 `cabe` dos outros sete cargos, a letra Maior e a simulação contra o servidor.
 
 ## Para quem chegar
+
+- **Desde 13/11 a equipe do Pão está usando o protótipo publicado** (o dono: *o sistema não pode mais ficar offline*). Publicar continua sendo empurrar para o `claude/work-system-code-ready-0e3hh2`, e só com a suíte verde nas duas condições e o `ensaio:uso` sem reprovação: o que for ao ar é o que eles abrem.
 
 - **A 317 foi assumida em 12/11, às 23h37, a partir do `a8933e4`**, pela conta que escreveu a 315 e a 316, a pedido do dono (*pode continuar e finalizar, lá acabou o limite*). O código está todo escrito; falta a medida (a suíte nas duas condições, o `ensaio:uso` e o do celular sobre o protótipo de agora, que gerado de novo sai igual) e as revisões da 1717 pelo `banco-de-dados` e pelo `auditor-seguranca-lgpd`, que estão rodando. Depois, o `MEDIDO-317` no `CLAUDE.md`, o commit que fecha e a publicação da 316 e da 317 no site, que o dono autorizou.
 

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, ErroApi } from '../api';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
+import { isValidCpf } from '../../../backend/src/kernel/common/cpf';
 
 /**
  * CADASTRO COMPLETO DO ACOLHIDO (§6.1, §13.1).
@@ -44,8 +45,24 @@ const CPF_BLOQUEIA: Record<string, boolean> = {
   livre: false, no_acervo: true, ativo_mesma_casa: true, ativo_outra_casa: true,
 };
 
-export function Cadastro({ houseId, casaLabel, onPronto }: {
+/*
+ * OS MOTIVOS PRONTOS DO CADASTRO SEM CPF (fase 318). O motivo continua
+ * obrigatório, porque é ele que vira a pendência do perfil; mas a pessoa com a
+ * criança na porta toca em vez de escrever, e pode completar depois.
+ */
+const MOTIVOS_SEM_CPF = [
+  'Chegou sem documentos.',
+  'Os documentos ficaram com a família.',
+  'O CPF ainda não foi emitido.',
+  'O número do CPF não está à mão agora.',
+];
+
+export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegistrarRetorno }: {
   houseId: string; casaLabel: string; onPronto: (personId: string, aviso: string) => void;
+  /** A criança já está nesta casa: abre o perfil dela, no lugar de cadastrar de novo. */
+  onAbrirPerfil?: (personId: string) => void;
+  /** A criança está no acervo: abre o retorno dela, que é episódio novo no mesmo perfil. */
+  onRegistrarRetorno?: (personId: string) => void;
 }) {
   const [passo, setPasso] = useState(0);
   const [opcoes, setOpcoes] = useState<Opcoes | null>(null);
@@ -121,12 +138,26 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
      porque, com o CPF digitado, nada acontecia até tocar em Conferir, e o resto
      da folha só aparecia depois. Com os onze números, a conferência sai sozinha. */
   const digitosDoCpf = cpf.replace(/\D/g, '');
+  /* E O NÚMERO É CONFERIDO AQUI MESMO (fase 318): o CPF digitado errado ia ao
+     servidor, voltava recusado no alto da tela, e quem estava olhando o campo não
+     via nada. A conta dos dígitos é a mesma do servidor (`kernel/common/cpf.ts`). */
+  const cpfCompleto = digitosDoCpf.length === 11;
+  const cpfNumeroCerto = cpfCompleto && isValidCpf(digitosDoCpf);
+  const seguirSemCpf = () => { setSemCpf(true); setConfere(null); setErro(''); };
   useEffect(() => {
-    if (semCpf || digitosDoCpf.length !== 11 || confere || ocupado) return;
+    if (semCpf || !cpfNumeroCerto || confere || ocupado) return;
     const t = setTimeout(() => { void conferirCpf(cpf); }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [digitosDoCpf, semCpf]);
+  const cpfBloqueado = !semCpf && confere !== null && CPF_BLOQUEIA[confere.situacao];
+  /* O AVISO DO CPF VEM PARA A VISTA (fase 318): no celular, a barra do pé cobria o
+     aviso e o botão que resolve, e a pessoa via só a primeira linha. */
+  const avisoDoCpf = useRef<HTMLDivElement | null>(null);
+  const cpfComAviso = !semCpf && ((cpfCompleto && !cpfNumeroCerto) || cpfBloqueado);
+  useEffect(() => {
+    if (cpfComAviso) avisoDoCpf.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  }, [cpfComAviso]);
   /* Sem CPF, a identificação aparece na hora: o motivo continua obrigatório para
      seguir, e a frase acima do botão diz o que falta. */
   const mostraIdentificacao = semCpf || (confere !== null && !CPF_BLOQUEIA[confere.situacao]);
@@ -226,58 +257,112 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
           <div className="eyebrow">Antes de tudo: esta criança já tem perfil?</div>
           <div className="card">
             <p className="mutetxt" style={{ marginTop: 0 }}>
-              Cadastrar de novo quem já tem perfil parte o histórico em dois — e é o
-              histórico partido que faz a audiência perguntar o que o sistema deveria saber.
+              O CPF mostra se a criança já tem perfil, para a história dela não se partir em
+              duas fichas.
             </p>
 
-            <label className="check">
-              <input type="checkbox" checked={semCpf}
-                     onChange={(e) => { setSemCpf(e.target.checked); setConfere(null); }} />
-              <span>Chegou sem CPF</span>
-            </label>
-
-            {semCpf ? (
-              <>
-                <label className="f" htmlFor="msc">
-                  Motivo do ingresso urgente <small>— vira pendência até o CPF aparecer</small>
-                </label>
-                <textarea id="msc" rows={2} value={motivoSemCpf}
-                          onChange={(e) => setMotivoSemCpf(e.target.value)}
-                          placeholder="Ex.: chegada às 23h pelo Conselho Tutelar, sem documentos com a criança." />
-              </>
-            ) : (
+            {!semCpf && (
               <>
                 <label className="f" htmlFor="cpf">CPF</label>
                 <div className="row" style={{ gap: 8 }}>
-                  <input id="cpf" className="field grow" inputMode="numeric" value={cpf}
-                         onChange={(e) => { setCpf(e.target.value); setConfere(null); }}
-                         onKeyDown={(e) => { if (e.key === 'Enter' && digitosDoCpf.length === 11) void conferirCpf(); }}
+                  <input id="cpf" className="field grow" inputMode="numeric" value={cpf} maxLength={18}
+                         aria-invalid={cpfCompleto && !cpfNumeroCerto ? true : undefined}
+                         onChange={(e) => { setCpf(e.target.value); setConfere(null); setErro(''); }}
+                         onKeyDown={(e) => { if (e.key === 'Enter' && cpfNumeroCerto) void conferirCpf(); }}
                          placeholder="000.000.000-00" />
-                  <button className="btn sec" disabled={digitosDoCpf.length !== 11 || ocupado}
+                  <button className="btn sec" disabled={!cpfNumeroCerto || ocupado}
                           onClick={() => void conferirCpf()}>
                     {ocupado ? 'Conferindo…' : 'Conferir'}
                   </button>
                 </div>
-                {!confere && (
+                {!confere && !(cpfCompleto && !cpfNumeroCerto) && (
                   <p className="mutetxt" role="status">
                     {digitosDoCpf.length === 0 ? 'Digite os 11 números: a conferência sai sozinha.'
                       : digitosDoCpf.length < 11 ? `Falta${11 - digitosDoCpf.length === 1 ? '' : 'm'} ${quantos(11 - digitosDoCpf.length, 'número', 'números')}.`
-                        : ocupado ? 'Conferindo o CPF…' : 'Toque em Conferir.'}
+                        : digitosDoCpf.length > 11 ? `O CPF tem 11 números, e aqui há ${digitosDoCpf.length}. Confira o que foi digitado.`
+                          : 'Conferindo o CPF…'}
                   </p>
+                )}
+
+                {/* O número que não fecha a conta diz isso junto do campo, e oferece a saída. */}
+                {cpfCompleto && !cpfNumeroCerto && (
+                  <div className="notice c-warn cpf-nao-confere" role="status" ref={avisoDoCpf}>
+                    <b>Este CPF não confere.</b>
+                    <div>
+                      Algum número foi digitado trocado: confira no documento. Se o documento não
+                      está à mão, a criança entra assim mesmo, e o CPF se completa depois.
+                    </div>
+                    <button type="button" className="btn sm sec" style={{ marginTop: 8 }}
+                            onClick={seguirSemCpf}>
+                      Seguir sem CPF por enquanto
+                    </button>
+                  </div>
                 )}
 
                 {confere && (
                   <div className={`notice ${CPF_BLOQUEIA[confere.situacao] ? 'c-warn' : 'c-ok'}`}
-                       role="status">
-                    <b>{confere.acao}</b>
+                       role="status" ref={CPF_BLOQUEIA[confere.situacao] ? avisoDoCpf : undefined}>
+                    <b>{confere.situacao === 'livre' ? 'CPF conferido: nenhuma criança com este CPF.'
+                      : confere.situacao === 'ativo_mesma_casa' ? 'Esta criança já está nesta casa.'
+                        : confere.situacao === 'no_acervo' ? 'Esta criança já esteve acolhida e está no acervo.'
+                          : 'Esta criança está acolhida em outra casa.'}</b>
                     {CPF_BLOQUEIA[confere.situacao] && (
-                      <div className="mutetxt">
-                        Este cadastro não continua por aqui — é o mesmo perfil, e o caminho
-                        certo é o retorno ou a transferência, que preservam o histórico.
-                      </div>
+                      <>
+                        <div>
+                          {confere.situacao === 'ativo_mesma_casa'
+                            ? 'Cadastrar de novo criaria uma segunda ficha para a mesma criança. Abra o perfil dela.'
+                            : confere.situacao === 'no_acervo'
+                              ? 'O retorno abre um acolhimento novo no mesmo perfil, com a história de antes junto.'
+                              : 'A coordenação das duas casas combina a transferência, que leva a história dela junto.'}
+                          {' '}Se o número foi digitado errado, corrija o CPF acima.
+                        </div>
+                        <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                          {confere.situacao === 'ativo_mesma_casa' && confere.personId && onAbrirPerfil && (
+                            <button type="button" className="btn sm"
+                                    onClick={() => onAbrirPerfil(confere.personId!)}>
+                              Abrir o perfil dela
+                            </button>
+                          )}
+                          {confere.situacao === 'no_acervo' && confere.personId && onRegistrarRetorno && (
+                            <button type="button" className="btn sm"
+                                    onClick={() => onRegistrarRetorno(confere.personId!)}>
+                              Registrar o retorno
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
+              </>
+            )}
+
+            <label className="check">
+              <input type="checkbox" checked={semCpf}
+                     onChange={(e) => { setSemCpf(e.target.checked); setConfere(null); setErro(''); }} />
+              <span>Seguir sem CPF por enquanto <small>— chegou sem documento, ou o número não está à mão</small></span>
+            </label>
+
+            {semCpf && (
+              <>
+                <label className="f" htmlFor="msc">
+                  Por que entra sem CPF <small>— vira uma pendência no perfil, até o CPF chegar</small>
+                </label>
+                {/* Tocar resolve: a pessoa com a criança na porta não precisa escrever. */}
+                <div className="row motivos-prontos" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                  {MOTIVOS_SEM_CPF.map((m) => (
+                    <button key={m} type="button" className={`btn sm ${motivoSemCpf === m ? '' : 'sec'}`}
+                            aria-pressed={motivoSemCpf === m} onClick={() => setMotivoSemCpf(m)}>
+                      {m.replace(/\.$/, '')}
+                    </button>
+                  ))}
+                </div>
+                <textarea id="msc" rows={2} value={motivoSemCpf}
+                          onChange={(e) => setMotivoSemCpf(e.target.value)}
+                          placeholder="Ou escreva: chegada às 23h pelo Conselho Tutelar, sem documentos com a criança." />
+                <p className="mutetxt" style={{ marginBottom: 0 }}>
+                  Quando o CPF chegar, ele entra pelo perfil da criança, em Documentos, no Corrigir o cadastro.
+                </p>
               </>
             )}
           </div>
@@ -499,8 +584,12 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
             {passo === 0
               ? (!cpfResolvido
                   ? (semCpf
-                      ? `Escreva o motivo do ingresso urgente, com pelo menos 10 letras.${motivoSemCpf.trim().length ? ` Falta${10 - motivoSemCpf.trim().length === 1 ? '' : 'm'} ${quantos(10 - motivoSemCpf.trim().length, 'letra', 'letras')}.` : ''}`
-                      : 'Digite o CPF para conferir, ou marque "Chegou sem CPF" e escreva o motivo do ingresso urgente.')
+                      ? `Toque num dos motivos, ou escreva por que a criança entra sem CPF, com pelo menos 10 letras.${motivoSemCpf.trim().length ? ` Falta${10 - motivoSemCpf.trim().length === 1 ? '' : 'm'} ${quantos(10 - motivoSemCpf.trim().length, 'letra', 'letras')}.` : ''}`
+                      : cpfBloqueado
+                        ? 'Esta criança já tem perfil: use o botão no aviso acima, ou corrija o CPF.'
+                        : (cpfCompleto && !cpfNumeroCerto) || digitosDoCpf.length > 11
+                          ? 'Confira o CPF, ou toque em Seguir sem CPF por enquanto.'
+                          : 'Digite o CPF, ou marque Seguir sem CPF por enquanto.')
                   : 'Falta o nome completo e a data de nascimento.')
               : passo === 1
                 ? (cheia ? 'A casa está no limite de vagas: escreva a justificativa, com pelo menos 15 letras, e a data do acolhimento.'

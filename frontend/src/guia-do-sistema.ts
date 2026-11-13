@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 318, dia: '13/11/2026',
+    texto: 'O cadastro de acolhido ficou mais fácil. O CPF é conferido enquanto se digita: se algum número estiver trocado, a tela diz na hora, junto do campo, e oferece Seguir sem CPF por enquanto, com motivos prontos para tocar. Se a criança já tem perfil, o aviso traz o botão para abrir o perfil dela ou registrar o retorno, no lugar de uma segunda ficha. E a criança que entrou sem CPF ganha, no perfil, o botão Pôr o CPF, para completar quando o documento chegar.' },
   { fase: 317, dia: '13/11/2026',
     texto: 'O e-mail do convite e o do esqueci minha senha agora chegam com o logo do Pão dos Pobres, um botão para criar a senha, o prazo do link em destaque e o endereço por extenso para quem preferir copiar. Na hora de criar ou trocar a senha, a tela diz numa frase só o que ainda falta. E a conta desativada passa a ser recusada logo na primeira conferência de cada registro.' },
   { fase: 316, dia: '12/11/2026',
