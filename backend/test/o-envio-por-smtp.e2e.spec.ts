@@ -21,6 +21,10 @@ import request from 'supertest';
 import { createServer, Server, Socket } from 'net';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { emHtml } from '../src/modules/identity/mensagem-do-email';
+import { CID_DO_LOGO, LOGO_DO_EMAIL } from '../src/modules/identity/logo-do-email';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -176,6 +180,100 @@ describe('O envio por SMTP', () => {
     /* E o log disse que saiu, para quem, sem o link. */
     expect(logs.some((l) => l.includes(`e-mail enviado para ${p.email}`))).toBe(true);
     expect(logs.join('\n')).not.toContain(token!);
+  });
+
+  it('a mensagem sai em texto e com apresentação, com o logo da Fundação dentro, o mesmo link e nada buscado de fora', async () => {
+    const cap = servidorDeCaptura();
+    smtp(await cap.abrir());
+    const p = await novaPessoa();
+    const r = await convidar(p.id);
+    await cap.fechar();
+    expect(r.status).toBe(201);
+    const corpo = texto(cap.recebidos[0].dados);
+
+    /* As duas versões na mesma mensagem: quem não mostra HTML lê o texto de sempre. */
+    expect(corpo).toMatch(/Content-Type: multipart\/alternative/i);
+    expect(corpo).toMatch(/Content-Type: text\/plain/i);
+    expect(corpo).toMatch(/Content-Type: text\/html/i);
+    const html = corpo.slice(corpo.search(/<!DOCTYPE html>/i), corpo.search(/<\/html>/i));
+    expect(html).toContain('Escolher a minha senha');
+    expect(html).toContain('Fundação O Pão dos Pobres');
+
+    /* O mesmo link nas duas, e só ele: nenhum outro endereço, imagem, script ou formulário. */
+    const links = [...corpo.matchAll(/convite=([A-Za-z0-9_-]+)/g)].map((m) => m[1]);
+    expect(links.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(links).size).toBe(1);
+    const enderecos = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+    expect(enderecos.length).toBeGreaterThan(0);
+    for (const e of enderecos) expect(e).toMatch(/\/entrar\?convite=/);
+    expect(html).not.toMatch(/<script|<form|<link|@import|url\(/i);
+
+    /* A única imagem é o logo, e ele vai DENTRO da mensagem: a etiqueta aponta para a parte
+       de mesmo nome, e essa parte é o logo da tela, byte por byte. */
+    const imagens = [...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((m) => m[1]);
+    expect(imagens).toEqual([`cid:${CID_DO_LOGO}`]);
+    expect(html).toContain('alt="Fundação O Pão dos Pobres"');
+    expect(cap.recebidos[0].dados).toMatch(new RegExp(`Content-ID: <${CID_DO_LOGO}>`, 'i'));
+    expect(cap.recebidos[0].dados).toMatch(/Content-Disposition: inline/i);
+    expect(LOGO_DO_EMAIL.equals(readFileSync(join(__dirname, '../../frontend/src/assets/logo.png')))).toBe(true);
+  });
+
+  it('o nome de quem recebe entra na mensagem como texto, nunca como HTML', () => {
+    const html = emHtml({
+      resumo: 'r', nome: 'Ana <img src=x onerror=alert(1)> & "Cia"', titulo: 't', antes: ['a'],
+      botao: 'b', link: 'https://exemplo.dev/entrar?convite=abc&x="1"', validade: 'v', depois: ['d'],
+    });
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('Ana &lt;img src=x onerror=alert(1)&gt; &amp; &quot;Cia&quot;');
+    expect(html).toContain('href="https://exemplo.dev/entrar?convite=abc&amp;x=&quot;1&quot;"');
+  });
+
+  it('pela API do Gmail, a mesma mensagem sai num pedido só, e o log não leva a autorização nem o link', async () => {
+    for (const k of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']) delete process.env[k];
+    Object.assign(process.env, {
+      EMAIL_MODO: 'gmail', EMAIL_REMETENTE: 'Rede Acolher <nao-responda@paodospobres.dev>',
+      GMAIL_TOKEN: 'autorizacao-de-teste-123',
+    });
+    const pedidos: { url: string; init: any }[] = [];
+    const deVerdade = global.fetch;
+    global.fetch = (async (url: any, init: any) => {
+      pedidos.push({ url: String(url), init });
+      return new Response(JSON.stringify({ id: 'mensagem-1' }), { status: 200 });
+    }) as any;
+    let r: any, p: { id: string; email: string };
+    try {
+      p = await novaPessoa();
+      r = await convidar(p.id);
+    } finally { global.fetch = deVerdade; }
+    expect(r.status).toBe(201);
+
+    expect(pedidos).toHaveLength(1);
+    expect(pedidos[0].url).toBe('https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
+    expect(pedidos[0].init.headers.authorization).toBe('Bearer autorizacao-de-teste-123');
+    const inteira = Buffer.from(JSON.parse(pedidos[0].init.body).raw, 'base64url').toString('utf8');
+    expect(inteira).toMatch(new RegExp(`^To: ${p!.email}`, 'm'));
+    expect(inteira).toMatch(/Content-Type: multipart\/alternative/i);
+    expect(inteira).toMatch(new RegExp(`Content-ID: <${CID_DO_LOGO}>`, 'i'));
+    const token = texto(inteira).match(/convite=([A-Za-z0-9_-]+)/)?.[1];
+    expect(token).toBeTruthy();
+
+    expect(logs.some((l) => l.includes(`e-mail enviado para ${p!.email}`) && l.includes('gmail mensagem-1'))).toBe(true);
+    expect(logs.join('\n')).not.toContain(token!);
+    expect(logs.join('\n')).not.toContain('autorizacao-de-teste-123');
+  });
+
+  it('pela API do Gmail, a autorização recusada responde em português, com 503', async () => {
+    Object.assign(process.env, {
+      EMAIL_MODO: 'gmail', EMAIL_REMETENTE: 'Rede Acolher <nao-responda@paodospobres.dev>',
+      GMAIL_TOKEN: 'autorizacao-vencida',
+    });
+    const deVerdade = global.fetch;
+    global.fetch = (async () => new Response('{}', { status: 401 })) as any;
+    let r: any;
+    try { r = await convidar((await novaPessoa()).id); } finally { global.fetch = deVerdade; }
+    expect(r.status).toBe(503);
+    expect(r.body.message).toMatch(/não saiu/);
+    expect(logs.some((l) => l.includes('NÃO saiu · gmail 401'))).toBe(true);
   });
 
   it('com conta e senha do SMTP, entra com elas', async () => {

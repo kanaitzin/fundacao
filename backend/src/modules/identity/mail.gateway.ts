@@ -1,9 +1,11 @@
 import { Inject, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
-import { mkdirSync, appendFileSync } from 'node:fs';
+import { mkdirSync, appendFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTransport, type Transporter } from 'nodemailer';
+import MailComposer from 'nodemailer/lib/mail-composer';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { anotarImplantacao } from '../../kernel/implantacao/anotar';
+import { CID_DO_LOGO, LOGO_DO_EMAIL } from './logo-do-email';
 
 /**
  * PORTA PARA O E-MAIL INSTITUCIONAL.
@@ -26,6 +28,8 @@ export interface Mensagem {
   para: string;
   assunto: string;
   corpo: string;
+  /** A mesma mensagem com apresentação (`mensagem-do-email.ts`). O texto vai sempre junto. */
+  html?: string;
 }
 
 /*
@@ -35,6 +39,11 @@ export interface Mensagem {
  *             `SMTP_USER`, `SMTP_PASS` e `EMAIL_REMETENTE`. Sem remetente, NÃO
  *             envia: e-mail sem remetente institucional cai em spam ou é
  *             recusado, e o convite some calado;
+ *   gmail   — a mesma mensagem, entregue pela API do Gmail em HTTPS (12/11),
+ *             para a máquina de onde a porta de e-mail não sai. Pede
+ *             `EMAIL_REMETENTE` e `GMAIL_TOKEN`, a autorização da conta que
+ *             envia. A autorização é curta (cerca de uma hora): serve ao ensaio
+ *             e à demonstração; o servidor instalado usa o `smtp`;
  *   falha   — para o teste do servidor que não responde.
  *
  * STARTTLS é EXIGIDO por padrão (`SMTP_EXIGIR_TLS`): o convite leva um link
@@ -63,17 +72,81 @@ export class MailGateway {
       throw new Error('Servidor de e-mail indisponível (modo de teste)');
     }
     if (process.env.EMAIL_MODO === 'smtp') return this.porSmtp(m);
+    if (process.env.EMAIL_MODO === 'gmail') return this.pelaApiDoGmail(m);
     mkdirSync(this.caixa, { recursive: true });
     appendFileSync(
       join(this.caixa, 'caixa-de-saida.txt'),
       `\n=== ${new Date().toISOString()} ===\nPara: ${m.para}\nAssunto: ${m.assunto}\n\n${m.corpo}\n`,
       'utf8',
     );
+    /* A última mensagem com apresentação, para abrir no navegador e ver como chega.
+       Mora na mesma caixa local do texto, que nunca sai para a rede. */
+    if (m.html) {
+      /* No arquivo, o logo vai escrito no próprio endereço da imagem: o navegador
+         não conhece o `cid:` de uma mensagem. */
+      const paraVer = m.html.replace(`cid:${CID_DO_LOGO}`, `data:image/png;base64,${LOGO_DO_EMAIL.toString('base64')}`);
+      writeFileSync(join(this.caixa, 'ultima-mensagem.html'), paraVer, 'utf8');
+    }
     // Metadado, não conteúdo: destinatário e assunto bastam para investigar
     // "o convite saiu?" sem que o log vire a chave da porta.
     this.log.log(`e-mail enfileirado para ${m.para} — ${m.assunto}`);
     await this.anotar(true);
     return { ok: true };
+  }
+
+  /** A mensagem como ela sai: o texto, a apresentação e o logo dentro dela. */
+  private partes(m: Mensagem, remetente: string) {
+    return {
+      from: remetente, to: m.para, subject: m.assunto, text: m.corpo,
+      /* O logo viaja dentro da mensagem, como parte do HTML (`cid:`), e vem da
+         memória: o transporte não lê arquivo nem endereço (ver `smtp`). */
+      ...(m.html ? {
+        html: m.html,
+        attachments: [{
+          filename: 'pao-dos-pobres.png', content: LOGO_DO_EMAIL, contentType: 'image/png',
+          cid: CID_DO_LOGO, contentDisposition: 'inline' as const,
+        }],
+      } : {}),
+    };
+  }
+
+  /*
+   * PELA API DO GMAIL. A mensagem é montada inteira aqui, igual à do SMTP, e
+   * entregue num pedido HTTPS só. O log leva o destinatário, o assunto e o
+   * código da resposta; nunca o corpo, o link nem a autorização.
+   */
+  private async pelaApiDoGmail(m: Mensagem): Promise<{ ok: true }> {
+    const remetente = process.env.EMAIL_REMETENTE?.trim();
+    const autorizacao = process.env.GMAIL_TOKEN?.trim();
+    if (!remetente || !autorizacao) {
+      this.log.error('EMAIL_MODO=gmail sem EMAIL_REMETENTE ou GMAIL_TOKEN: nenhum e-mail sai');
+      await this.anotar(false, { codigo: 'sem_configuracao' });
+      throw new ServiceUnavailableException(
+        'O envio de e-mail não está configurado neste servidor. O convite não saiu; '
+        + 'avise o suporte.');
+    }
+    let codigo = 'sem_resposta';
+    try {
+      const inteira: Buffer = await new MailComposer(this.partes(m, remetente)).compile().build();
+      const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${autorizacao}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ raw: inteira.toString('base64url') }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      codigo = String(r.status);
+      if (!r.ok) throw new Error(codigo);
+      const { id } = await r.json() as { id?: string };
+      this.log.log(`e-mail enviado para ${m.para} — ${m.assunto} · gmail ${id ?? ''}`);
+      await this.anotar(true);
+      return { ok: true };
+    } catch {
+      this.log.error(`e-mail para ${m.para} NÃO saiu · gmail ${codigo}`);
+      await this.anotar(false, { codigo });
+      throw new ServiceUnavailableException(
+        'O servidor de e-mail não respondeu e o convite não saiu. Tente de novo em '
+        + 'alguns minutos; se repetir, avise o suporte.');
+    }
   }
 
   private async porSmtp(m: Mensagem): Promise<{ ok: true }> {
@@ -87,9 +160,7 @@ export class MailGateway {
         + 'avise o suporte.');
     }
     try {
-      const info = await this.smtp(host).sendMail({
-        from: remetente, to: m.para, subject: m.assunto, text: m.corpo,
-      });
+      const info = await this.smtp(host).sendMail(this.partes(m, remetente));
       /* O mesmo metadado do modo arquivo, e o identificador que o servidor deu:
          é o que o provedor pede para rastrear. Nunca o corpo. */
       this.log.log(`e-mail enviado para ${m.para} — ${m.assunto} · ${info.messageId}`);

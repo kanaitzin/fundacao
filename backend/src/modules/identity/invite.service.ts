@@ -9,6 +9,7 @@ import { hashPassword, hashToken, newSessionToken } from '../../kernel/common/cr
 import { daPropriaMaquina, enderecoDaTentativa } from './auth.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { MailGateway } from './mail.gateway';
+import { emHtml, emTexto, type PartesDaMensagem } from './mensagem-do-email';
 import { FRASE_DA_SENHA, senhaAceita } from '../../kernel/common/senha.regra';
 
 /**
@@ -93,23 +94,28 @@ export class InviteService {
       throw e;
     });
 
+    const convite: PartesDaMensagem = {
+      resumo: 'A coordenação criou o seu acesso. Escolha a sua senha.',
+      nome: r.out_nome,
+      titulo: 'Criar a sua senha',
+      antes: [
+        'A coordenação criou seu acesso ao Rede Acolher. Abra o endereço abaixo '
+        + 'no seu próprio celular ou computador e escolha a sua senha.',
+      ],
+      botao: 'Escolher a minha senha',
+      link: `${this.base}/entrar?convite=${token}`,
+      validade: `O link vale por ${horas} horas e serve uma vez só. Depois disso, peça `
+        + 'um novo à coordenação. É rápido e não custa nada.',
+      depois: [
+        'Ninguém da Fundação, nem a coordenação, nem o suporte, vai pedir sua '
+        + 'senha. Se pedirem, não é do sistema.',
+      ],
+    };
     await this.mail.enviar({
       para: r.out_email,
-      assunto: 'Rede Acolher — criar sua senha',
-      corpo: [
-        `${r.out_nome},`,
-        '',
-        'A coordenação criou seu acesso ao Rede Acolher. Abra o endereço abaixo',
-        'no seu próprio celular ou computador e escolha a sua senha.',
-        '',
-        `${this.base}/entrar?convite=${token}`,
-        '',
-        `O link vale por ${horas} horas e serve uma vez só. Depois disso, peça`,
-        'um novo à coordenação — é rápido e não custa nada.',
-        '',
-        'Ninguém da Fundação, nem a coordenação, nem o suporte, vai pedir sua',
-        'senha. Se pedirem, não é do sistema.',
-      ].join('\n'),
+      assunto: 'Rede Acolher: criar a sua senha',
+      corpo: emTexto(convite),
+      html: emHtml(convite),
     });
 
     await this.audit.log({
@@ -149,23 +155,28 @@ export class InviteService {
     /* Sem esperar o envio (fase 293): esperar o SMTP só quando a conta existe contava, pelo
        tempo, que ela existe. A falha fica na saúde da implantação. */
     if (r) {
+      const pedido: PartesDaMensagem = {
+        resumo: 'O link para criar uma senha nova. Vale uma hora.',
+        nome: r.out_nome,
+        titulo: 'Criar uma senha nova',
+        antes: [
+          'Recebemos um pedido para criar uma senha nova para o seu acesso ao Rede Acolher. '
+          + 'Abra o endereço abaixo no seu próprio celular ou computador e escolha a senha.',
+        ],
+        botao: 'Criar a senha nova',
+        link: `${this.base}/entrar?convite=${token}`,
+        validade: 'O link vale uma hora e serve uma vez só. A sua senha atual continua valendo até '
+          + 'você criar a nova.',
+        depois: [
+          'Se não foi você quem pediu, ignore esta mensagem e avise a coordenação.',
+          'Ninguém da Fundação vai pedir a sua senha.',
+        ],
+      };
       void this.mail.enviar({
         para: r.out_email,
         assunto: 'Rede Acolher: criar uma senha nova',
-        corpo: [
-          `${r.out_nome},`,
-          '',
-          'Recebemos um pedido para criar uma senha nova para o seu acesso ao Rede Acolher.',
-          'Abra o endereço abaixo no seu próprio celular ou computador e escolha a senha:',
-          '',
-          `${this.base}/entrar?convite=${token}`,
-          '',
-          'O link vale uma hora e serve uma vez só. A sua senha atual continua valendo até',
-          'você criar a nova.',
-          '',
-          'Se não foi você quem pediu, ignore esta mensagem e avise a coordenação.',
-          'Ninguém da Fundação vai pedir a sua senha.',
-        ].join('\n'),
+        corpo: emTexto(pedido),
+        html: emHtml(pedido),
       }).catch(() => { /* a mesma resposta: ver o comentário acima */ });
     }
     return { ok: true, aviso };

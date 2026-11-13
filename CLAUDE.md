@@ -66,6 +66,16 @@ uma criança chorando ao lado**. Elegância que atrapalha o turno não serve.
   pior que arquivo nenhum** — ele já voltou mentindo uma vez, dizendo que duas
   decisões estavam paradas quando já eram código.
 
+## Duas contas, uma passagem de turno (desde 12/11)
+
+O projeto é tocado por mais de uma conta do Claude, cada uma no seu branch, e o limite de uma
+acaba sem aviso. **Antes de propor qualquer trabalho, rode `bash scripts/passagem.sh`** (o começo
+da sessão na web já mostra o resumo): ele lê, em todos os branches, a nota de cada frente em
+`passagem/`, com o que está em andamento, onde parou e **os arquivos que a outra frente está
+mexendo, e que você não toca**. A sua nota é `passagem/<nome-do-seu-branch>.md`, e se atualiza
+**a cada commit, no mesmo commit**, não no fim. As regras, e como continuar a frente de outra
+conta, estão em `passagem/LEIA.md`.
+
 ## Antes de entregar qualquer coisa
 
 Na web, o `.claude/hooks/session-start.sh` já fez o preparo antes de a sessão

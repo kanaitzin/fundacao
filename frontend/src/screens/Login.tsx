@@ -118,7 +118,7 @@ export function Login({ onSubmit, erro, ocupado }: {
             <input id="email-esqueci" type="email" autoComplete="username" required autoFocus
                    value={email} onChange={(e) => setEmail(e.target.value)}
                    placeholder="nome@paodospobres.com.br" />
-            {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+            {aviso && <div className="notice c-ok" role="status" style={{ marginTop: 12 }}>{aviso}</div>}
             {linkDoPrototipo && (
               <a className="btn sec block" href={linkDoPrototipo}>
                 Abrir o link que iria por e-mail (só no protótipo)

@@ -101,3 +101,14 @@ fi
 
 diga "pronto. A suíte é 'npm test' (já vem com --runInBand); o relógio adiantado é 'bash scripts/relogio-adiantado.sh --rodar'."
 exit 0
+
+# ------------------------------------------------- a passagem de turno das contas
+#
+# O projeto é tocado por mais de uma conta, cada uma no seu branch (12/11). Antes
+# de qualquer coisa, a sessão lê o que cada frente deixou escrito: o que está em
+# andamento, o que parou no meio e os arquivos que ela não deve tocar. As regras
+# estão em passagem/LEIA.md. Nunca derruba o preparo: se falhar, segue.
+if [ -f scripts/passagem.sh ]; then
+  bash scripts/passagem.sh --curto 2>/dev/null || true
+  diga "a passagem inteira: bash scripts/passagem.sh"
+fi
