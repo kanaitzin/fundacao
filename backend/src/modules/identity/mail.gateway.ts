@@ -70,7 +70,8 @@ export class MailGateway {
     appendFileSync(
       join(this.caixa, 'caixa-de-saida.txt'),
       `\n=== ${new Date().toISOString()} ===\nPara: ${m.para}\nAssunto: ${m.assunto}\n\n${m.corpo}\n`,
-      'utf8',
+      /* O link do convite e do esqueci vale como chave da conta: o arquivo é só de quem roda o servidor. */
+      { encoding: 'utf8', mode: 0o600 },
     );
     /* A última mensagem com apresentação, para abrir no navegador e ver como chega.
        Mora na mesma caixa local do texto, que nunca sai para a rede. */
@@ -78,7 +79,7 @@ export class MailGateway {
       /* No arquivo, o logo vai escrito no próprio endereço da imagem: o navegador
          não conhece o `cid:` de uma mensagem. */
       const paraVer = m.html.replace(`cid:${CID_DO_LOGO}`, `data:image/png;base64,${LOGO_DO_EMAIL.toString('base64')}`);
-      writeFileSync(join(this.caixa, 'ultima-mensagem.html'), paraVer, 'utf8');
+      writeFileSync(join(this.caixa, 'ultima-mensagem.html'), paraVer, { encoding: 'utf8', mode: 0o600 });
     }
     // Metadado, não conteúdo: destinatário e assunto bastam para investigar
     // "o convite saiu?" sem que o log vire a chave da porta.
@@ -91,6 +92,9 @@ export class MailGateway {
   private partes(m: Mensagem, remetente: string) {
     return {
       from: remetente, to: m.para, subject: m.assunto, text: m.corpo,
+      /* Mensagem que ninguém escreveu à mão (RFC 3834): a resposta automática de férias de
+         quem recebe não volta para o remetente da Fundação. */
+      headers: { 'Auto-Submitted': 'auto-generated' },
       /* O logo viaja dentro da mensagem, como parte do HTML (`cid:`), e vem da
          memória: o transporte não lê arquivo nem endereço (ver `smtp`). */
       ...(m.html ? {

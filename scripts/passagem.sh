@@ -71,15 +71,16 @@ for f in passagem/*.md; do
   considerar "$n" "$(carimbo_de < "$f")" "disco"
 done
 
-# As notas de dentro de cada branch do repositório.
+# A nota de cada frente, lida SÓ de dentro do branch dela (fase 317, achado da
+# auditoria): o repositório é público, e uma nota posta em qualquer outro branch
+# com uma data no futuro passaria por cima da verdadeira. O nome do arquivo é o
+# nome do branch com a barra trocada por hífen; só os branches claude/ contam.
 while read -r ref; do
-  [[ "$ref" == "origin/HEAD" || -z "$ref" ]] && continue
-  while read -r f; do
-    [[ -z "$f" ]] && continue
-    n="$(basename "$f")"; [[ "$n" == "LEIA.md" ]] && continue
-    considerar "$n" "$(git show "$ref:$f" 2>/dev/null | carimbo_de)" "$ref"
-  done < <(git ls-tree --name-only "$ref" passagem/ 2>/dev/null | grep '\.md$')
-done < <(git for-each-ref --format='%(refname:short)' refs/remotes/origin)
+  [[ -z "$ref" ]] && continue
+  n="$(sed 's#^origin/##; s#/#-#g' <<<"$ref").md"
+  git cat-file -e "$ref:passagem/$n" 2>/dev/null || continue
+  considerar "$n" "$(git show "$ref:passagem/$n" 2>/dev/null | carimbo_de)" "$ref"
+done < <(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/claude/*')
 
 echo "═══════════════════════════════════════════════════════════════════════"
 echo " PASSAGEM DE TURNO ENTRE AS CONTAS · $(agora) · você está em $AQUI"
@@ -93,8 +94,11 @@ for n in $(printf '%s\n' "${!MELHOR_DATA[@]}" | sort); do
   onde="${MELHOR_ONDE[$n]}"
   echo
   echo "─── $n  (versão de: $onde) ───"
-  if [[ "$onde" == "disco" ]]; then conteudo="$(cat "passagem/$n")"
-  else conteudo="$(git show "$onde:passagem/$n" 2>/dev/null)"; fi
+  # Sem caractere de controle (o texto vai para o terminal e para a sessão) e
+  # com tamanho limitado: a nota é um cartão, não um documento.
+  if [[ "$onde" == "disco" ]]; then conteudo="$(head -c 20000 "passagem/$n")"
+  else conteudo="$(git show "$onde:passagem/$n" 2>/dev/null | head -c 20000)"; fi
+  conteudo="$(tr -d '\000-\010\013-\037\177' <<<"$conteudo")"
   if [[ $CURTO -eq 1 ]]; then
     grep -E '^# |^- \*\*(Atualizado em|Situação|Branch|Pedido)' <<<"$conteudo"
   else
@@ -110,7 +114,7 @@ echo
 echo "─── a ponta de cada branch (se for mais nova que a nota, a nota está atrasada) ───"
 TZ=America/Sao_Paulo git for-each-ref --sort=-committerdate \
   --format='%(committerdate:format-local:%Y-%m-%dT%H:%M)  %(refname:short)%0a      %(subject)' \
-  refs/remotes/origin 2>/dev/null | awk '/  origin(\/HEAD)?$/ { getline; next } { print }' | cut -c1-200
+  'refs/remotes/origin/claude/*' 2>/dev/null | tr -d '\000-\010\013-\037\177' | cut -c1-200
 
 echo
 echo "Regras em passagem/LEIA.md. A sua nota é passagem/<nome-do-seu-branch>.md:"

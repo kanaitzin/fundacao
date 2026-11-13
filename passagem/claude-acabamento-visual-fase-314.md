@@ -5,9 +5,9 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-12T23:37-03:00
-- **Situação:** em andamento: a 317, assumida depois de o limite da conta que a escreveu acabar.
-- **Fase:** 315 e 316, as duas fechadas. A próxima livre é a 317, reservada para o que está no branch `claude/cargo-nulo-recusado`.
+- **Atualizado em:** 2026-11-13T09:10-03:00
+- **Situação:** fechada a 317 (o código da outra conta, mais a identity/1718 e os achados das duas revisões). Nada em andamento.
+- **Fase:** 315, 316 e 317, fechadas. A próxima livre é a 318.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora

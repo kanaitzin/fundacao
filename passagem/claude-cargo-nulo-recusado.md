@@ -1,8 +1,8 @@
 # Frente: o banco recusa quem chega sem cargo, a passagem de turno entre as contas e o e-mail com apresentação
 
 - **Branch:** `claude/cargo-nulo-recusado` (aberto a partir do `cf6ea5b`, a ponta da frente do visual em 12/11)
-- **Atualizado em:** 2026-11-12T20:11-03:00
-- **Situação:** esperando o dono (o código está pronto e medido; falta o fechamento nos documentos, que é da frente do visual)
+- **Atualizado em:** 2026-11-13T09:10-03:00
+- **Situação:** fechada. Este branch entrou no `claude/acabamento-visual-fase-314` e a 317 fechou lá, com a identity/1718 (o que as revisões acharam que a 1717 não via). Não trabalhar mais aqui.
 - **Fase:** 317. Tinha reservado a 316, que a frente do visual usou para o plantão no celular (fechada no `aec3b29`). Não está escrita em documento nenhum ainda.
 - **Pedido do dono:** em 12/11, *veja o que você pode fazer sem entrar no que ele está fazendo* (a outra conta ajusta o visual do perfil e dos menus); e depois, *crie uma pasta em que você e a outra conta consigam ver o que está sendo feito quando o limite acaba*; e *o sistema consegue mandar uma mensagem bonita quando pedirem uma senha nova no esqueci?*
 
@@ -92,18 +92,10 @@ conserto da cobrança (só a suíte nova, sozinha).
   na próxima geração. **O e-mail não foi enviado a uma caixa de verdade:** esta sessão não
   alcança servidor de e-mail nem tem a conta de envio. Ficou igual, sem mexer: a mesma frase
   *Falta …* no `SenhaPessoal.tsx`.
-- **O envio pela API do Gmail** (`EMAIL_MODO=gmail`, com `EMAIL_REMETENTE` e `GMAIL_TOKEN`,
-  pedido do dono em 12/11): a mesma mensagem do SMTP, entregue em HTTPS, para a máquina de
-  onde a porta de e-mail não sai (a sessão na nuvem). A autorização é curta, de uma hora: é
-  para ensaio e demonstração, e o servidor instalado continua no `smtp`. Dois casos novos na
-  `o-envio-por-smtp`, com a API imitada. **Falta, no fechamento:** a variável no
-  `.env.example` e no §12.8, e o `instalar.sh` dizer que o modo não é para produção. Nesta
-  sessão a autorização mora no ambiente `fundacao`, posta pelo dono num formulário seguro:
-  a rede a injeta, e o `GMAIL_TOKEN` daqui é um valor de enfeite.
-- **O envio de verdade NÃO saiu desta sessão.** Três autorizações do Gmail salvas pelo dono no
-  ambiente `fundacao`, e a API respondeu sempre que o pedido chegava sem credencial, também
-  numa sessão nova do mesmo ambiente. Não se sabe se a rede da sessão não repassa a
-  autorização a esse endereço ou se o valor salvo não servia. **Não insistir por aqui**: o
-  envio real se prova numa máquina com internet, pelo `smtp`, com a senha de app do Gmail.
+- **O envio pela API do Gmail foi DESFEITO no `a8933e4`** (não sobrou código, variável nem
+  teste; conferido pela auditoria da 317). Não recriar: o envio real se prova numa máquina com
+  internet, pelo `smtp`, com a senha de app do Gmail. **As autorizações do Gmail que o dono
+  salvou no ambiente `fundacao` da nuvem não são usadas por nada**: o dono pode tirá-las de lá
+  e revogar o acesso na conta Google.
 - **O ambiente desta conta:** o `preparar-ambiente.sh` foi recusado pela permissão
   automática da sessão; o PostgreSQL e o `faketime` subiram à mão, com os mesmos passos.

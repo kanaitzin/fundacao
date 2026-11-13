@@ -193,6 +193,8 @@ describe('O envio por SMTP', () => {
 
     /* As duas versões na mesma mensagem: quem não mostra HTML lê o texto de sempre. */
     expect(corpo).toMatch(/Content-Type: multipart\/alternative/i);
+    /* E diz que foi o sistema que mandou: a resposta automática de férias não volta (RFC 3834). */
+    expect(corpo).toMatch(/^Auto-Submitted: auto-generated/im);
     expect(corpo).toMatch(/Content-Type: text\/plain/i);
     expect(corpo).toMatch(/Content-Type: text\/html/i);
     const html = corpo.slice(corpo.search(/<!DOCTYPE html>/i), corpo.search(/<\/html>/i));
