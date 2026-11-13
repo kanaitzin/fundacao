@@ -6,7 +6,7 @@
 
 - **Branch:** `claude/acabamento-visual-fase-314`
 - **Atualizado em:** 2026-11-13T12:40-03:00
-- **Situação:** fechada a 318 (o cadastro do acolhido não trava no CPF), esperando o sim do dono para ir ao site (o site está na 317).
+- **Situação:** fechada a 318 (o cadastro do acolhido não trava no CPF), publicada no site em 13/11, com o sim do dono. Nada em andamento.
 - **Fase:** 315 a 318, fechadas. A próxima livre é a 319.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
