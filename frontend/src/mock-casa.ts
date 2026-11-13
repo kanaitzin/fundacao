@@ -77,6 +77,7 @@ import { CATEGORIAS_DOSSIE, DOSSIE_EXIGIDO, TIPOS_DE_VIVENCIA, TAMANHO_MAXIMO,
 import { CASAS_DA_FUNDACAO, CASA_MODELO, trocadorDeNomes, type ConfigDaCasa } from './casas-ficticias';
 import { QUEM_POE_FOTO } from '../../backend/src/modules/people/foto.regra';
 import { QUEM_VE_CPF_INTEIRO } from '../../backend/src/modules/people/cpf-na-portaria.regra';
+import { recusaDasDatasDoCadastro } from '../../backend/src/modules/people/datas-do-cadastro.regra';
 import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../backend/src/kernel/common/senha.regra';
 import { idDoPrototipo, sorteioDoPrototipo, sorteioFixo } from './prototipo-guardado';
 
@@ -10115,6 +10116,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(409, 'A casa está no limite de vagas. Para acolher assim mesmo, '
         + 'descreva a justificativa. Ela fica registrada com o seu nome.');
     }
+    /* As datas que a pressa troca (fase 319): a mesma regra do servidor e da tela. */
+    const recusaDeData = recusaDasDatasDoCadastro({ nascimento: b.pessoa?.birthDate,
+      acolhimento: b.acolhimento?.admittedOn, guia: b.judicial?.guideDate }, HOJE);
+    if (recusaDeData) return new Recusa(400, recusaDeData);
     const semCpf = !String(b.pessoa?.cpf ?? '').trim();
     const cpfNumero = String(b.pessoa?.cpf ?? '').replace(/\D/g, '');
     if (!semCpf && !cpfConfere(cpfNumero)) return new Recusa(400, 'CPF inválido. Confira os números digitados.');

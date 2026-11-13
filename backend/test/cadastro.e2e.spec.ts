@@ -198,6 +198,29 @@ describe('Cadastro do acolhido — dados completos, área judicial e limite da c
     expect(res.body.message).toMatch(/motivo do acolhimento/i);
   });
 
+  /* AS DATAS QUE A PRESSA TROCA (fase 319): o cadastro aceitava nascimento no
+     futuro, acolhimento antes do nascimento e guia que ainda não chegou. A frase
+     é a da regra que a tela e o protótipo também leem. */
+  it('as datas impossíveis são recusadas com frase, e nada é gravado', async () => {
+    const depois = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    const casos: [Record<string, any>, RegExp][] = [
+      [{ pessoa: { birthDate: depois } }, /nascimento está no futuro/],
+      [{ pessoa: { birthDate: '2013-02-31' } }, /não existe no calendário/],
+      [{ acolhimento: { admittedOn: depois } }, /acolhimento está no futuro/],
+      [{ acolhimento: { admittedOn: '2012-01-01' } }, /anterior ao nascimento/],
+      [{ judicial: { guideDate: depois } }, /guia está no futuro/],
+    ];
+    for (const [extra, frase] of casos) {
+      const res = await request(http).post('/api/v1/people/admission').set(auth(tokens.tecnica))
+        .send(cadastro('Data Trocada (fictícia)', extra));
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(frase);
+    }
+    const { rows: [{ n }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM person WHERE full_name = 'Data Trocada (fictícia)'`);
+    expect(n).toBe(0);
+  });
+
   it('casa no limite: a porta não trava, mas exige uma decisão com nome', async () => {
     // Baixa o limite ao número de hoje: a próxima criança chega com a casa cheia.
     const { rows: [{ ocupadas }] } = await admin.query(

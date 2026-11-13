@@ -7,6 +7,8 @@ import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { isValidCpf, normalizeCpf } from '../../kernel/common/cpf';
+import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { recusaDasDatasDoCadastro } from './datas-do-cadastro.regra';
 import { ReavaliacaoService } from './reavaliacao.service';
 
 /**
@@ -150,6 +152,11 @@ export class AdmissionService {
 
     if (!pessoa.fullName?.trim()) throw new BadRequestException('Informe o nome completo.');
     if (!pessoa.birthDate) throw new BadRequestException('Informe a data de nascimento.');
+    /* As datas que a pressa troca (fase 319): a mesma regra da tela e do protótipo. */
+    const recusaDeData = recusaDasDatasDoCadastro({
+      nascimento: pessoa.birthDate, acolhimento: acolhimento.admittedOn, guia: judicial.guideDate,
+    }, hojeNaInstituicao());
+    if (recusaDeData) throw new BadRequestException(recusaDeData);
 
     const cpf = pessoa.cpf ? normalizeCpf(pessoa.cpf) : '';
     if (cpf && !isValidCpf(cpf)) throw new BadRequestException('CPF inválido. Confira os números digitados.');

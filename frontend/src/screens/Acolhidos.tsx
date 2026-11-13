@@ -8,6 +8,7 @@ import {
   ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS, QUEM_REGISTRA_COMPORTAMENTAL,
   FORMAS_DO_ATENDIMENTO, MAXIMO_DE_PARTICIPANTES,
 } from '../../../backend/src/modules/people/atendimento-tecnico.regra';
+import { OQueFalta } from '../o-que-falta';
 import { api, ErroApi } from '../api';
 import { botaoQueAbre } from '../acolhe-tela';
 import { Cadastro } from './Cadastro';
@@ -1827,6 +1828,9 @@ function FolhaSaida({ nome, onFechar, onConfirmar, onAbrirFolha }: {
           ele abre um episódio novo, e nada do episódio anterior é reativado sozinho.
         </p>
 
+        <OQueFalta itens={[
+          motivo.trim().length < 3 && 'escrever o motivo da saída',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onConfirmar(motivo.trim())}>
@@ -2634,6 +2638,9 @@ function FolhaDoSigilo({ item, sigiloso, onFechar, onPronto }: {
         <label className="f" htmlFor="sig-mot">{sigiloso ? 'Por quê (se quiser dizer)' : 'Por quê'}</label>
         <textarea id="sig-mot" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          !sigiloso && motivo.trim().length < 5 && 'escrever o motivo, com pelo menos 5 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={async () => {
@@ -2906,6 +2913,12 @@ function FolhaEvolucao({ nome, personId, onFechar, onEnviar }: {
           </span>
         </label>
 
+        <OQueFalta itens={[
+          tipo === '' && 'escolher o tipo de atendimento',
+          quando.length < 16 && 'pôr o dia e a hora',
+          estadoRetorno.trim().length < 5 && 'escrever como a criança voltou',
+          foiOutro && quemLevou.trim().length < 3 && 'escrever quem levou a criança',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode}
@@ -3057,6 +3070,12 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
         <textarea id="cor-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Ex.: a certidão de nascimento chegou hoje; o nome estava escrito de ouvido no ingresso de emergência." />
 
+        <OQueFalta itens={[
+          nome.trim().length < 2 && 'escrever o nome civil',
+          nascimento === '' && 'pôr a data de nascimento',
+          cpfAvisa && 'conferir o CPF',
+          motivo.trim().length < 10 && 'escrever por que está sendo corrigido, com pelo menos 10 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onCorrigir({
@@ -3362,6 +3381,9 @@ function FolhaTirarFoto({ nome, oQue, de, onFechar, onTirou }: {
                     placeholder="Ex.: foto de outra pessoa, posta por engano" />
         </label>
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          motivo.trim().length < 5 && 'escrever por que a foto sai, com pelo menos 5 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={ocupado || motivo.trim().length < 5} onClick={() => void tirar()}>
@@ -3501,6 +3523,9 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
               pergunta={<>Esta foto vai identificar a criança na tela e sai impressa na{' '}
                 <b>folha da portaria</b>. É esta foto, e é <b>desta</b> criança?</>} />
             {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+            <OQueFalta itens={[
+              !escolhida && 'escolher a foto ou tirar uma agora',
+            ]} />
             <div className="row rodape">
               <button className="btn sec grow" onClick={() => { setEscolhida(null); setPondoFoto(false); }}>Cancelar</button>
               <button className="btn grow" disabled={ocupado || !escolhida}
@@ -3744,6 +3769,10 @@ function SairSozinho({ perfil, papel, onMudou }: {
             </>
           )}
 
+          <OQueFalta itens={[
+            motivo.trim().length < 10 && 'escrever o motivo da decisão, com pelo menos 10 letras',
+            status === 'suspensa' && !ate && 'pôr até quando vale a suspensão',
+          ]} />
           <div className="row" style={{ gap: 8 }}>
             <button className="btn sec grow" onClick={() => { setDecidindo(false); setErro(''); }}>
               Cancelar
@@ -4321,6 +4350,9 @@ function FolhaFotoDoFamiliar({ contato, onFechar, onGuardou }: {
           pergunta={<>É {contato.nome}? Rosto de frente, sem boné nem óculos escuros. Esta foto aparece
             no perfil e na portaria.</>} />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          !arquivo && 'escolher a foto ou tirar uma agora',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={ocupado || !arquivo} onClick={() => void guardar()}>
@@ -4417,6 +4449,11 @@ function FolhaContato({ nome, podePorFoto, onFechar, onSalvar }: {
         )}
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          dados.nome.trim().length < 2 && 'escrever o nome',
+          dados.vinculo === 'outro' && dados.vinculoOutro.trim().length < 2 && 'dizer qual é o vínculo',
+          restrito && motivoRestricao.trim().length < 10 && 'escrever o motivo da restrição, com pelo menos 10 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={async () => {
@@ -4505,6 +4542,11 @@ function FolhaCorrigirContato({ contato, onFechar, onSalvar }: {
         <input id="cc-motivo" className="field" value={motivo} placeholder="Ex.: a mãe trocou de número"
                onChange={(e) => setMotivo(e.target.value)} />
         <p className="mutetxt">O que constava antes fica guardado, com o seu nome e o motivo.</p>
+        <OQueFalta itens={[
+          dados.nome.trim().length < 2 && 'escrever o nome',
+          dados.vinculo === 'outro' && dados.vinculoOutro.trim().length < 2 && 'dizer qual é o vínculo',
+          motivo.trim().length < 5 && 'escrever o motivo da correção',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={async () => {
@@ -4558,6 +4600,9 @@ function FolhaEncerrarContato({ contato, onFechar, onEncerrar }: {
         <textarea id="ct-fim" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Ex.: telefone mudou; a madrinha informou o novo." />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          motivo.trim().length < 5 && 'escrever o motivo, com pelo menos 5 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={motivo.trim().length < 5}
@@ -4701,6 +4746,10 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
             <b>o documento que ela leva</b> quando sair daqui.</>} />
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          d.descricao.trim().length < 10 && 'contar a conquista, com pelo menos 10 letras',
+          d.tipo === 'outro' && d.tipoOutro.trim().length < 2 && 'dizer qual é o tipo',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode || ocupado} onClick={async () => {
@@ -6082,6 +6131,10 @@ function FolhaEncerrarVinculo({ v, onFechar, onSalvar }: {
         <label className="f" htmlFor="encv-mot">Por que terminou</label>
         <textarea id="encv-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Ex.: concluiu o ano; mudou de escola; o contrato de aprendizagem acabou." />
+        <OQueFalta itens={[
+          em === '' && 'pôr o dia do fim',
+          motivo.trim().length < 5 && 'escrever o motivo',
+        ]} />
         <div className="row rodape">
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow" disabled={!pode}
@@ -6832,6 +6885,9 @@ function FolhaRegistroDeSaude({ qual, onFechar, onSalvar }: {
           </>
         )}
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          qual === 'condicao' ? d.descricao.trim().length < 3 && 'escrever a alergia ou a condição' : d.restricao.trim().length < 2 && 'escrever a restrição',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pronto || ocupado} onClick={async () => {
@@ -6866,6 +6922,9 @@ function FolhaEncerrarSaude({ nome, onFechar, onEncerrar }: {
         <input id="sf-motivo" className="field" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                placeholder="Ex.: exame novo descartou a alergia" />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          motivo.trim().length < 5 && 'escrever o motivo, com pelo menos 5 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={motivo.trim().length < 5} onClick={async () => {
@@ -7344,6 +7403,9 @@ function FolhaJuntarAoAtendimento({ atendimento, onFechar, onJuntado }: {
                    onChange={(e) => setLegendas((ls) => arquivos.map((_, j) => (j === i ? e.target.value : ls[j] ?? '')))} />
           )} />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          arquivos.length === 0 && 'escolher o arquivo',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={async () => {
@@ -7412,6 +7474,10 @@ function FolhaBaixarAtendimentos({ personId, nome, onFechar, onBaixado }: {
         <textarea id="baixa-at-fin" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
                   placeholder="Ex.: estudo de caso na reunião da equipe técnica; relatório ao Juízo." />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          finalidade.trim().length < 10 && 'escrever para que é o documento, com pelo menos 10 letras',
+          recorte === 'datas' && (!de || !ate || de > ate) && 'escolher o período, com o começo antes do fim',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={async () => {
@@ -7578,6 +7644,15 @@ function FolhaAtendimentoTecnico({ personId, nome, houseId, onFechar, onRegistra
                    onChange={(e) => setLegendas((ls) => arquivos.map((_, j) => (j === i ? e.target.value : ls[j] ?? '')))} />
           )} />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <OQueFalta itens={[
+          !area && 'escolher a área',
+          area === 'outra' && areaOutra.trim().length < 3 && 'dizer qual é a área',
+          !/^\d{2}:\d{2}$/.test(hora) && 'pôr a hora',
+          !ondeFoi && 'dizer se foi na casa ou fora',
+          local.trim().length < 2 && 'escrever o local',
+          forma === 'coletivo' && juntas.length === 0 && 'marcar as outras crianças do grupo',
+          relato.trim().length < 10 && 'escrever o que foi trabalhado, com pelo menos 10 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => void guardar()}>

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ErroApi } from '../api';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
-import { isValidCpf } from '../../../backend/src/kernel/common/cpf';
+import { formatCpf, isValidCpf } from '../../../backend/src/kernel/common/cpf';
+import { avisoDaIdade, idadeEm, recusaDasDatasDoCadastro } from '../../../backend/src/modules/people/datas-do-cadastro.regra';
 
 /**
  * CADASTRO COMPLETO DO ACOLHIDO (§6.1, §13.1).
@@ -162,12 +163,20 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
      seguir, e a frase acima do botão diz o que falta. */
   const mostraIdentificacao = semCpf || (confere !== null && !CPF_BLOQUEIA[confere.situacao]);
 
+  /* AS DATAS QUE A PRESSA TROCA (fase 319): a mesma regra do servidor, passo a passo,
+     dita no lugar do que falta. */
+  const recusaDeData = [
+    recusaDasDatasDoCadastro({ nascimento: birthDate }, hoje()),
+    recusaDasDatasDoCadastro({ nascimento: birthDate, acolhimento: admittedOn }, hoje()),
+    recusaDasDatasDoCadastro({ guia: guideDate }, hoje()),
+    null,
+  ][passo];
   const podeAvancar = [
     cpfResolvido && fullName.trim().length >= 3 && birthDate !== '',
     admittedOn !== '' && (!cheia || capacityReason.trim().length >= 15),
     reasonCategory !== '' && determiningBody !== '',
     true,
-  ][passo];
+  ][passo] && !recusaDeData;
 
   async function enviar() {
     setOcupado(true); setErro('');
@@ -383,8 +392,13 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
                        placeholder="Como a criança quer ser chamada" />
 
                 <label className="f" htmlFor="nasc">Data de nascimento</label>
-                <input id="nasc" type="date" className="field" value={birthDate}
+                <input id="nasc" type="date" className="field" value={birthDate} max={hoje()}
                        onChange={(e) => setBirthDate(e.target.value)} />
+                {avisoDaIdade(birthDate, hoje()) && (
+                  <p className="notice c-warn" role="status" style={{ marginTop: 4 }}>
+                    {avisoDaIdade(birthDate, hoje())}
+                  </p>
+                )}
 
                 <label className="f" htmlFor="gen">Gênero <small>— opcional</small></label>
                 <input id="gen" className="field" value={gender}
@@ -439,7 +453,7 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
             )}
 
             <label className="f" htmlFor="dt">Data do acolhimento</label>
-            <input id="dt" type="date" className="field" value={admittedOn}
+            <input id="dt" type="date" className="field" value={admittedOn} max={hoje()}
                    onChange={(e) => setAdmittedOn(e.target.value)} />
 
             <label className="f" htmlFor="trz">Quem trouxe</label>
@@ -534,7 +548,7 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
               </div>
               <div className="grow">
                 <label className="f" htmlFor="guiad">Data da guia</label>
-                <input id="guiad" type="date" className="field" value={guideDate}
+                <input id="guiad" type="date" className="field" value={guideDate} max={hoje()}
                        onChange={(e) => setGuideDate(e.target.value)} />
               </div>
             </div>
@@ -548,8 +562,9 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
           <div className="card">
             <Linha rotulo="Nome" valor={socialName || fullName} />
             {socialName && <Linha rotulo="Nome civil" valor={fullName} />}
-            <Linha rotulo="Nascimento" valor={dia(birthDate)} />
-            <Linha rotulo="CPF" valor={semCpf ? 'sem CPF — entra com ID provisório' : cpf} />
+            <Linha rotulo="Nascimento"
+                   valor={birthDate ? `${dia(birthDate)} (${idadeEm(birthDate, hoje())} anos)` : ''} />
+            <Linha rotulo="CPF" valor={semCpf ? 'sem CPF por enquanto: entra com um número provisório' : formatCpf(cpf)} />
             <Linha rotulo="Acolhido em" valor={dia(admittedOn)} />
             <Linha rotulo="Trazido por" valor={broughtBy || '—'} />
             <Linha rotulo="Motivo"
@@ -567,9 +582,10 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
               <div>
                 Falta {[!familyReference.trim() && 'referência familiar autorizada',
                         !essentialCare.trim() && 'cuidados essenciais']
-                  .filter(Boolean).join(' e ')}. Dá para cadastrar assim — e vale a pena, se
-                a criança já está aqui. Só não deixe de voltar: é o que some do sistema e
-                reaparece na primeira audiência.
+                  .filter(Boolean).join(' e ')}. Dá para cadastrar assim, se a criança já está
+                aqui, e completar depois no perfil dela:
+                {!essentialCare.trim() && ' os cuidados em Atualizar escola, cuidados e equipe;'}
+                {!familyReference.trim() && ' a família na aba Família e visitas, em Acrescentar contato.'}
               </div>
             </div>
           )}
@@ -580,8 +596,8 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
         {/* O que falta, logo ACIMA do botão (avaliação de 05/11): embaixo dele, a
             frase ficava atrás do botão da Acolhe+AI no celular. */}
         {!podeAvancar && passo < 3 && (
-          <p className="notice c-info o-que-falta" role="status" style={{ flexBasis: '100%', margin: 0 }}>
-            {passo === 0
+          <p className={`notice ${recusaDeData ? 'c-warn' : 'c-info'} o-que-falta`} role="status" style={{ flexBasis: '100%', margin: 0 }}>
+            {recusaDeData ? recusaDeData : passo === 0
               ? (!cpfResolvido
                   ? (semCpf
                       ? `Toque num dos motivos, ou escreva por que a criança entra sem CPF, com pelo menos 10 letras.${motivoSemCpf.trim().length ? ` Falta${10 - motivoSemCpf.trim().length === 1 ? '' : 'm'} ${quantos(10 - motivoSemCpf.trim().length, 'letra', 'letras')}.` : ''}`
@@ -597,18 +613,23 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
                 : 'Escolha o motivo do acolhimento e quem o determinou.'}
           </p>
         )}
-        {passo > 0 && (
-          <button className="btn sec grow" onClick={() => setPasso(passo - 1)}>Voltar</button>
-        )}
-        {passo < 3 ? (
-          <button className="btn grow" disabled={!podeAvancar} onClick={() => setPasso(passo + 1)}>
-            Continuar
-          </button>
-        ) : (
-          <button className="btn grow" disabled={ocupado} onClick={enviar}>
-            Cadastrar acolhido
-          </button>
-        )}
+        {/* Voltar e Continuar lado a lado (fase 319): empilhados, os dois e a frase do
+            que falta ocupavam um terço da tela do celular. */}
+        <div style={{ display: 'grid', gap: 8, flexBasis: '100%',
+                      gridTemplateColumns: passo > 0 ? '1fr 1fr' : '1fr' }}>
+          {passo > 0 && (
+            <button className="btn sec" onClick={() => setPasso(passo - 1)}>Voltar</button>
+          )}
+          {passo < 3 ? (
+            <button className="btn" disabled={!podeAvancar} onClick={() => setPasso(passo + 1)}>
+              Continuar
+            </button>
+          ) : (
+            <button className="btn" disabled={ocupado} onClick={enviar}>
+              Cadastrar acolhido
+            </button>
+          )}
+        </div>
       </div>
 
     </>

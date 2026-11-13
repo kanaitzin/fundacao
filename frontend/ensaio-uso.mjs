@@ -5727,6 +5727,51 @@ console.log('\n🪪 O CPF no cadastro (fase 318)');
 }
 
 /*
+ * O RESTO DO CADASTRO E O PERFIL (fase 319, pedido de 13/11: "revise o resto do
+ * cadastro e do perfil"). O cadastro aceitava nascimento no futuro e acolhimento
+ * antes do nascimento; e no perfil vinte folhas nasciam com o botão de
+ * gravar apagado sem dizer por quê. Aqui, as datas e a frase do que falta.
+ */
+console.log('\n🗓️ O resto do cadastro e o perfil (fase 319)');
+{
+  const pgD = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosD = [];
+  pgD.on('pageerror', (e) => errosD.push(e.message));
+  const esp = (ms = 600) => pgD.waitForTimeout(ms);
+  const mainD = () => pgD.locator('main.conteudo');
+  const falta = async () => (await pgD.locator('.o-que-falta').allInnerTexts()).join(' | ');
+  await pgD.goto(`file://${ARQUIVO}`); await esp();
+  await pgD.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgD.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgD.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgD.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await mainD().getByRole('button', { name: /^Cadastrar acolhido/ }).click(); await esp();
+  await pgD.locator('#cpf').fill('52998224725'); await esp(900);
+  await pgD.locator('#nome').fill('Dora Datas Ensaio');
+  await pgD.locator('#nasc').fill('2031-05-10'); await esp(300);
+  cobrar('o nascimento no futuro trava o Continuar e diz por quê',
+    await mainD().getByRole('button', { name: /^Continuar$/ }).isDisabled() && /nascimento está no futuro/.test(await falta()), await falta());
+  await pgD.locator('#nasc').fill('2016-05-10'); await esp(300);
+  await mainD().getByRole('button', { name: /^Continuar$/ }).click(); await esp(400);
+  await pgD.locator('#dt').fill('2015-01-01'); await esp(300);
+  cobrar('o acolhimento antes do nascimento trava e diz por quê', /anterior ao nascimento/.test(await falta()), await falta());
+  cobrar('Voltar e Continuar ficam lado a lado no celular', await (async () => {
+    const v = await mainD().getByRole('button', { name: /^Voltar$/ }).boundingBox();
+    const c = await mainD().getByRole('button', { name: /^Continuar$/ }).boundingBox();
+    return !!v && !!c && Math.abs(v.y - c.y) < 4;
+  })());
+  await mainD().getByRole('button', { name: /← Acolhidos/ }).first().click(); await esp(700);
+  await mainD().locator('ol.pessoas li').filter({ hasText: 'Alice' }).first().locator('button, [role=button], a').first().click(); await esp(900);
+  await mainD().getByRole('button', { name: /^Atendimento de saúde$/ }).first().click(); await esp(600);
+  cobrar('a folha do atendimento de saúde diz o que falta antes de gravar',
+    /Falta escolher o tipo de atendimento/.test(await falta()), await falta());
+  await pgD.locator('[role=dialog]').getByRole('button', { name: /^Cancelar$/ }).first().click(); await esp(400);
+  cobrar('nenhuma exceção no resto do cadastro e no perfil', errosD.length === 0, errosD[0]);
+  await pgD.close();
+}
+
+/*
  * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
  * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.
  * Antes, a mesma linha entrava duas vezes na ATA, e a linha da ATA não se apaga.

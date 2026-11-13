@@ -17,6 +17,7 @@
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { hojeNaInstituicao } from '../src/kernel/common/tempo';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
@@ -79,7 +80,9 @@ describe('Saída, acervo e retorno', () => {
                   birthDate: '2014-03-11', cpf: '' },
         // Sem CPF, o servidor exige o motivo do ingresso urgente (§6.1) — e é
         // o caminho certo aqui: um CPF fixo colidiria na segunda rodada.
-        acolhimento: { admittedOn: new Date().toISOString().slice(0, 10),
+        /* O dia da instituição, e não o de Greenwich (fase 319): depois das 21h de
+           Porto Alegre o UTC já é amanhã, e o acolhimento no futuro é recusado. */
+        acolhimento: { admittedOn: hojeNaInstituicao(),
                        provisionalReason: 'Ingresso urgente — ficção de teste.',
                        // A Casa 03 da semeadura já está no limite de vagas, e o
                        // servidor pede a justificativa por escrito antes de

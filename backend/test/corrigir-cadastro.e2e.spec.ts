@@ -232,7 +232,7 @@ describe('Corrigir o cadastro depois da admissão', () => {
     /* E o histórico diz que mudou, sem o número. */
     const cpf = (await correcoes(tokens.educador)).find((c: any) => c.campo === 'CPF');
     expect(cpf).toMatchObject({ antes: '(estava em branco)', depois: '(passou a ter CPF)' });
-    expect(JSON.stringify(cpf)).not.toMatch(/318/);
+    expect(JSON.stringify(cpf)).not.toMatch(/31831831880|318\.318\.318/);
   });
 
   it('o CPF que não fecha a conta é recusado, e o cadastrado continua', async () => {

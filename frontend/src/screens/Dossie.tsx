@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { OQueFalta } from '../o-que-falta';
 import { api } from '../api';
 import { baixarArquivo, FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
@@ -504,6 +505,10 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
           )}
         </div>
 
+        <OQueFalta itens={[
+          arquivo == null && 'escolher o arquivo ou tirar a foto',
+          titulo.trim().length < 2 && 'escrever o título',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onEnviar({
@@ -880,6 +885,11 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
           </>
         )}
 
+        <OQueFalta itens={[
+          tipo === '' && 'escolher o tipo',
+          quando === '' && 'pôr o dia',
+          descricao.trim().length < 5 && 'contar o que aconteceu',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={async () => onEnviar({
