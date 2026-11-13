@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import marca from '../assets/logo-marca.png';
 import { Icone } from '../icones';
-import { FRASE_DA_SENHA, oQueFaltaNaSenha, senhaAceita } from '../../../backend/src/kernel/common/senha.regra';
+import { FRASE_DA_SENHA, fraseDoQueFalta, oQueFaltaNaSenha, senhaAceita } from '../../../backend/src/kernel/common/senha.regra';
 
 /**
  * PRIMEIRO ACESSO PELO CONVITE (§8.2).
@@ -15,10 +15,6 @@ import { FRASE_DA_SENHA, oQueFaltaNaSenha, senhaAceita } from '../../../backend/
  * A senha é digitada duas vezes porque não há como recuperá-la depois: nem a
  * coordenação vê senha de ninguém. Errar aqui custa um convite novo.
  */
-/** A lista como se fala: um, dois e três. */
-const emLista = (itens: string[]) =>
-  itens.length < 2 ? itens.join('') : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
-
 export function PrimeiroAcesso({ convite, onEntrou }: {
   convite: string;
   onEntrou: (token: string) => void;
@@ -104,7 +100,7 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
               placeholder="8 ou mais, com maiúscula e símbolo"
             />
             {senha && oQueFaltaNaSenha(senha).length > 0 && (
-              <p className="mutetxt" aria-live="polite">Ainda falta: {emLista(oQueFaltaNaSenha(senha))}.</p>
+              <p className="mutetxt" aria-live="polite">{fraseDoQueFalta(senha)}</p>
             )}
 
             <label className="f" htmlFor="repetida">Repita a senha</label>

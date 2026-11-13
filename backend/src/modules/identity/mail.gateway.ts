@@ -2,7 +2,6 @@ import { Inject, Injectable, Logger, Optional, ServiceUnavailableException } fro
 import { mkdirSync, appendFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTransport, type Transporter } from 'nodemailer';
-import MailComposer from 'nodemailer/lib/mail-composer';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { anotarImplantacao } from '../../kernel/implantacao/anotar';
 import { CID_DO_LOGO, LOGO_DO_EMAIL } from './logo-do-email';
@@ -39,11 +38,6 @@ export interface Mensagem {
  *             `SMTP_USER`, `SMTP_PASS` e `EMAIL_REMETENTE`. Sem remetente, NÃO
  *             envia: e-mail sem remetente institucional cai em spam ou é
  *             recusado, e o convite some calado;
- *   gmail   — a mesma mensagem, entregue pela API do Gmail em HTTPS (12/11),
- *             para a máquina de onde a porta de e-mail não sai. Pede
- *             `EMAIL_REMETENTE` e `GMAIL_TOKEN`, a autorização da conta que
- *             envia. A autorização é curta (cerca de uma hora): serve ao ensaio
- *             e à demonstração; o servidor instalado usa o `smtp`;
  *   falha   — para o teste do servidor que não responde.
  *
  * STARTTLS é EXIGIDO por padrão (`SMTP_EXIGIR_TLS`): o convite leva um link
@@ -72,7 +66,6 @@ export class MailGateway {
       throw new Error('Servidor de e-mail indisponível (modo de teste)');
     }
     if (process.env.EMAIL_MODO === 'smtp') return this.porSmtp(m);
-    if (process.env.EMAIL_MODO === 'gmail') return this.pelaApiDoGmail(m);
     mkdirSync(this.caixa, { recursive: true });
     appendFileSync(
       join(this.caixa, 'caixa-de-saida.txt'),
@@ -108,45 +101,6 @@ export class MailGateway {
         }],
       } : {}),
     };
-  }
-
-  /*
-   * PELA API DO GMAIL. A mensagem é montada inteira aqui, igual à do SMTP, e
-   * entregue num pedido HTTPS só. O log leva o destinatário, o assunto e o
-   * código da resposta; nunca o corpo, o link nem a autorização.
-   */
-  private async pelaApiDoGmail(m: Mensagem): Promise<{ ok: true }> {
-    const remetente = process.env.EMAIL_REMETENTE?.trim();
-    const autorizacao = process.env.GMAIL_TOKEN?.trim();
-    if (!remetente || !autorizacao) {
-      this.log.error('EMAIL_MODO=gmail sem EMAIL_REMETENTE ou GMAIL_TOKEN: nenhum e-mail sai');
-      await this.anotar(false, { codigo: 'sem_configuracao' });
-      throw new ServiceUnavailableException(
-        'O envio de e-mail não está configurado neste servidor. O convite não saiu; '
-        + 'avise o suporte.');
-    }
-    let codigo = 'sem_resposta';
-    try {
-      const inteira: Buffer = await new MailComposer(this.partes(m, remetente)).compile().build();
-      const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${autorizacao}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ raw: inteira.toString('base64url') }),
-        signal: AbortSignal.timeout(30_000),
-      });
-      codigo = String(r.status);
-      if (!r.ok) throw new Error(codigo);
-      const { id } = await r.json() as { id?: string };
-      this.log.log(`e-mail enviado para ${m.para} — ${m.assunto} · gmail ${id ?? ''}`);
-      await this.anotar(true);
-      return { ok: true };
-    } catch {
-      this.log.error(`e-mail para ${m.para} NÃO saiu · gmail ${codigo}`);
-      await this.anotar(false, { codigo });
-      throw new ServiceUnavailableException(
-        'O servidor de e-mail não respondeu e o convite não saiu. Tente de novo em '
-        + 'alguns minutos; se repetir, avise o suporte.');
-    }
   }
 
   private async porSmtp(m: Mensagem): Promise<{ ok: true }> {

@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 317, dia: '13/11/2026',
+    texto: 'O e-mail do convite e o do esqueci minha senha agora chegam com o logo do Pão dos Pobres, um botão para criar a senha, o prazo do link em destaque e o endereço por extenso para quem preferir copiar. Na hora de criar ou trocar a senha, a tela diz numa frase só o que ainda falta. E a conta desativada passa a ser recusada logo na primeira conferência de cada registro.' },
   { fase: 316, dia: '12/11/2026',
     texto: 'O plantão ficou mais direto. No alto do Dia da Casa há o roteiro do turno: Passagem, Chamada, Doses e ATA, cada um dizendo como está (quantas passagens assinadas, o que está para confirmar, a próxima hora) e levando até lá com um toque. No celular, a folha Mais mostra as telas em duas colunas, só com o desenho e o nome, e todas cabem em pouco mais de uma tela. Nos Acolhidos, a busca e a lista das crianças vêm primeiro; as saídas de hoje e quem está com a família ficam em cartões curtos no alto, com o nome e a situação à vista e o resto no Ver o motivo e no Ver mais. Toda tela diz o próprio nome no alto. Na ATA, o botão Escrever na ATA leva direto à caixa da linha. E nas Ocorrências saiu a faixa com um botão só, que parecia fazer alguma coisa e não fazia.' },
   { fase: 315, dia: '12/11/2026',

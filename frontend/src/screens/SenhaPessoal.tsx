@@ -3,7 +3,7 @@ import { CameraNesteAparelho } from '../camera';
 import { useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
-import { FRASE_DA_SENHA, oQueFaltaNaSenha, senhaAceita } from '../../../backend/src/kernel/common/senha.regra';
+import { FRASE_DA_SENHA, oQueFaltaNaSenha, senhaAceita, fraseDoQueFalta } from '../../../backend/src/kernel/common/senha.regra';
 
 /**
  * A SENHA PESSOAL.
@@ -85,7 +85,7 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
                  value={nova} onChange={(e) => setNova(e.target.value)}
                  placeholder="8 ou mais, com maiúscula e símbolo" />
           {nova && oQueFaltaNaSenha(nova).length > 0 && (
-            <p className="mutetxt" aria-live="polite">Falta {oQueFaltaNaSenha(nova).join(', ')}.</p>
+            <p className="mutetxt" aria-live="polite">{fraseDoQueFalta(nova)}</p>
           )}
 
           <label className="f" htmlFor="repete">Repita a senha</label>

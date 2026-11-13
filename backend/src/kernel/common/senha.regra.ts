@@ -61,3 +61,15 @@ export function senhaInicialSorteada(sortear: (n: number) => number): string {
   const n = String(sortear(10000)).padStart(4, '0');
   return `${a[0].toUpperCase()}${a.slice(1)}-${b}-${n}`;
 }
+
+/**
+ * O que falta, dito por extenso para a tela (fase 317): *Ainda falta: pelo menos
+ * 8 caracteres, uma letra maiúscula e um símbolo.* Vazio quando não falta nada.
+ * As duas telas que criam senha leem daqui, para a frase não divergir.
+ */
+export function fraseDoQueFalta(senha: string): string {
+  const itens = oQueFaltaNaSenha(senha);
+  if (itens.length === 0) return '';
+  const lista = itens.length < 2 ? itens[0] : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
+  return `Ainda falta: ${lista}.`;
+}
