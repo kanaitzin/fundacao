@@ -3207,6 +3207,9 @@ await fechar();
   cobrar('a barra da portaria tem só o portão e os encontros',
     naBarra.length === 0 || naBarra.every((t) => /Portaria|Encontros/.test(t)), naBarra.join(' · '));
 }
+/* O `trocar` toca no primeiro botão da barra, que em ordem alfabética é o dos Encontros:
+   volta ao portão, que é a tela em que a portaria entra. */
+await aba('Portaria');
 erros.length = 0;
 const portao = await conteudo();
 cobrar('a portaria abre direto no portão', /Portaria/.test(portao) && /Visitantes/.test(portao) && /Quem chegou/.test(portao), portao.slice(0, 300));
