@@ -119,6 +119,9 @@ async function trocar(cargo) {
   await pg.waitForTimeout(900);
   const abas = pg.locator('nav.tabbar button');
   if (await abas.count()) { await abas.first().click(); await pg.waitForTimeout(600); }
+  /* A barra da portaria está em ordem alfabética, e o primeiro botão é o dos Encontros
+     (fase 322): a tela dela é o portão. */
+  if (cargo === 'portaria') await aba('Portaria');
 }
 
 async function aba(nome) {
@@ -5289,9 +5292,11 @@ console.log('\n🧭 O Guia do sistema (fase 231)');
   cobrar('a coordenação vê no Guia a Equipe e a aba Atendimentos', /Equipe/.test(daCoord) && /Atendimentos\. O relatório/.test(daCoord));
   cargoAtual = 'portaria';
   await pgG.locator('select.troca-cargo-sel').selectOption('portaria'); await esp(900);
-  cobrar('a portaria continua com uma tela só, sem o Guia',
+  /* Desde a 322 a portaria tem o portão e os encontros de alinhamento; entra no portão
+     e continua sem o Guia (F21 da pauta). */
+  cobrar('a portaria entra no portão, sem o Guia',
     await pgG.locator('main.conteudo').getAttribute('data-tela') === 'portaria'
-    && await pgG.locator('nav.tabbar').count() === 0);
+    && (await pgG.locator('nav.tabbar button', { hasText: /Guia/ }).count()) === 0);
   cobrar('nenhuma exceção no Guia', errosG.length === 0, errosG[0]);
   await pgG.close();
 }
