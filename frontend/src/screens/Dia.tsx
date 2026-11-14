@@ -1434,7 +1434,7 @@ function FolhaUrgente({ houseId, onFechar, onCriar }: {
       <div className="sheet modal">
         <h3 id="t-urg">Atividade urgente</h3>
         <div className="notice c-info">
-          Isto é <b>pontual</b>: entra no dia de hoje, com autoria e motivo, e <b>não altera a
+          Isto é <b>pontual</b>: entra no dia e na hora escolhidos, com autoria e motivo, e <b>não altera a
           rotina da casa</b>. Para mudar o horário de sempre, o caminho é a tela da Rotina — e
           lá a mudança abre versão nova.
         </div>
