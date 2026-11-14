@@ -11,7 +11,8 @@
  *     é da chamada;
  *  4. a marcação da hora não muda, e o adendo volta na chamada com quem e quando,
  *     para quem lê a chamada, inclusive o educador;
- *  5. a aplicação não escreve na tabela direto, e a auditoria tem a casa.
+ *  5. a aplicação não escreve na tabela direto, e a auditoria tem a casa;
+ *  6. a criança que chegou à casa depois da chamada não recebe adendo dela (1720).
  *
  * A chamada nasce em 2021, fora de toda janela que as outras suítes leem: a
  * chamada confirmada não se apaga.
@@ -104,6 +105,32 @@ describe('O adendo da chamada confirmada', () => {
     expect(semCrianca.status).toBe(400);
   });
 
+  it('a criança que chegou depois da chamada não recebe adendo dela (1720)', async () => {
+    /* Uma chamada de 2021 com uma criança só marcada, confirmada pela conexão de dono:
+       pela aplicação o fechamento cobraria as outras. As crianças de hoje chegaram
+       depois de 2021, e a que não foi marcada não é desta chamada. */
+    const outra = await request(http).post('/api/v1/checks').set(auth(tokens.educador))
+      .send({ houseId: ids.AI3, kind: 'alimentacao', titulo: 'Janta do adendo 320',
+              referenceAt: '2021-03-10T19:00:00-03:00' }).expect(201);
+    const c = (await request(http).get(`/api/v1/checks/${outra.body.id}`).set(auth(tokens.educador)).expect(200)).body;
+    const ativas = c.linhas.filter((l: any) => l.ativo).map((l: any) => l.acolhidoId);
+    await request(http).post(`/api/v1/checks/${outra.body.id}/mark`).set(auth(tokens.educador))
+      .send({ personId: ativas[0], opcao: 'normal' }).expect(201);
+    await admin.query(`UPDATE collective_check SET status = 'confirmada', confirmed_at = reference_at WHERE id = $1`,
+      [outra.body.id]);
+    const { rows: [{ antes }] } = await admin.query(
+      `SELECT bool_and(started_at > '2021-03-10T22:00:00Z') AS antes FROM house_stay WHERE person_id = $1 AND house_id = $2`,
+      [ativas[1], ids.AI3]);
+    expect(antes).toBe(true);
+    const corpo = { opcao: 'recusou', nota: 'Escrito para quem ainda não morava na casa.' };
+    const chegou = await request(http).post(`/api/v1/checks/${outra.body.id}/adendo`).set(auth(tokens.tecnica))
+      .send({ ...corpo, personId: ativas[1] });
+    expect(chegou.status).toBe(400);
+    expect(chegou.body.message).toMatch(/não está nesta chamada/);
+    await request(http).post(`/api/v1/checks/${outra.body.id}/adendo`).set(auth(tokens.tecnica))
+      .send({ ...corpo, nota: 'A cozinha avisou que não jantou.', personId: ativas[0] }).expect(201);
+  });
+
   it('a técnica e a coordenação escrevem, e a marcação da hora não muda', async () => {
     const { rows: [antes] } = await admin.query(
       `SELECT option_code, recorded_by FROM check_result WHERE check_id = $1 AND person_id = $2`,
@@ -152,7 +179,7 @@ describe('O adendo da chamada confirmada', () => {
     } finally { await admin.query('ROLLBACK'); }
     const { rows: [f] } = await admin.query(
       `SELECT prosrc FROM pg_proc WHERE proname = 'app_adendo_da_chamada'`);
-    const doBanco = [...f.prosrc.match(/NOT IN \(([^)]*)\)/)[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+    const doBanco = [...f.prosrc.match(/NOT IN \(([^)]*)\)/)[1].matchAll(/'([a-z_]+)'/g)].map((m: RegExpMatchArray) => m[1]);
     expect(doBanco.sort()).toEqual([...ESCREVEM_ADENDO].sort());
   });
 });

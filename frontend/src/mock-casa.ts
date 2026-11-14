@@ -8255,8 +8255,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (k.status !== 'confirmada') {
       return new Recusa(400, 'A chamada ainda está aberta: a correção se faz na própria marcação.');
     }
-    if (!efetivoDaChamada(k).some((p) => p.id === b.personId)) {
-      return new Recusa(400, 'Esta criança não está nesta chamada.');
+    /* Só quem foi marcado, como o `app_adendo_da_chamada` (1720): a criança que chegou
+       depois da chamada não recebe adendo dela. */
+    if (!k.resultados[b.personId]) {
+      return new Recusa(400, 'Esta criança não está nesta chamada: não foi marcada nela e não estava na casa naquela hora.');
     }
     const id = uid();
     k.adendos = [...(k.adendos ?? []), { id, personId: b.personId, opcao: opcao.code, nota,

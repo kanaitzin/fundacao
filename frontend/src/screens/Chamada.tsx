@@ -586,13 +586,8 @@ export function Chamada({ houseId }: { houseId: string }) {
               {/* Onde o alerta importa: na hora de marcar, com a bandeja na mão. */}
               {l.alertas && <div className="alerta"><Icone nome="alerta" /> {l.alertas}</div>}
               {l.restricoes && <div className="alerta rest"><Icone nome="refeicao" /> {l.restricoes}</div>}
-              {confirmada && aberta.podeEscreverAdendo && (
-                <div className="acoes">
-                  <button data-acolhe-abre="" className="btn sm sec" onClick={() => setAdendoDe(l)}>
-                    Escrever um adendo
-                  </button>
-                </div>
-              )}
+              {/* Na chamada confirmada, quem aparece aqui entrou na casa depois dela: não
+                  há adendo (fase 320, a revisão do banco), só a frase do fim da tela. */}
               <Adendos lista={l.adendos} />
               {!confirmada && (
                 <div className="acoes">
@@ -1063,6 +1058,9 @@ function FolhaAdendo({ linha, opcoes, onFechar, onEscrever }: {
           ))}
         </div>
         <label className="f" htmlFor="adendo-nota">O que aconteceu e por que o adendo</label>
+        <p className="mutetxt" style={{ marginTop: 0 }}>
+          Toda a equipe da casa lê o adendo, como lê a chamada: escreva o fato, sem diagnóstico.
+        </p>
         <textarea id="adendo-nota" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={2000}
                   placeholder="Ex.: a cozinha avisou que ela não almoçou; a marcação ficou como Normal na pressa." />
         <OQueFalta itens={[

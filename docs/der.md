@@ -1039,7 +1039,7 @@ ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a 
 de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
 retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
-## Inventário — 155 tabelas por partição
+## Inventário — 156 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -1051,7 +1051,7 @@ retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 | activities (8) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception, activity_bulk |
 | nursing (18) | health_encounter, health_evolution, health_confidential_change, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, education_link, education_link_change, education_grade, education_link_notice, education_attendance, hospitalization, hospitalization_note, hospitalization_note_attachment, hospitalization_medication, hospitalization_companion |
 | reports (7) | followup, followup_source, report_document, report_delivery, export_log, life_milestone, followup_return |
-| checks (5) | collective_check, check_result, check_result_amendment, check_bulk, house_check_model |
+| checks (6) | collective_check, check_result, check_result_amendment, check_bulk, house_check_model, check_result_addendum |
 | notifications (5) | notification, escalation, escalation_level, push_subscription, notification_push |
 | archive (2) | archive_item, archive_attempt |
 | alignments (5) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute |

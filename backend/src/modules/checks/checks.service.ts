@@ -367,19 +367,11 @@ export class ChecksService {
   }
 
   /**
-   * A CONFERÊNCIA DE MESA (§10).
-   *
-   * Marca de uma vez, com a opção não-exceção do tipo, TODOS os que ainda não
-   * têm registro — e grava o ato: quem, quando, quantos. As travas moram no
-   * `app_bulk_check` (migração 0780), e não aqui: nenhum caminho de escrita
-   * escapa delas. Este método traduz a recusa do banco em frase de gente.
-   */
-  /**
    * O ADENDO DA CHAMADA CONFIRMADA (fase 320, decidido pelo dono em 13/11).
    *
    * A marcação da hora fica como foi registrada; o adendo fica ao lado, com o que
    * de fato aconteceu, o motivo, quem escreveu e quando. As travas moram no
-   * `app_adendo_da_chamada` (1719); aqui se confere a opção do tipo e se traduz a
+   * `app_adendo_da_chamada` (1719 e 1720); aqui se confere a opção do tipo e se traduz a
    * recusa.
    */
   async adendo(user: AuthenticatedUser, checkId: string, input: {
@@ -421,9 +413,12 @@ export class ChecksService {
         throw new BadRequestException('A chamada ainda está aberta: a correção se faz na própria marcação.');
       }
       if (m.includes('crianca_fora_da_chamada')) {
-        throw new BadRequestException('Esta criança não está nesta chamada.');
+        throw new BadRequestException('Esta criança não está nesta chamada: não foi marcada nela e não estava na casa naquela hora.');
       }
       if (m.includes('chamada_inexistente')) throw new NotFoundException('Chamada não encontrada');
+      if (m.includes('adendo_sem_motivo')) {
+        throw new BadRequestException('Escreva o que aconteceu e por que o adendo, com pelo menos 10 letras.');
+      }
       if (m.includes('adendo_so_tecnica_e_coordenacao')) {
         throw new ForbiddenException('O adendo da chamada é escrito pela equipe técnica ou pela coordenação.');
       }
@@ -441,6 +436,14 @@ export class ChecksService {
     };
   }
 
+  /**
+   * A CONFERÊNCIA DE MESA (§10).
+   *
+   * Marca de uma vez, com a opção não-exceção do tipo, TODOS os que ainda não
+   * têm registro — e grava o ato: quem, quando, quantos. As travas moram no
+   * `app_bulk_check` (migração 0780), e não aqui: nenhum caminho de escrita
+   * escapa delas. Este método traduz a recusa do banco em frase de gente.
+   */
   async bulk(user: AuthenticatedUser, checkId: string) {
     const k = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(

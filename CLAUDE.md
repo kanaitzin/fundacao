@@ -293,7 +293,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 13/11/2026, fase 319
+### Onde estamos — 13/11/2026, fase 320
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -476,8 +476,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 317 | **quem chega sem cargo é recusado em todas as funções do banco** (a guarda de cargo nulo da 1634): 76 comparações em 67 funções deixavam passar a transação sem identidade ou com a conta desativada, e quem segurava era a casa, o RLS ou um NOT NULL; a identity/1717 reescreve todas pelo catálogo, e **as revisões acharam e provaram o que ela não via** (o cargo com `::text` antes da comparação, 25 funções SQL que devolviam NULL, e a conta desativada que ainda alcançava a casa pelo vínculo: sem identidade, o documento que nunca subiu era dado como guardado no Drive), fechado na 1718. E **a passagem de turno entre as contas** (`passagem/`, `scripts/passagem.sh`) e **o e-mail do convite e do esqueci com o logo do Pão** (`mensagem-do-email.ts`) |
 | 318 | **o cadastro não trava no CPF** (pedido de 13/11, com a equipe do Pão testando o protótipo): **todo CPF terminado em 0 fingia ser de uma criança do acervo** e o cadastro parava sem botão, o número a mais mandava tocar num Conferir apagado, e **a criança sem CPF não tinha onde receber o CPF depois**; hoje o CPF é conferido na tela, o erro diz o que fazer junto do campo com *Seguir sem CPF por enquanto* e motivos prontos, a criança que já tem perfil ganha o botão do perfil ou do retorno, o perfil ganha *Pôr o CPF*, e o servidor guarda só os números e recusa o CPF de outra criança com frase |
 | 319 | **o cadastro e o perfil dizem o que falta** (pedido de 13/11): **vinte folhas do perfil e do dossiê nasciam com o botão de gravar apagado sem dizer por quê**, e o cadastro aceitava nascimento no futuro, 31 de fevereiro, acolhimento antes do nascimento e guia que ainda não chegou; hoje cada folha diz o que falta acima do botão (`OQueFalta`), e a regra das datas é uma só para o servidor, a tela e o protótipo (`datas-do-cadastro.regra.ts`) |
+| 320 | **a Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada** (pedido de 13/11): treze folhas com o botão apagado sem dizer por quê; a folha de decidir a substituição sem Fechar; **no protótipo, o café dizendo 20 de 15** (as crianças do acervo), toda marcação assinada por quem estava olhando, e a linha do almoço no Dia escrita à mão com outros números; o *Abrir chamada* do Dia levando à lista; e **a tela prometia o adendo da chamada confirmada, que não existia**: hoje a técnica e a coordenação o escrevem ao lado da marcação da hora, que não muda (checks/1719 e 1720; a revisão do banco achou o adendo para quem chegou depois e o INSERT direto de chamada já confirmada) |
 
-**Medido no fim da 319:** 258 migrações, 155 tabelas, 179 suítes, 1589 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 320:** 260 migrações, 156 tabelas, 180 suítes, 1596 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
