@@ -5312,7 +5312,8 @@ function Presenca({ personId, nome }: { personId: string; nome: string }) {
               resultado: string; excecao: boolean; justificativa: string | null;
               por: string; offline: boolean;
               correcoes: { antes: string; justificativaAntes: string | null;
-                           eraDe: string; corrigidoPor: string; em: string }[] }[];
+                           eraDe: string; corrigidoPor: string; em: string }[];
+              adendos?: { resultado: string; nota: string; por: string | null; em: string }[] }[];
   } | null>(null);
   const [aberto, setAberto] = useState(false);
   const [erro, setErro] = useState('');
@@ -5337,7 +5338,7 @@ function Presenca({ personId, nome }: { personId: string; nome: string }) {
           { n: linhas.length, rotulo: 'registros nas chamadas' },
           { n: linhas.filter((l) => l.excecao).length, rotulo: 'com exceção, com o motivo escrito' },
           { n: linhas.filter((l) => l.tipo === 'alimentacao' && l.excecao).length, rotulo: 'refeições com exceção' },
-          { n: linhas.filter((l) => l.correcoes.length).length, rotulo: 'corrigidos depois' },
+          { n: linhas.filter((l) => l.correcoes.length || l.adendos?.length).length, rotulo: 'corrigidos depois' },
         ]} />
       )}
       <div className="eyebrow">Presença nas chamadas · últimos {dados?.dias ?? 30} dias</div>
@@ -5353,7 +5354,7 @@ function Presenca({ personId, nome }: { personId: string; nome: string }) {
           dia, vira paisagem — e é o mesmo motivo pelo qual a lista de quem sai
           sozinho mostra só quem NÃO está simplesmente liberado (§8.7.2). */}
       <div className="stack">
-        {maisNovoEmCima(linhas, (l) => l.quando).filter((l) => aberto || l.excecao || l.correcoes.length).map((l) => (
+        {maisNovoEmCima(linhas, (l) => l.quando).filter((l) => aberto || l.excecao || l.correcoes.length || l.adendos?.length).map((l) => (
           <div className="card" key={l.id}>
             <div className="row">
               <span className={`pill ${l.excecao ? 'c-warn' : 'c-ok'}`}>{l.resultado}</span>
@@ -5369,6 +5370,12 @@ function Presenca({ personId, nome }: { personId: string; nome: string }) {
                 Antes constava <b>{c.antes}</b>
                 {c.justificativaAntes ? ` — "${c.justificativaAntes}"` : ''}, de {c.eraDe}.
                 Corrigido por {c.corrigidoPor} em {diaEHora(c.em)}.
+              </div>
+            ))}
+            {/* O adendo da chamada confirmada (fase 320): a marcação acima ficou como foi. */}
+            {maisNovoEmCima(l.adendos ?? [], (a) => a.em).map((a, n) => (
+              <div className="notice c-info" key={`ad${n}`}>
+                <b>Adendo: {a.resultado}.</b> {a.nota} Escrito por {a.por ?? 'alguém da equipe'} em {diaEHora(a.em)}.
               </div>
             ))}
           </div>

@@ -44,6 +44,7 @@ import { QUEM_PREPARA_A_SAIDA, ROTULO_DA_VIVENCIA, folhaDeTransicao, folhaDoLivr
   from '../../backend/src/modules/reports/saida-folha';
 import { quantos } from '../../backend/src/kernel/common/quantos';
 import { textoDaChamadaAberta, textoDoQueFaltaNaChamada } from '../../backend/src/modules/checks/chamada-no-dia.regra';
+import { ESCREVEM_ADENDO } from '../../backend/src/modules/checks/adendo.regra';
 import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import {
@@ -1237,6 +1238,16 @@ const OPCOES_POR_TIPO: Record<string, { code: string; label: string; excecao: bo
 };
 const opcoesDoTipo = (tipo: string) => OPCOES_POR_TIPO[tipo] ?? OPCOES_POR_TIPO.alimentacao;
 
+/**
+ * DE QUEM A CHAMADA TRATA, numa lista só (fase 320), como o `app_efetivo_da_chamada`
+ * do servidor: quem está na casa, sem internado nem quem está com a família, mais quem
+ * já foi marcado. A conferência de mesa e o fechamento contavam a casa inteira, e
+ * marcavam como almoçando a criança que estava com a família.
+ */
+function efetivoDaChamada(k: Chamada) {
+  return todosKids().filter((p) => (!estaInternado(p.id) && !estaComAFamilia(p.id)) || k.resultados[p.id]);
+}
+
 /** Os oito tipos do enum `check_type`, com o nome que a casa usa. */
 const TIPOS_DE_CHAMADA = [
   { cod: 'acordar', label: 'Acordar', sugestao: 'Acordar' },
@@ -1252,7 +1263,9 @@ const TIPOS_DE_CHAMADA = [
 interface Chamada {
   id: string; tipo: string; titulo: string; status: string; horario: string;
   /** `mesa` guarda de qual conferência de mesa a linha nasceu, se nasceu. */
-  resultados: Record<string, { opcao: string; nota?: string; mesa?: string }>;
+  resultados: Record<string, { opcao: string; nota?: string; mesa?: string; por?: string; em?: string }>;
+  /** Os adendos da chamada confirmada (fase 320). */
+  adendos?: { id: string; personId: string; opcao: string; nota: string; por: string; em: string }[];
   /** As conferências de mesa desta chamada — o ato, com nome e horário. */
   mesas?: { id: string; opcao: string; quantos: number; por: string; quando: string }[];
   /* Quem abriu e quem fechou (fase 113). O café já vem confirmado por alguém:
@@ -1263,13 +1276,16 @@ interface Chamada {
 }
 let CHAMADAS: Chamada[] = [
   { id: 'k1', tipo: 'alimentacao', titulo: 'Café da manhã', status: 'confirmada',
-    horario: emHoras(7, 30), resultados: Object.fromEntries(KIDS.map((k) => [k.id, { opcao: 'normal' }])),
+    horario: emHoras(7, 30),
+    resultados: Object.fromEntries(KIDS.map((k) => [k.id, { opcao: 'normal', por: 'Joana Lima', em: emHoras(7, 40) }])),
     abertaPor: 'Joana Lima', abertaEm: emHoras(7, 25),
     confirmadaPor: 'Lúcia Líder Diurna', confirmadaEm: emHoras(8, 5) },
   { id: 'k2', tipo: 'alimentacao', titulo: 'Almoço', status: 'aberta', horario: emHoras(11, 30),
     abertaPor: 'Joana Lima', abertaEm: emHoras(11, 25),
-    resultados: { p02: { opcao: 'normal' }, p04: { opcao: 'normal' },
-                  p11: { opcao: 'parcial', nota: 'Comeu metade e disse que estava sem fome.' } } },
+    resultados: { p02: { opcao: 'normal', por: 'Joana Lima', em: emHoras(11, 40) },
+                  p04: { opcao: 'normal', por: 'Joana Lima', em: emHoras(11, 40) },
+                  p11: { opcao: 'parcial', nota: 'Comeu metade e disse que estava sem fome.',
+                         por: 'Joana Lima', em: emHoras(11, 45) } } },
   { id: 'k3', tipo: 'alimentacao', titulo: 'Janta', status: 'aberta', horario: emHoras(18, 30),
     resultados: {}, abertaPor: 'Joana Lima', abertaEm: emHoras(18, 25) },
 ];
@@ -8119,8 +8135,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           id: `${k.id}:${pid}`, chamadaId: k.id, tipo: k.tipo, titulo: k.titulo,
           quando: k.horario, registradoEm: k.horario,
           resultado: o?.label ?? r.opcao, excecao: o?.excecao ?? false,
-          justificativa: r.nota ?? null, por: eu.fullName, offline: false,
+          justificativa: r.nota ?? null, por: r.por ?? 'Equipe do plantão', offline: false,
           correcoes: [] as unknown[],
+          adendos: (k.adendos ?? []).filter((a) => a.personId === pid).map((a) => ({
+            resultado: rotulo(k.tipo, a.opcao)?.label ?? a.opcao, nota: a.nota, por: a.por, em: a.em })),
         };
       });
     const anteriores = PRESENCA_ANTERIOR.filter((a) => a.personId === pid).map((a) => {
@@ -8149,11 +8167,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      * internado continua na lista, como no servidor: o registro de quem foi
      * olhado não some.
      */
-    const linhas = todosKids()
-      /* E quem está com a família também sai, como no servidor
-         (`app_em_convivencia_familiar`, 1010). Antes o protótipo mostrava a
-         criança na chamada e em "Com a família" ao mesmo tempo (fase 89). */
-      .filter((p) => (!estaInternado(p.id) && !estaComAFamilia(p.id)) || k.resultados[p.id])
+    const linhas = efetivoDaChamada(k)
       .map((p) => {
       const res = k.resultados[p.id];
       return {
@@ -8161,8 +8175,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         alertas: alertasDe(p).map((a) => a.descricao).join(' · ') || null,
         restricoes: restricoesDe(p).map((r) => r.restriction).join(' · ') || null,
         resultado: res?.opcao ?? null, justificativa: res?.nota ?? null,
-        registradoPor: res ? eu.fullName : null, registradoEm: res ? new Date().toISOString() : null,
+        /* Quem marcou e quando, como o servidor (fase 320): antes, toda marcação
+           dizia o nome de quem estava olhando, com a hora de agora. */
+        registradoPor: res?.por ?? null, registradoEm: res?.em ?? null,
         naConferenciaDeMesa: !!res?.mesa,
+        adendos: (k.adendos ?? []).filter((a) => a.personId === p.id).map((a) => ({
+          id: a.id, resultado: opcoesDoTipo(k.tipo).find((o) => o.code === a.opcao)?.label ?? a.opcao,
+          nota: a.nota, por: a.por, em: a.em })),
       };
     });
     const conferidos = linhas.filter((l) => l.resultado).length;
@@ -8174,6 +8193,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       esperados: linhas.length, conferidos, faltam: linhas.length - conferidos,
       quemFalta: linhas.filter((l) => !l.resultado).map((l) => l.nome),
       linhas, opcoes: opcoesDoTipo(k.tipo),
+      podeEscreverAdendo: k.status === 'confirmada' && ESCREVEM_ADENDO.includes(eu.role),
       // A chamada final do turno é um a um: ela existe para alguém CONTAR as
       // crianças antes de dormir, e "todos" ali seria suposição.
       aceitaConferenciaDeMesa: k.tipo !== 'chamada_final' && k.status === 'aberta',
@@ -8193,7 +8213,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!k) return new Recusa(404, 'Chamada não encontrada');
     if (k.status !== 'aberta') {
       return new Recusa(400,
-        'Chamada já confirmada. Correções entram como adendo pela equipe técnica.');
+        'Chamada já confirmada. A correção agora é um adendo, escrito pela equipe técnica ou pela coordenação.');
     }
     if (k.tipo === 'chamada_final') {
       return new Recusa(400,
@@ -8205,12 +8225,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     // Só quem AINDA NÃO tem registro. Quem já foi marcado fica como está —
     // inclusive a criança marcada "recusou" antes de a mesa ser conferida.
-    const pendentes = todosKids().filter((p) => !k.resultados[p.id]);
+    const pendentes = efetivoDaChamada(k).filter((p) => !k.resultados[p.id]);
     if (!pendentes.length) {
       return new Recusa(400, 'Todos já foram conferidos nesta chamada, não há o que marcar em bloco.');
     }
     const mesa = uid();
-    for (const p of pendentes) k.resultados[p.id] = { opcao: comum.code, mesa };
+    const quando = new Date().toISOString();
+    for (const p of pendentes) k.resultados[p.id] = { opcao: comum.code, mesa, por: eu.fullName, em: quando };
     k.mesas = [...(k.mesas ?? []), { id: mesa, opcao: comum.code, quantos: pendentes.length,
                                      por: eu.fullName, quando: new Date().toISOString() }];
     return { id: mesa, marcados: pendentes.length, opcao: comum.label,
@@ -8218,19 +8239,44 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'seu nome e o horário. Quem já estava marcado não foi tocado. Se alguém não estiver '
         + 'assim, abra o nome dessa criança e corrija — a correção guarda o que constava antes.' };
   }
+  /* O ADENDO DA CHAMADA CONFIRMADA (fase 320), com as travas do `app_adendo_da_chamada`. */
+  if (seg[0] === 'checks' && seg[2] === 'adendo' && metodo === 'POST') {
+    if (!ESCREVEM_ADENDO.includes(eu.role)) {
+      return new Recusa(403, 'O adendo da chamada é escrito pela equipe técnica ou pela coordenação.');
+    }
+    const k = CHAMADAS.find((x) => x.id === seg[1]);
+    if (!k) return new Recusa(404, 'Chamada não encontrada');
+    const opcao = opcoesDoTipo(k.tipo).find((o) => o.code === b.opcao);
+    if (!opcao) {
+      return new Recusa(400, `Escolha o que de fato aconteceu: ${opcoesDoTipo(k.tipo).map((o) => o.label).join('; ')}.`);
+    }
+    const nota = String(b.nota ?? '').trim();
+    if (nota.length < 10) return new Recusa(400, 'Escreva o que aconteceu e por que o adendo, com pelo menos 10 letras.');
+    if (k.status !== 'confirmada') {
+      return new Recusa(400, 'A chamada ainda está aberta: a correção se faz na própria marcação.');
+    }
+    if (!efetivoDaChamada(k).some((p) => p.id === b.personId)) {
+      return new Recusa(400, 'Esta criança não está nesta chamada.');
+    }
+    const id = uid();
+    k.adendos = [...(k.adendos ?? []), { id, personId: b.personId, opcao: opcao.code, nota,
+                                         por: eu.fullName, em: new Date().toISOString() }];
+    return { id, aviso: `Adendo registrado: "${opcao.label}", com o seu nome e o horário. A marcação da hora continua como foi registrada.` };
+  }
   if (seg[0] === 'checks' && seg[2] === 'mark') {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
     if (k.status === 'confirmada') {
-      return new Recusa(400, 'Chamada confirmada não é reescrita. A correção entra como adendo.');
+      return new Recusa(400,
+        'Chamada já confirmada. A correção agora é um adendo, escrito pela equipe técnica ou pela coordenação.');
     }
     // Corrigir uma linha que veio da mesa a torna INDIVIDUAL: alguém olhou
     // aquela criança. A procedência não pode continuar dizendo "na mesa".
-    k.resultados[b.personId] = { opcao: b.opcao, nota: b.nota };
+    k.resultados[b.personId] = { opcao: b.opcao, nota: b.nota, por: eu.fullName, em: new Date().toISOString() };
     return { ok: true };
   }
   if (seg[0] === 'checks' && seg[2] === 'confirm') {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
-    const faltam = todosKids().filter((p) => !k.resultados[p.id]);
+    const faltam = efetivoDaChamada(k).filter((p) => !k.resultados[p.id]);
     if (faltam.length) {
       return new Recusa(400,
         `Faltam ${faltam.length}: ${faltam.slice(0, 5).map((p) => p.nome).join(', ')}`
@@ -8240,11 +8286,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     /* E quem fecha assina (`confirmed_by`, fase 113). */
     k.confirmadaPor = eu.fullName;
     k.confirmadaEm = new Date().toISOString();
-    /* A linha do Dia acompanha (fase 273): a chamada confirmada por alguém fica feita
-       para todos, como o `checks.timeline` do servidor diz. */
-    for (const ev of LINHA.filter((e) => e.source === 'chamada' && e.title.startsWith(`${k.titulo} — `))) {
-      ev.state = 'Chamada confirmada'; ev.severity = 'normal'; ev.note = null; ev.actions = [];
-    }
+    /* A linha do Dia acompanha sozinha (fase 320): ela é lida das chamadas. */
     return { aviso: 'Chamada confirmada. O que foi registrado na hora continua como foi registrado.' };
   }
 

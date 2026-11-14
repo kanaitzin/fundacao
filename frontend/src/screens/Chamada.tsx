@@ -52,7 +52,10 @@ interface Linha {
   registradoEm: string | null;
   /** Nasceu de uma conferência de mesa, e não de um olhar sobre esta criança. */
   naConferenciaDeMesa: boolean;
+  /** O que a técnica ou a coordenação escreveu depois de confirmada (fase 320). */
+  adendos?: Adendo[];
 }
+interface Adendo { id: string; resultado: string; nota: string; por: string | null; em: string }
 interface ConferenciaDeMesa {
   id: string; opcao: string; quantos: number; por: string; quando: string;
 }
@@ -68,6 +71,8 @@ interface Chamada {
   opcaoDaMesa: string | null;
   conferenciasDeMesa: ConferenciaDeMesa[];
   avisoDaMesa: string;
+  /** A técnica e a coordenação, com a chamada confirmada (fase 320). */
+  podeEscreverAdendo?: boolean;
 }
 interface Resumo {
   id: string; tipo: string; titulo: string; status: string;
@@ -121,6 +126,8 @@ export function Chamada({ houseId }: { houseId: string }) {
   /** O nome conferido que a pessoa reabriu para conferir ou corrigir. */
   const [reaberta, setReaberta] = useState<string | null>(null);
   const [conferindoMesa, setConferindoMesa] = useState(false);
+  /** A criança cujo adendo está sendo escrito (fase 320). */
+  const [adendoDe, setAdendoDe] = useState<Linha | null>(null);
   /** Filtro por nome: no fim da chamada sobra uma criança, e achá-la custa rolagem. */
   const [busca, setBusca] = useState('');
   /** As chamadas da casa (fase 211), e a que está sendo criada ou mudada. */
@@ -579,6 +586,14 @@ export function Chamada({ houseId }: { houseId: string }) {
               {/* Onde o alerta importa: na hora de marcar, com a bandeja na mão. */}
               {l.alertas && <div className="alerta"><Icone nome="alerta" /> {l.alertas}</div>}
               {l.restricoes && <div className="alerta rest"><Icone nome="refeicao" /> {l.restricoes}</div>}
+              {confirmada && aberta.podeEscreverAdendo && (
+                <div className="acoes">
+                  <button data-acolhe-abre="" className="btn sm sec" onClick={() => setAdendoDe(l)}>
+                    Escrever um adendo
+                  </button>
+                </div>
+              )}
+              <Adendos lista={l.adendos} />
               {!confirmada && (
                 <div className="acoes">
                   <button className="btn sm" disabled={ocupado === l.acolhidoId}
@@ -645,6 +660,7 @@ export function Chamada({ houseId }: { houseId: string }) {
                     {l.resultado
                       ? <span className={`pill ${excecional ? 'c-warn' : 'c-ok'}`}>{rotulo}</span>
                       : <span className="pill c-mute">sem registro</span>}
+                    {(l.adendos?.length ?? 0) > 0 && <span className="pill c-info">com adendo</span>}
                     <span className="seta" aria-hidden="true">{aberto ? '⌃' : '⌄'}</span>
                   </button>
                   {aberto && (
@@ -659,6 +675,14 @@ export function Chamada({ houseId }: { houseId: string }) {
                             mesmo que olhado sozinho, e quem lê precisa saber. */}
                         {l.naConferenciaDeMesa && ' · na conferência de mesa'}
                       </div>
+                      <Adendos lista={l.adendos} />
+                      {confirmada && aberta.podeEscreverAdendo && (
+                        <div className="acoes">
+                          <button data-acolhe-abre="" className="btn sm sec" onClick={() => setAdendoDe(l)}>
+                            Escrever um adendo
+                          </button>
+                        </div>
+                      )}
                       {!confirmada && l.ativo && (
                         <div className="acoes">
                           <button className="btn sm ghost" disabled={ocupado === l.acolhidoId}
@@ -698,9 +722,22 @@ export function Chamada({ houseId }: { houseId: string }) {
           {pendentes.length > 0
             ? `${pendentes.length === 1 ? '1 acolhido entrou' : `${pendentes.length} acolhidos entraram`} na casa depois do fechamento e não estavam nesta chamada. `
             : ''}
-          Correção depois disso entra como adendo pela equipe técnica: o que foi registrado
-          na hora continua como foi registrado.
+          {aberta.podeEscreverAdendo
+            ? 'Para corrigir, abra o nome da criança e escreva um adendo: a marcação da hora continua como foi registrada, e o adendo fica ao lado, com o seu nome.'
+            : 'A marcação não muda mais. Se algo ficou errado, avise a equipe técnica ou a coordenação, que escrevem o adendo ao lado da marcação da hora.'}
         </p>
+      )}
+
+      {adendoDe && (
+        <FolhaAdendo
+          linha={adendoDe} opcoes={aberta.opcoes}
+          onFechar={() => setAdendoDe(null)}
+          onEscrever={async (opcao, nota) => {
+            const r = await api<{ aviso: string }>(`/checks/${aberta.id}/adendo`, {
+              method: 'POST', body: JSON.stringify({ personId: adendoDe.acolhidoId, opcao, nota }) });
+            setAdendoDe(null); setAviso(r.aviso);
+            setAberta(await api<Chamada>(`/checks/${aberta.id}`));
+          }} />
       )}
 
       {excecao && (
@@ -968,6 +1005,78 @@ function FolhaOpcao({ linha, opcoes, onFechar, onMarcar }: {
                   onClick={() => onMarcar(op, nota.trim() || undefined)}>
             Marcar
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Os adendos de uma criança numa chamada confirmada (fase 320): o que se escreveu depois, com quem e quando. */
+function Adendos({ lista }: { lista?: Adendo[] }) {
+  if (!lista?.length) return null;
+  return (
+    <ul className="adendos-da-chamada">
+      {lista.map((a) => (
+        <li key={a.id} className="notice c-info">
+          <b>Adendo: {a.resultado}.</b> {a.nota}
+          <div className="mutetxt">{a.por ? `Por ${a.por}` : 'Sem nome'} · {new Date(a.em).toLocaleString('pt-BR',
+            { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * ESCREVER O ADENDO (fase 320). A chamada confirmada não muda: a técnica ou a
+ * coordenação escreve o que de fato aconteceu e o motivo, e o adendo fica ao lado
+ * da marcação da hora.
+ */
+function FolhaAdendo({ linha, opcoes, onFechar, onEscrever }: {
+  linha: Linha; opcoes: Opcao[];
+  onFechar: () => void; onEscrever: (opcao: string, nota: string) => Promise<void>;
+}) {
+  const [op, setOp] = useState('');
+  const [nota, setNota] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const pode = op !== '' && nota.trim().length >= 10 && !salvando;
+  const daHora = opcoes.find((o) => o.code === linha.resultado)?.label;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-adendo"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-adendo">Adendo · {linha.nome}</h3>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <p className="mutetxt">
+          {daHora
+            ? <>Na hora ficou <b>{daHora}</b>{linha.registradoPor ? `, por ${linha.registradoPor}` : ''}. Isso continua registrado.</>
+            : 'Esta criança ficou sem marcação na hora.'}
+        </p>
+        <label className="f">O que de fato aconteceu</label>
+        <div className="opts">
+          {opcoes.map((o) => (
+            <button key={o.code} type="button" className={`opt ${o.excecao ? 'c-warn' : 'c-ok'}`}
+                    aria-pressed={op === o.code} onClick={() => setOp(o.code)}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <label className="f" htmlFor="adendo-nota">O que aconteceu e por que o adendo</label>
+        <textarea id="adendo-nota" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={2000}
+                  placeholder="Ex.: a cozinha avisou que ela não almoçou; a marcação ficou como Normal na pressa." />
+        <OQueFalta itens={[
+          !op && 'escolher o que de fato aconteceu',
+          nota.trim().length < 10 && 'escrever o que aconteceu, com pelo menos 10 letras',
+        ]} />
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode} onClick={async () => {
+            setSalvando(true); setErro('');
+            try { await onEscrever(op, nota.trim()); }
+            catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível registrar o adendo.'); }
+            finally { setSalvando(false); }
+          }}>{salvando ? 'Registrando…' : 'Registrar o adendo'}</button>
         </div>
       </div>
     </div>

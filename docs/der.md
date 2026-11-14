@@ -1491,6 +1491,18 @@ ficar em dia, e um contador errado é pior do que contador nenhum — a tela dir
 "3 fotos" e abriria duas.
 
 
+### `check_result_addendum`
+O adendo da chamada confirmada (fase 320, checks/1719, decidido pelo dono em 13/11). Confirmada a
+chamada, a marcação não muda mais; a equipe técnica ou a coordenação escreve ao lado **o que de fato
+aconteceu** com uma criança (`option_code`, uma das opções do tipo da chamada, conferida pelo servidor)
+e o **motivo** (`note`, de 10 a 2.000 letras), com `written_by` e `written_at`. Guarda também a
+`house_id` da chamada, para a política perguntar o alcance como conjunto.
+
+**O adendo não troca a marcação.** A `check_result` fica como foi registrada, com quem marcou; um
+segundo adendo é outra linha. A aplicação não escreve na tabela: só a `app_adendo_da_chamada`, que
+recusa quem não é técnica nem coordenação, a chamada ainda aberta, a criança que não é da chamada e o
+motivo curto. Ninguém atualiza nem apaga.
+
 ### `document.mirror_of` e `prescription_document.kind` — o espelho no dossiê
 Nenhuma tabela nova: a fase 125 é **uma coluna em cada lado** e uma função.
 

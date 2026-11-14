@@ -6,7 +6,7 @@
 
 - **Branch:** `claude/acabamento-visual-fase-314`
 - **Atualizado em:** 2026-11-13T23:00-03:00
-- **Situação:** em andamento a 320 (a Chamada e O Dia da Casa revistos, a pedido de 13/11): feitos o que falta nas folhas da Chamada e do Dia, o Fechar da folha de decidir a substituição, o café e o almoço do protótipo sem as crianças do acervo, a linha da chamada no Dia lida das chamadas, e o Abrir chamada do Dia abrindo a chamada certa. Falta: o adendo da chamada confirmada (decidido pelo dono em 13/11: fazer), a sonda de novo, os ensaios e o fechamento. A 319 está no site.
+- **Situação:** em andamento a 320 (a Chamada e O Dia da Casa revistos, a pedido de 13/11). Feitos: o que falta nas folhas, o Fechar da folha de decidir, o protótipo sem as crianças do acervo na chamada e com quem marcou, a linha da chamada no Dia lida das chamadas, o Abrir chamada abrindo a chamada certa, e o adendo da chamada confirmada (checks/1719, decidido pelo dono em 13/11: fazer). Falta: a revisão do `banco-de-dados` (rodando), a sonda nos cargos que faltavam (rodando), a suíte nas duas condições, o `ensaio:uso` e o do celular, e o fechamento (MEDIDO-320 no §2). A 319 está no site.
 - **Fase:** 315 a 319, fechadas. A 320 está aberta aqui.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 

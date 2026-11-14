@@ -3170,3 +3170,7 @@ label{ letter-spacing:-.005em }
 .roteiro-feito .roteiro-icone{ background:transparent; color:var(--ink) }
 .mais-grade > button.card.row{ flex-wrap:nowrap }
 .mais-grade > button.card.row > .grow{ min-width:0 }
+
+/* O adendo da chamada confirmada (fase 320): ao lado da marcação da hora, nunca no lugar dela. */
+.adendos-da-chamada{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:6px }
+.adendos-da-chamada li{ margin:0 }

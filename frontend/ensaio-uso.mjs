@@ -5773,6 +5773,61 @@ console.log('\n🗓️ O resto do cadastro e o perfil (fase 319)');
 }
 
 /*
+ * A CHAMADA E O DIA DA CASA (fase 320, pedido de 13/11: "revise agora a chamada e o
+ * dia da casa também"): o Dia diz da chamada o que a Chamada diz, a marcação diz quem
+ * marcou, as folhas dizem o que falta, e a chamada confirmada recebe o adendo da
+ * técnica ao lado da marcação da hora, que não muda.
+ */
+console.log('\n📋 A Chamada e o Dia da Casa (fase 320)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  const esp = (ms = 600) => pgC.waitForTimeout(ms);
+  const mainC = () => pgC.locator('main.conteudo');
+  const cargoC = async (c) => { cargoAtual = c; await pgC.locator('select.troca-cargo-sel').selectOption(c); await esp(1000); };
+  await pgC.goto(`file://${ARQUIVO}`); await esp();
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  await cargoC('educador');
+  await pgC.getByRole('button', { name: /Dia da Casa/ }).filter({ visible: true }).first().click(); await esp(900);
+  await mainC().getByRole('button', { name: /^Toda a rotina$/ }).click(); await esp(500);
+  const dia = await mainC().innerText();
+  cobrar('o Dia diz do almoço o que a Chamada diz, sem número escrito à mão',
+    /Chamada aberta, \d+ de \d+ conferidos/.test(dia) && !/4\/12/.test(dia), dia.slice(0, 200));
+  await mainC().locator('li.ev').filter({ hasText: 'Almoço' }).getByRole('button', { name: 'Abrir chamada' }).click(); await esp(900);
+  cobrar('o Abrir chamada do Dia abre aquela chamada, e não a lista',
+    /← Chamadas/.test(await mainC().innerText()) && /Almoço/.test(await mainC().innerText()));
+  await mainC().getByRole('button', { name: /^Outro$/ }).first().click(); await esp(400);
+  cobrar('a folha da exceção diz o que falta antes de marcar',
+    /Falta escolher o que aconteceu/.test(await pgC.locator('[role=dialog]').innerText()));
+  await pgC.locator('[role=dialog]').getByRole('button', { name: /^Cancelar$/ }).click(); await esp(300);
+  await mainC().locator('button.linhaconf').first().click(); await esp(300);
+  cobrar('a marcação diz quem marcou, e não quem está olhando', /Por Joana Lima/.test(await mainC().innerText()));
+  await cargoC('equipe_tecnica');
+  await pgC.getByRole('button', { name: /^Chamada$/ }).filter({ visible: true }).first().click(); await esp(900);
+  await mainC().locator('.chamada-da-casa button').filter({ hasText: 'Café da manhã' }).first().click(); await esp(900);
+  await mainC().locator('button.linhaconf').filter({ hasText: 'Alice' }).click(); await esp(300);
+  await mainC().getByRole('button', { name: 'Escrever um adendo' }).first().click(); await esp(400);
+  const folha = pgC.locator('[role=dialog]');
+  cobrar('a folha do adendo diz o que falta', /Falta escolher o que de fato aconteceu/.test(await folha.innerText()));
+  await folha.getByRole('button', { name: 'Recusou', exact: true }).click();
+  await folha.locator('textarea').fill('A cozinha avisou que ela não tomou o café; a marcação ficou como Normal.');
+  await folha.getByRole('button', { name: 'Registrar o adendo' }).click(); await esp(900);
+  const depois = await mainC().innerText();
+  cobrar('o adendo fica ao lado da marcação da hora, com quem escreveu',
+    /Adendo: Recusou\./.test(depois) && /Por Joana Lima/.test(depois) && /com adendo/.test(depois), depois.slice(0, 300));
+  await cargoC('educador');
+  await pgC.getByRole('button', { name: /^Chamada$/ }).filter({ visible: true }).first().click(); await esp(900);
+  await mainC().locator('.chamada-da-casa button').filter({ hasText: 'Café da manhã' }).first().click(); await esp(900);
+  await mainC().locator('button.linhaconf').filter({ hasText: 'Alice' }).click(); await esp(300);
+  const ed = await mainC().innerText();
+  cobrar('o educador lê o adendo e não escreve', /Adendo: Recusou/.test(ed) && !/Escrever um adendo/.test(ed));
+  cobrar('nenhuma exceção na Chamada e no Dia', errosC.length === 0, errosC[0]);
+  await pgC.close();
+}
+
+/*
  * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
  * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.
  * Antes, a mesma linha entrava duas vezes na ATA, e a linha da ATA não se apaga.

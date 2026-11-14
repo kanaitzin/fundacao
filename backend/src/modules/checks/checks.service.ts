@@ -5,6 +5,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { ESCREVEM_ADENDO } from './adendo.regra';
 
 /**
  * Opções por tipo de chamada (§10). "Normal/Compareceu/Participou" é o curso
@@ -127,6 +128,14 @@ export class ChecksService {
             AND a.replaced_at >= app_hoje() - ($2::int - 1)
           ORDER BY a.replaced_at`, [personId, janela]);
 
+      /* Os adendos da chamada confirmada (fase 320): ao lado da marcação, nunca no lugar. */
+      const { rows: adendos } = await c.query(
+        `SELECT a.check_id, a.option_code, a.note, a.written_at,
+                app_user_display_name(a.written_by) AS por
+           FROM check_result_addendum a
+          WHERE a.person_id = $1
+          ORDER BY a.written_at`, [personId]);
+
       const rotulo = (kind: string, code: string) =>
         (OPCOES[kind] ?? PADRAO).find((o) => o.code === code);
 
@@ -146,6 +155,12 @@ export class ChecksService {
                 antes: rotulo(r.kind, a.option_code)?.label ?? a.option_code,
                 justificativaAntes: a.note, eraDe: a.era_de,
                 corrigidoPor: a.corrigido_por, em: a.replaced_at,
+              })),
+            adendos: adendos
+              .filter((a) => a.check_id === r.chamada_id)
+              .map((a) => ({
+                resultado: rotulo(r.kind, a.option_code)?.label ?? a.option_code,
+                nota: a.note, por: a.por, em: a.written_at,
               })),
           };
         }),
@@ -278,9 +293,17 @@ export class ChecksService {
         `SELECT b.id, b.option_code, b.quantos, b.happened_at,
                 app_user_display_name(b.recorded_by) AS por
            FROM check_bulk b WHERE b.check_id = $1 ORDER BY b.happened_at`, [checkId]);
-      return { k, rows, mesas };
+      /* Os adendos da chamada confirmada (fase 320), do mais antigo ao mais novo. */
+      const { rows: adendos } = await c.query(
+        `SELECT a.id, a.person_id, a.option_code, a.note, a.written_at,
+                app_user_display_name(a.written_by) AS por
+           FROM check_result_addendum a WHERE a.check_id = $1
+          ORDER BY a.written_at, a.id`, [checkId]);
+      return { k, rows, mesas, adendos };
     });
     if (!data) throw new NotFoundException('Chamada não encontrada');
+    const rotuloDaOpcao = (code: string) =>
+      this.opcoes(data.k.kind).find((o) => o.code === code)?.label ?? code;
 
     const linhas = data.rows.map((r: any) => ({
       acolhidoId: r.person_id, nome: r.nome ?? '(fora do seu alcance)', idade: r.idade,
@@ -295,6 +318,9 @@ export class ChecksService {
       // parecer que alguém olhou esta criança sozinha. É a diferença inteira
       // entre um registro honesto e uma marcação em lote silenciosa.
       naConferenciaDeMesa: r.bulk_id != null,
+      adendos: (data.adendos ?? []).filter((a: any) => a.person_id === r.person_id).map((a: any) => ({
+        id: a.id, resultado: rotuloDaOpcao(a.option_code), nota: a.note, por: a.por, em: a.written_at,
+      })),
     }));
     const conferidos = linhas.filter((l: any) => l.resultado).length;
     // `faltam` é medido contra o EFETIVO VIVO, não contra o número congelado
@@ -313,6 +339,8 @@ export class ChecksService {
       quemFalta: pendentes.map((l: any) => l.nome),
       opcoes: this.opcoes(data.k.kind),
       linhas,
+      /* Quem escreve o adendo, e só depois de confirmada (fase 320; a regra mora no banco). */
+      podeEscreverAdendo: data.k.status === 'confirmada' && ESCREVEM_ADENDO.includes(user.role),
       /*
        * A CONFERÊNCIA DE MESA (§10) — o que a casa faz de verdade no almoço.
        *
@@ -346,6 +374,73 @@ export class ChecksService {
    * `app_bulk_check` (migração 0780), e não aqui: nenhum caminho de escrita
    * escapa delas. Este método traduz a recusa do banco em frase de gente.
    */
+  /**
+   * O ADENDO DA CHAMADA CONFIRMADA (fase 320, decidido pelo dono em 13/11).
+   *
+   * A marcação da hora fica como foi registrada; o adendo fica ao lado, com o que
+   * de fato aconteceu, o motivo, quem escreveu e quando. As travas moram no
+   * `app_adendo_da_chamada` (1719); aqui se confere a opção do tipo e se traduz a
+   * recusa.
+   */
+  async adendo(user: AuthenticatedUser, checkId: string, input: {
+    personId?: string; opcao?: string; nota?: string;
+  }) {
+    if (!ESCREVEM_ADENDO.includes(user.role)) {
+      throw new ForbiddenException('O adendo da chamada é escrito pela equipe técnica ou pela coordenação.');
+    }
+    const k = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT kind, house_id, status FROM collective_check WHERE id = $1`, [checkId]);
+      return row;
+    });
+    if (!k) throw new NotFoundException('Chamada não encontrada');
+    if (typeof input?.personId !== 'string' || !/^[0-9a-f-]{36}$/i.test(input.personId)) {
+      throw new BadRequestException('Diga de qual criança é o adendo.');
+    }
+    const opcao = this.opcoes(k.kind).find((o) => o.code === input?.opcao);
+    if (!opcao) {
+      throw new BadRequestException(
+        `Escolha o que de fato aconteceu: ${this.opcoes(k.kind).map((o) => o.label).join('; ')}.`);
+    }
+    const nota = typeof input?.nota === 'string' ? input.nota.trim() : '';
+    if (nota.length < 10) {
+      throw new BadRequestException('Escreva o que aconteceu e por que o adendo, com pelo menos 10 letras.');
+    }
+    if (nota.length > 2000) throw new BadRequestException('O adendo cabe em até 2.000 letras.');
+
+    let id: string;
+    try {
+      id = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT app_adendo_da_chamada($1, $2, $3, $4) AS id`, [checkId, input.personId, opcao.code, nota]);
+        return row.id;
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('chamada_ainda_aberta')) {
+        throw new BadRequestException('A chamada ainda está aberta: a correção se faz na própria marcação.');
+      }
+      if (m.includes('crianca_fora_da_chamada')) {
+        throw new BadRequestException('Esta criança não está nesta chamada.');
+      }
+      if (m.includes('chamada_inexistente')) throw new NotFoundException('Chamada não encontrada');
+      if (m.includes('adendo_so_tecnica_e_coordenacao')) {
+        throw new ForbiddenException('O adendo da chamada é escrito pela equipe técnica ou pela coordenação.');
+      }
+      throw e;
+    }
+
+    await this.audit.log({
+      action: 'check.addendum', actorId: user.id, houseId: k.house_id,
+      entity: 'check_result_addendum', entityId: id,
+      detail: { chamada: checkId, opcao: opcao.code },
+    });
+    return {
+      id,
+      aviso: `Adendo registrado: "${opcao.label}", com o seu nome e o horário. A marcação da hora continua como foi registrada.`,
+    };
+  }
+
   async bulk(user: AuthenticatedUser, checkId: string) {
     const k = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(
@@ -374,7 +469,7 @@ export class ChecksService {
       }
       if (m.includes('chamada_confirmada')) {
         throw new BadRequestException(
-          'Chamada já confirmada. Correções entram como adendo pela equipe técnica.');
+          'Chamada já confirmada. A correção agora é um adendo, escrito pela equipe técnica ou pela coordenação.');
       }
       if (m.includes('ninguem_pendente')) {
         throw new BadRequestException(
@@ -411,7 +506,7 @@ export class ChecksService {
     });
     if (!kind) throw new NotFoundException('Chamada não encontrada');
     if (kind.status === 'confirmada') {
-      throw new BadRequestException('Chamada já confirmada. Correções entram como adendo pela equipe técnica.');
+      throw new BadRequestException('Chamada já confirmada. A correção agora é um adendo, escrito pela equipe técnica ou pela coordenação.');
     }
 
     const opcao = this.opcoes(kind.kind).find((o) => o.code === input.opcao);

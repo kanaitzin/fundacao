@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 320, dia: '13/11/2026', aba: 'chamada',
+    texto: 'A Chamada e O Dia da Casa ficaram mais claros. Na chamada confirmada, a equipe técnica e a coordenação podem escrever um adendo: abrem o nome da criança, tocam em Escrever um adendo, escolhem o que de fato aconteceu e escrevem o motivo. A marcação da hora continua como foi feita, e o adendo aparece ao lado, com o nome de quem escreveu e a hora, também na presença do perfil da criança. Cada marcação diz quem marcou. O Abrir chamada da linha do Dia abre aquela chamada direto, e a linha diz os mesmos números da tela da Chamada. E as folhas da Chamada e do Dia dizem, acima do botão apagado, o que ainda falta preencher; a folha de decidir a substituição ganhou o Fechar.' },
   { fase: 319, dia: '13/11/2026',
     texto: 'O cadastro e o perfil do acolhido dizem o que falta. Toda folha do perfil com o botão de gravar apagado diz, logo acima dele, o que ainda precisa ser preenchido. No cadastro, a data de nascimento no futuro, o acolhimento antes do nascimento e a guia com data que ainda não chegou são avisados na hora; a idade aparece na conferência, o CPF aparece com os pontos, e Voltar e Continuar ficam lado a lado no celular.' },
   { fase: 318, dia: '13/11/2026',

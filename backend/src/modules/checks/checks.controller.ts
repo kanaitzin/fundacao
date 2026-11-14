@@ -91,6 +91,16 @@ export class ChecksController {
     return this.checks.bulk(user, id);
   }
 
+  /**
+   * O ADENDO DA CHAMADA CONFIRMADA (fase 320): a equipe técnica ou a coordenação
+   * escreve o que de fato aconteceu com uma criança. A marcação da hora não muda.
+   */
+  @Post(':id/adendo')
+  adendo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+         @Body() body: any) {
+    return this.checks.adendo(user, id, body);
+  }
+
   @Post(':id/confirm')
   confirm(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.checks.confirm(user, id);
