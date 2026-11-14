@@ -5,8 +5,8 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-14T01:30-03:00
-- **Situação:** fechada a 320 (a Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada, checks/1719 e 1720), esperando o sim do dono para ir ao site (o site está na 319).
+- **Atualizado em:** 2026-11-14T12:45-03:00
+- **Situação:** fechada a 320 (a Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada, checks/1719 e 1720) e publicada no site em 14/11, com o sim do dono. Esperando o que a equipe do Pão achar testando esta semana.
 - **Fase:** 315 a 320, fechadas. A próxima livre é a 321.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
@@ -16,8 +16,7 @@ Nada. A 320 fechou com a suíte verde nas duas condições (1607 de 1607), o `en
 
 ## Onde parou, e o próximo passo
 
-1. Publicar a 320 no site (`claude/work-system-code-ready-0e3hh2`) só com o sim do dono.
-2. O que a equipe do Pão achar testando esta semana.
+1. O que a equipe do Pão achar testando esta semana. A 320 está no site desde 14/11.
 
 ## Arquivos desta frente
 
