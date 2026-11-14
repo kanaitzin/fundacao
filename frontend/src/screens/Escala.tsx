@@ -5,7 +5,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { cargo as rotuloCargo, diaCurto as dia, tomDoAutor } from '../rotulos';
-import { Cargo } from '../cargos';
+import { Cargo, EtiquetaDoCargo } from '../cargos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
 
@@ -32,7 +32,7 @@ import { Explica } from '../explica';
  */
 
 interface Pessoa {
-  id: string; userId: string; quem: string; cargo: string | null;
+  id: string; userId: string; quem: string; cargo: string | null; profissao?: string | null;
   /** A cor que a pessoa escolheu (0990) — a MESMA que a ATA usa (fase 123). */
   cor: string | null;
   inicio: string | null; fim: string | null; nota: string | null;
@@ -265,13 +265,12 @@ export function Escala({ houseId, casaLabel, papel }: {
                           * responde *"há técnica neste turno?"*, que é o que se
                           * pergunta olhando a escala da semana de longe.
                           */}
-                        <Cargo nome={p.quem} cargo={p.cargo} />
+                        <Cargo nome={p.quem} cargo={p.cargo} profissao={p.profissao} />
                         <div className="grow">
-                          <b className="ff">{p.quem}</b>
-                          <div className="mutetxt linhadois">
-                            {rotuloCargo(p.cargo ?? '')}
-                            {hhmm(p.inicio) ? ` · ${hhmm(p.inicio)}–${hhmm(p.fim)}` : ''}
-                          </div>
+                          <b className="ff">{p.quem}</b> <EtiquetaDoCargo cargo={p.cargo} profissao={p.profissao} />
+                          {hhmm(p.inicio) && (
+                            <div className="mutetxt linhadois">{hhmm(p.inicio)}–{hhmm(p.fim)}</div>
+                          )}
                           {/* De quem é o lugar. Sem esta linha, a escala mostra
                               uma revogação e uma escalação no mesmo turno e
                               deixa a coincidência para quem lê deduzir. */}
@@ -863,7 +862,7 @@ function RascunhoDoMes({ houseId, equipe, hoje, onPublicado }: {
                   <li key={i.id} className="row">
                     <span className="grow">
                       {i.turno === 'noturno' ? 'Noturno' : 'Diurno'}: <b>{i.quem}</b>
-                      {' '}<span className="mutetxt">{rotuloCargo(i.cargo)}</span>
+                      <EtiquetaDoCargo cargo={i.cargo} />
                     </span>
                     {conflito(i) && <span className="pill c-warn">{conflito(i)}</span>}
                     <button className="btn sm ghost" aria-label={`Retirar ${i.quem} do ${i.turno} de ${dia(d)}`}

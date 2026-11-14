@@ -1,12 +1,11 @@
 import { marcarChegada } from './chegou-aqui';
 import { useEffect, useState } from 'react';
-import { ROTULO_CARGO } from './rotulos';
 import {
   aplicarTema, nomeDoTema, temaAtual, temaGuardado, TEMAS, type Tema,
   LETRAS, letraGuardada, aplicarLetra, type Letra, escuroANoiteLigado, ligarEscuroANoite,
 } from './tema';
 import { Icone } from './icones';
-import { Cargo } from './cargos';
+import { Cargo, EtiquetaDoCargo } from './cargos';
 import { PORTAS, GRUPOS, colunaCurta, irmasDe, irmaQueAbre, porOrdemAlfabetica } from './portas';
 import { BarreiraDeErro } from './barreira-de-erro';
 import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
@@ -66,10 +65,11 @@ interface Me {
   assignments: { code: string; name: string; role: string }[];
   /** A Coordenação Geral (fase 176): coordenação que alcança as oito casas. */
   todasAsCasas?: boolean;
+  /** A profissão de quem é da equipe técnica (identity/1722): Assistente social, Psicóloga. */
+  profissao?: string | null;
 }
 interface House { id: string; code: string; name: string; kind: string; address?: string | null }
 
-const ROLE_LABEL = ROTULO_CARGO;
 /** Cor por tipo de unidade — categoria, nunca ranking entre casas. */
 const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_institucional: 'c-brand' };
 
@@ -901,10 +901,10 @@ export function App() {
               casa, a cor da tela, a senha e o Sair moram na folha dele. */}
           <button className="conta-celular" aria-label={`Minha conta: ${me.fullName}`}
                   onClick={() => setConta(true)}>
-            <Cargo nome={me.fullName} cargo={me.role} tamanho="sm" />
+            <Cargo nome={me.fullName} cargo={me.role} tamanho="sm" profissao={me.profissao} />
           </button>
-          <span className="rolechip so-no-monitor">
-            {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
+          <span className="rolechip etiqueta-no-topo so-no-monitor">
+            <EtiquetaDoCargo cargo={me.role} profissao={me.profissao} todasAsCasas={me.todasAsCasas} />
           </span>
           {/* O BOTÃO DAS DUAS VISÕES (plano de 06/11): quem alcança mais de uma casa vê
               no alto o que está olhando, as oito juntas ou uma casa, e troca com um toque. */}
@@ -1031,8 +1031,8 @@ export function App() {
               <Cargo nome={me.fullName} cargo={me.role} />
               <div>
                 <h3 id="t-conta" style={{ margin: 0 }}>{me.fullName}</h3>
-                <div className="mutetxt">
-                  {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
+                <div style={{ marginTop: 4 }}>
+                  <EtiquetaDoCargo cargo={me.role} profissao={me.profissao} todasAsCasas={me.todasAsCasas} />
                 </div>
               </div>
             </div>

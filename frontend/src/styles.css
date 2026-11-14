@@ -1153,6 +1153,20 @@ textarea{
   box-shadow:0 0 0 2px var(--surface);
 }
 .cargo-chip.sm{ width:26px; height:26px; font-size:10.5px }
+/* A ETIQUETA DO CARGO ao lado do nome (pedido de 14/11): cheia, letra branca, cantos de
+   6 px. A pílula de estado é clara e redonda; esta é cheia e quadrada, para a cor do cargo
+   nunca ser lida como estado. Quebra junto com o nome, e nunca encosta nele. */
+.cargo-etiqueta{
+  display:inline-block; vertical-align:middle; flex:none;
+  padding:2px 8px; border-radius:6px; margin-left:6px;
+  font-size:12px; font-weight:700; line-height:1.45; letter-spacing:.01em;
+  color:#FFFFFF; white-space:nowrap; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.cargo-etiqueta:first-child{ margin-left:0 }
+:root[data-letra] .cargo-etiqueta{ white-space:normal }
+/* No topo, a etiqueta ocupa o lugar da pílula do cargo (o lugar e a ordem são os dela). */
+.appbar .rolechip.etiqueta-no-topo{ background:none; border:0; padding:0 }
 /* Em fila, eles se sobrepõem um pouco — é a convenção que diz "estas pessoas
    estão juntas neste turno", e economiza a largura que o celular não tem. */
 .cargo-fila{ display:inline-flex; align-items:center }

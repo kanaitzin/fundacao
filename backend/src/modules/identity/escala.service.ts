@@ -54,7 +54,7 @@ export class EscalaService {
        */
       const { rows } = await c.query(
         `SELECT e.on_date::text AS on_date, e.period, e.assignment_id, e.user_id, e.quem,
-                e.cargo, e.cor, e.start_time, e.end_time, e.note,
+                e.cargo, app_user_profissao(e.user_id) AS profissao, e.cor, e.start_time, e.end_time, e.note,
                 e.revoked_at, e.revoke_reason, e.revogou, e.substituiu
            FROM app_escala_do_periodo($1,$2::date,$3::date) e`, [houseId, inicio, fim]);
       return rows;
@@ -66,7 +66,7 @@ export class EscalaService {
       if (!dias.has(data)) dias.set(data, { data, diurno: [], noturno: [] });
       if (!r.assignment_id) continue;                    // dia/turno sem ninguém
       dias.get(data)[r.period].push({
-        id: r.assignment_id, userId: r.user_id, quem: r.quem, cargo: r.cargo,
+        id: r.assignment_id, userId: r.user_id, quem: r.quem, cargo: r.cargo, profissao: r.profissao ?? null,
         /* A cor da PESSOA (0990), que existia desde 09/09 e só a ATA usava.
            Ela é apoio: o nome vai escrito ao lado, sempre — e a folha da
            parede sai em preto e branco na impressora da casa. */

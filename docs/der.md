@@ -1103,6 +1103,15 @@ não conta por endereço e só deixa linha quando sai e-mail. RLS ligado e nenhu
 aplicação, como a `login_attempt`; sem prazo de guarda até a decisão do DPO
 (PARA-A-REUNIAO §0 C1).
 
+### `app_user.profissao` — a profissão de quem é da equipe técnica
+UMA COLUNA DA CONTA (fase 322, identity/1722): `assistente_social`, `psicologa`,
+`psicologo`, `psicopedagoga` ou `psicopedagogo`, a lista de `identity/profissao.regra.ts`.
+Só existe para o cargo `equipe_tecnica` (CHECK), e o gatilho `trg_profissao_segue_o_cargo`
+a tira quando o cargo muda. Quem a grava é `app_definir_profissao`, com a mesma conferência
+da edição da conta; a aplicação só lê, e o nome de outra pessoa sai por
+`app_user_profissao(pessoa)`. Ela aparece na etiqueta ao lado do nome, no lugar de *Equipe
+técnica*, e não muda o que a pessoa faz no sistema.
+
 ### `app_user_role_period` — o cargo da época
 O CARGO DE CADA PESSOA, POR PERÍODO (fase 165, identity/1620): `user_id`,
 `role`, `from_at`, `to_at` (nulo no período vigente), `changed_by`. Quem

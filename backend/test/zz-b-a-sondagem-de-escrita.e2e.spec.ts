@@ -97,6 +97,7 @@ const REGRAS: Array<[RegExp, string, string]> = [
   [/^\/checks\/models\/:id/, 'id', 'house_check_model'],
   [/^\/checks\/:id/, 'id', 'collective_check'],
   [/^\/devices\/:id/, 'id', 'institutional_device'],
+  [/^\/alignments\/encontros\/:id/, 'id', 'staff_alignment'],
   [/^\/escala\/rascunho\/itens\/:itemId/, 'itemId', 'shift_draft_item'],
   [/^\/escala\/rascunho\/:id/, 'id', 'shift_draft'],
   [/^\/escala\/:id/, 'id', 'shift_assignment'],

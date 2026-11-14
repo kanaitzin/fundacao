@@ -95,7 +95,7 @@ export class EncontrosService {
     if (!QUEM_REGISTRA_ALINHAMENTO.includes(user.role)) return { pessoas: [], podeRegistrar: false };
     const pessoas = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT s.id, s.full_name, s.role, s.house_code,
+        `SELECT s.id, s.full_name, s.role, s.house_code, app_user_profissao(s.id) AS profissao,
                 (SELECT max(a.met_on)::text FROM staff_alignment a WHERE a.subject_id = s.id) AS ultimo,
                 (SELECT a.next_on::text FROM staff_alignment a WHERE a.subject_id = s.id
                   ORDER BY a.met_on DESC, a.written_at DESC LIMIT 1) AS proximo
@@ -107,7 +107,7 @@ export class EncontrosService {
     return {
       podeRegistrar: true,
       pessoas: pessoas.map((p: any) => ({
-        id: p.id, nome: p.full_name, cargo: p.role, casa: p.house_code,
+        id: p.id, nome: p.full_name, cargo: p.role, profissao: p.profissao ?? null, casa: p.house_code,
         ultimo: p.ultimo, proximo: p.proximo,
       })),
     };

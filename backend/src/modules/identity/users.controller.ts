@@ -19,14 +19,17 @@ export class UsersController {
          -- escopo (uha_select exige app_house_in_scope), então o par existe.
          FROM user_house_assignment a JOIN house h ON h.id = a.house_id
          WHERE a.user_id = $1 AND a.valid_to IS NULL`, [user.id]);
-      return rows;
+      const { rows: [p] } = await c.query(`SELECT app_user_profissao($1) AS profissao`, [user.id]);
+      return { rows, profissao: p?.profissao ?? null };
     });
     return {
       id: user.id, email: user.email, fullName: user.fullName,
       role: user.role, mustChangePassword: user.mustChangePassword,
       /* A Coordenação Geral não tem vínculo com uma casa: alcança as oito (1634). */
       todasAsCasas: !!user.todasAsCasas,
-      assignments,
+      /* A profissão de quem é da equipe técnica (identity/1722): o topo a diz no lugar do cargo. */
+      profissao: assignments.profissao,
+      assignments: assignments.rows,
     };
   }
 }

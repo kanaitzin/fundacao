@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Explica } from '../explica';
 import { OQueFalta } from '../o-que-falta';
-import { cargo, dia, diaEHora } from '../rotulos';
+import { dia, diaEHora } from '../rotulos';
+import { EtiquetaDoCargo } from '../cargos';
 import { pedirAPessoa, pessoaPedida } from '../pessoa-a-abrir';
 
 /**
@@ -27,7 +28,7 @@ interface Encontro {
   adendos: { id: string; texto: string; por: string; em: string }[];
 }
 interface Pessoa {
-  id: string; nome: string; cargo: string; casa: string | null;
+  id: string; nome: string; cargo: string; profissao?: string | null; casa: string | null;
   ultimo: string | null; proximo: string | null;
 }
 interface Periodicidade { code: string; label: string }
@@ -99,10 +100,9 @@ export function Encontros({ meuId, ve, irPara }: {
               {equipe.map((p) => (
                 <li key={p.id} className="row" style={{ alignItems: 'center', gap: 8 }}>
                   <div className="grow">
-                    <b>{p.nome}</b>
+                    <b>{p.nome}</b> <EtiquetaDoCargo cargo={p.cargo} profissao={p.profissao} />
                     <div className="mutetxt">
-                      {cargo(p.cargo)}{p.casa ? ` · ${p.casa}` : ''}
-                      {' · '}{p.ultimo ? `último encontro em ${dia(p.ultimo)}` : 'nenhum encontro registrado'}
+                      {p.casa ? `${p.casa} · ` : ''}{p.ultimo ? `último encontro em ${dia(p.ultimo)}` : 'nenhum encontro registrado'}
                       {p.proximo ? ` · próximo em ${dia(p.proximo)}` : ''}
                     </div>
                   </div>

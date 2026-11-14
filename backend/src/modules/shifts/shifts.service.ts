@@ -119,7 +119,7 @@ export class ShiftsService {
       const { rows: passagens } = await c.query(
         `SELECT h.id, h.user_id, h.role, h.device, h.contributions, h.pending, h.guidance,
                 h.medication_note, h.signed_at, h.happened_at, h.late, h.offline,
-                app_user_display_name(h.user_id) AS quem
+                app_user_display_name(h.user_id) AS quem, app_user_profissao(h.user_id) AS profissao
          FROM handover h WHERE h.shift_id = $1 ORDER BY h.signed_at`, [shiftId]);
       // As doses do turno vêm JUNTO com o plantão, e não numa rota à parte: a
       // tela da passagem precisa delas antes de assinar, e uma segunda ida ao
@@ -153,6 +153,7 @@ export class ShiftsService {
                    voltava NULO para educador, líder e Enfermagem, que só leem a
                    própria linha de app_user: a linha da colega aparecia "— · 02:10". */
                 app_user_cargo_em(n.author_id, n.created_at) AS cargo,
+                app_user_profissao(n.author_id) AS profissao,
                 /* A cor ESCOLHIDA do autor (0990). Sai por função porque quem lê
                    a ATA não gere equipe — o educador não alcança app_staff_list.
                    NULL: a tela cai no tom automático, como antes. */
@@ -232,7 +233,7 @@ export class ShiftsService {
         fechadaEm: dados.a.closed_at,
       } : null,
       passagens: dados.passagens.map((h: any) => ({
-        id: h.id, quem: h.quem, cargo: h.role, aparelho: h.device,
+        id: h.id, quem: h.quem, cargo: h.role, profissao: h.profissao ?? null, aparelho: h.device,
         contribuicoes: h.contributions, pendencias: h.pending, orientacoes: h.guidance,
         medicacao: h.medication_note,
         assinadaEm: h.signed_at, horarioReal: h.happened_at,
@@ -301,7 +302,7 @@ export class ShiftsService {
        */
       linhas: {
         notas: dados.notas.map((n: any) => ({
-          id: n.id, autorId: n.author_id, quem: n.quem, cargo: n.cargo,
+          id: n.id, autorId: n.author_id, quem: n.quem, cargo: n.cargo, profissao: n.profissao ?? null,
           corAutor: n.cor_autor ?? null,
           texto: n.body, restrita: n.restricted,
           quando: n.happened_at, escritaEm: n.created_at,

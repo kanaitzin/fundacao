@@ -81,6 +81,7 @@ import { QUEM_POE_FOTO } from '../../backend/src/modules/people/foto.regra';
 import { QUEM_VE_CPF_INTEIRO } from '../../backend/src/modules/people/cpf-na-portaria.regra';
 import { recusaDasDatasDoCadastro } from '../../backend/src/modules/people/datas-do-cadastro.regra';
 import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../backend/src/kernel/common/senha.regra';
+import { PROFISSOES, ehProfissao } from '../../backend/src/modules/identity/profissao.regra';
 import { idDoPrototipo, sorteioDoPrototipo, sorteioFixo } from './prototipo-guardado';
 
 /** A senha inicial do protótipo, sorteada como no servidor (fase 291). */
@@ -248,7 +249,7 @@ const ACOLHIMENTOS: Record<string, {
        gravado em coluna nenhuma até a migração 1250. */
     motivoProvisorio: 'Entrou sem CPF e sem certidão. A mãe ficou de trazer os documentos, '
       + 'e a busca no CadÚnico não achou registro com o nome informado.',
-    cadastradoPor: 'Carla Coordenadora', cadastradoEm: '2026-06-12T04:20:00-03:00',
+    cadastradoPor: 'Carla Menezes', cadastradoEm: '2026-06-12T04:20:00-03:00',
   },
 };
 
@@ -424,20 +425,28 @@ const retratoDeAdulto = (nome: string, feitio: Feitio) => {
 const USUARIOS: Record<string, { id: string; fullName: string; role: string; senha: string | null }> = {
   'mbarbosa@paodospobres.com.br': { id: 'u0', fullName: 'Marcelo Barbosa', role: 'coordenador', senha: 'senha-dev-123' },
   'educador.ai3@paodospobres.dev': { id: 'u1', fullName: 'Mário Silva', role: 'educador', senha: 'senha-dev-123' },
-  'lider.ai3@paodospobres.dev': { id: 'u2', fullName: 'Lúcia Líder Diurna', role: 'lider_diurno', senha: 'senha-dev-123' },
-  'tecnica.ai3@paodospobres.dev': { id: 'u3', fullName: 'Tatiane Técnica', role: 'equipe_tecnica', senha: 'senha-dev-123' },
-  'coord.ai3@paodospobres.dev': { id: 'u4', fullName: 'Carla Coordenadora', role: 'coordenador', senha: 'senha-dev-123' },
-  'enfermagem@paodospobres.dev': { id: 'u5', fullName: 'Enfermeira Clara', role: 'enfermagem', senha: 'senha-dev-123' },
-  'lider.noturno@paodospobres.dev': { id: 'u8', fullName: 'Nélio Noturno', role: 'lider_noturno_geral', senha: 'senha-dev-123' },
-  'cozinha@paodospobres.dev': { id: 'u9', fullName: 'Cida da Cozinha', role: 'cozinha', senha: 'senha-dev-123' },
-  'gestor@paodospobres.dev': { id: 'u11', fullName: 'Gilberto Gestor', role: 'gestor_geral', senha: 'senha-dev-123' },
+  'lider.ai3@paodospobres.dev': { id: 'u2', fullName: 'Lúcia Amaral', role: 'lider_diurno', senha: 'senha-dev-123' },
+  'tecnica.ai3@paodospobres.dev': { id: 'u3', fullName: 'Tatiane Moraes', role: 'equipe_tecnica', senha: 'senha-dev-123' },
+  'coord.ai3@paodospobres.dev': { id: 'u4', fullName: 'Carla Menezes', role: 'coordenador', senha: 'senha-dev-123' },
+  'enfermagem@paodospobres.dev': { id: 'u5', fullName: 'Clara Bittencourt', role: 'enfermagem', senha: 'senha-dev-123' },
+  'lider.noturno@paodospobres.dev': { id: 'u8', fullName: 'Nélio Fontes', role: 'lider_noturno_geral', senha: 'senha-dev-123' },
+  'cozinha@paodospobres.dev': { id: 'u9', fullName: 'Cida Prado', role: 'cozinha', senha: 'senha-dev-123' },
+  'gestor@paodospobres.dev': { id: 'u11', fullName: 'Gilberto Assis', role: 'gestor_geral', senha: 'senha-dev-123' },
   /* A portaria entra com login mínimo desde a fase 160 (decisão de 26/09). */
-  'portaria.ai3@paodospobres.dev': { id: 'u12', fullName: 'Paulo da Portaria', role: 'portaria', senha: 'senha-dev-123' },
+  'portaria.ai3@paodospobres.dev': { id: 'u12', fullName: 'Paulo Brandão', role: 'portaria', senha: 'senha-dev-123' },
   /* A Coordenação Geral (fase 176): o cargo coordenador com a marca das oito
      casas. Desde a 299 o Marcelo também é (plano de 06/11); esta conta continua
      para quem entra pelo e-mail. */
-  'coordenacao.geral@paodospobres.dev': { id: 'u13', fullName: 'Graça da Coordenação Geral', role: 'coordenador', senha: 'senha-dev-123' },
+  'coordenacao.geral@paodospobres.dev': { id: 'u13', fullName: 'Graça Vieira', role: 'coordenador', senha: 'senha-dev-123' },
 };
+/**
+ * A PROFISSÃO DE QUEM É DA EQUIPE TÉCNICA (identity/1722, pedido de 14/11): a Tatiane é
+ * psicóloga, a Sara é assistente social e a Paula é psicopedagoga. Nas outras casas, as
+ * pessoas com o mesmo lugar na equipe têm a mesma profissão.
+ */
+const PROFISSAO_DE = new Map<string, string>([['u3', 'psicologa'], ['u14', 'assistente_social'], ['u15', 'psicopedagoga']]);
+const profissaoDe = (id: string | null | undefined, cargo?: string | null) =>
+  (id && cargo === 'equipe_tecnica' ? PROFISSAO_DE.get(id) ?? null : null);
 /** Quem coordena as oito casas, como a coluna `todas_as_casas` do servidor (1634). */
 const TODAS_AS_CASAS = new Set<string>(['u0', 'u13']);
 
@@ -487,16 +496,16 @@ const EQUIPE_CASA = [
   { id: 'u1', nome: 'Mário Silva', cargo: 'educador' },
   { id: 'u6', nome: 'Joana Lima', cargo: 'educador' },
   { id: 'u7', nome: 'Tainá Souza', cargo: 'educador' },
-  { id: 'u2', nome: 'Lúcia Líder Diurna', cargo: 'lider_diurno' },
-  { id: 'u3', nome: 'Tatiane Técnica', cargo: 'equipe_tecnica' },
-  { id: 'u4', nome: 'Carla Coordenadora', cargo: 'coordenador' },
+  { id: 'u2', nome: 'Lúcia Amaral', cargo: 'lider_diurno' },
+  { id: 'u3', nome: 'Tatiane Moraes', cargo: 'equipe_tecnica' },
+  { id: 'u4', nome: 'Carla Menezes', cargo: 'coordenador' },
   /* A equipe inteira da casa (fase 225): quem já aparecia nos registros sem
      estar na lista (a assistente social, a psicopedagoga, a portaria e a
      cozinha) e quem completa a casa, dia e noite. */
-  { id: 'u14', nome: 'Sara Assistente Social', cargo: 'equipe_tecnica' },
-  { id: 'u15', nome: 'Paula Psicopedagoga', cargo: 'equipe_tecnica' },
-  { id: 'u12', nome: 'Paulo da Portaria', cargo: 'portaria' },
-  { id: 'u9', nome: 'Cida da Cozinha', cargo: 'cozinha' },
+  { id: 'u14', nome: 'Sara Barcelos', cargo: 'equipe_tecnica' },
+  { id: 'u15', nome: 'Paula Antunes', cargo: 'equipe_tecnica' },
+  { id: 'u12', nome: 'Paulo Brandão', cargo: 'portaria' },
+  { id: 'u9', nome: 'Cida Prado', cargo: 'cozinha' },
   ...cfg.equipeQueCompleta,
 ];
 
@@ -776,7 +785,7 @@ const SUGESTOES: { id: string; texto: string; tela: string | null; criadaEm: str
     autor: 'Mário Silva', cargo: 'educador', autorId: 'u1' },
   { id: 'sug2', texto: 'Na cozinha, poder repetir o pedido de lanche da semana passada com um toque.',
     tela: 'Cozinha', criadaEm: new Date(Date.now() - 5 * 864e5).toISOString(), casa: 'Casa 03 (piloto)',
-    autor: 'Lúcia Líder Diurna', cargo: 'lider_diurno', autorId: 'u2' },
+    autor: 'Lúcia Amaral', cargo: 'lider_diurno', autorId: 'u2' },
 ];
 /**
  * AVISOS (§19). O texto diz que existe algo e onde continuar — nunca repete o
@@ -827,19 +836,19 @@ const ESTATUTO: {
   { id: 'es2', texto: 'Ninguém entra no quarto sem bater — inclusive quem trabalha na casa.',
     publico: 'todos', desde: '2026-04-15', daInstituicao: false, situacao: 'vigente',
     motivoDaSituacao: null, mudadaPor: null, substitui: null,
-    por: 'Carla Coordenadora', em: emHoras(10, 0) },
+    por: 'Carla Menezes', em: emHoras(10, 0) },
   { id: 'es3', texto: 'O silêncio no corredor começa às 22h, para quem dorme cedo.',
     publico: 'acolhidos', desde: '2026-04-15', daInstituicao: false, situacao: 'vigente',
     motivoDaSituacao: null, mudadaPor: null, substitui: null,
-    por: 'Carla Coordenadora', em: emHoras(10, 0) },
+    por: 'Carla Menezes', em: emHoras(10, 0) },
   { id: 'es4', texto: 'Não se fala do processo judicial da criança na frente dela.',
     publico: 'equipe', desde: '2026-03-02', daInstituicao: false, situacao: 'vigente',
     motivoDaSituacao: null, mudadaPor: null, substitui: null,
-    por: 'Carla Coordenadora', em: emHoras(10, 0) },
+    por: 'Carla Menezes', em: emHoras(10, 0) },
   { id: 'es5', texto: 'A TV da sala desliga às 21h nos dias de aula.',
     publico: 'acolhidos', desde: '2026-02-10', daInstituicao: false, situacao: 'substituida',
-    motivoDaSituacao: null, mudadaPor: 'Carla Coordenadora', substitui: null,
-    por: 'Carla Coordenadora', em: emHoras(10, 0) },
+    motivoDaSituacao: null, mudadaPor: 'Carla Menezes', substitui: null,
+    por: 'Carla Menezes', em: emHoras(10, 0) },
 ];
 
 function regrasParaTela() {
@@ -883,7 +892,7 @@ const PAUTAS: {
     respondidaPor: 'Equipe técnica', respondidaEm: emHoras(14, 0),
     /* Proposta ONTEM: `emHoras` é hora do dia, não horas atrás — 30 ali gerava
        uma data inválida, e a página inteira não subia (fase 94). */
-    por: 'Nélio Noturno', porId: 'u8', em: haMinutos(26 * 60) },
+    por: 'Nélio Fontes', porId: 'u8', em: haMinutos(26 * 60) },
 ];
 
 const AVISOS = [
@@ -960,7 +969,7 @@ const RELATOS: RelatoMock[] = [
     relato: 'Por volta das 21h40 vi o portão dos fundos aberto e o Kauã não estava na sala. '
       + 'Avisei o Líder Noturno Geral na hora e conferi os quartos.',
     restrito: false, quando: emHoras(21, 45), personId: 'p10' },
-  { id: 'r2', entity: 'incident', entityId: 'o1', autor: 'Nélio Noturno', autorId: 'u8',
+  { id: 'r2', entity: 'incident', entityId: 'o1', autor: 'Nélio Fontes', autorId: 'u8',
     testemunho: 'Intervim', codigoTestemunho: 'intervim',
     relato: 'Recebi o aviso às 21h45 e segui o protocolo da casa. O acolhido retornou às '
       + '23h15, acompanhado, sem lesão referida.',
@@ -986,7 +995,7 @@ const RELATOS: RelatoMock[] = [
    * De outro autor e de outro dia, de propósito: a lista de portas não diz nem
    * autor nem data, e tem de continuar não dizendo com dois.
    */
-  { id: 'r4', entity: 'incident', entityId: 'o1', autor: 'Tatiane Técnica',
+  { id: 'r4', entity: 'incident', entityId: 'o1', autor: 'Tatiane Moraes',
     autorId: 'u3',
     testemunho: 'Soube depois', codigoTestemunho: 'soube_depois',
     relato: 'Conversei com ele no dia seguinte. Contou que saiu porque combinou de encontrar '
@@ -1311,7 +1320,7 @@ let CHAMADAS: Chamada[] = [
     horario: emHoras(7, 30),
     resultados: Object.fromEntries(KIDS.map((k) => [k.id, { opcao: 'normal', por: 'Joana Lima', em: emHoras(7, 40) }])),
     abertaPor: 'Joana Lima', abertaEm: emHoras(7, 25),
-    confirmadaPor: 'Lúcia Líder Diurna', confirmadaEm: emHoras(8, 5) },
+    confirmadaPor: 'Lúcia Amaral', confirmadaEm: emHoras(8, 5) },
   { id: 'k2', tipo: 'alimentacao', titulo: 'Almoço', status: 'aberta', horario: emHoras(11, 30),
     abertaPor: 'Joana Lima', abertaEm: emHoras(11, 25),
     resultados: { p02: { opcao: 'normal', por: 'Joana Lima', em: emHoras(11, 40) },
@@ -1339,9 +1348,9 @@ let CHAMADAS_DA_CASA: ModeloDeChamada[] = [
   { id: 'mc3', tipo: 'alimentacao', titulo: 'Lanche da tarde', hora: '15:30', pessoas: 22, cor: 'laranja',
     por: 'Coordenação da casa', desde: emDias(-40, 10, 0) },
   { id: 'mc4', tipo: 'alimentacao', titulo: 'Janta', hora: '18:30', pessoas: 25, cor: 'mar',
-    por: 'Lúcia Líder Diurna', desde: emDias(-12, 9, 0) },
+    por: 'Lúcia Amaral', desde: emDias(-12, 9, 0) },
   { id: 'mc5', tipo: 'alimentacao', titulo: 'Ceia', hora: '21:00', pessoas: 20, cor: 'lavanda',
-    por: 'Lúcia Líder Diurna', desde: emDias(-12, 9, 0) },
+    por: 'Lúcia Amaral', desde: emDias(-12, 9, 0) },
 ];
 const DEFINE_CHAMADAS = ['coordenador', 'equipe_tecnica', 'lider_diurno'];
 
@@ -1593,19 +1602,19 @@ const CONCEITOS_EDU: Record<string, { id: string; ano: number; bimestre: number;
       motivo: 'A escola devolveu o retorno do bimestre em 10/09: entregou os trabalhos e '
         + 'melhorou em leitura depois do reforço às terças. O registro anterior foi feito antes '
         + 'desse retorno.',
-      por: 'Tatiane Técnica', escritoEm: emDias(-3),
+      por: 'Tatiane Moraes', escritoEm: emDias(-3),
       substituido: false, corrigeUmAnterior: true },
     { id: 'ce2', ano: 2026, bimestre: 2, conceito: 'acompanha_com_apoio',
       rotulo: 'Acompanha, com apoio em curso',
       motivo: 'Estava na sala de recursos duas vezes por semana e ainda sem retorno da escola '
         + 'sobre o bimestre.',
-      por: 'Carla Coordenadora', escritoEm: emDias(-20),
+      por: 'Carla Menezes', escritoEm: emDias(-20),
       substituido: true, corrigeUmAnterior: false },
     { id: 'ce1', ano: 2026, bimestre: 1, conceito: 'nao_acompanha',
       rotulo: 'Não está acompanhando — pede providência',
       motivo: 'Faltou sete dias por causa das consultas e ficou para trás em matemática. '
         + 'Combinado reforço às terças com a escola a partir de abril.',
-      por: 'Tatiane Técnica', escritoEm: emDias(-120),
+      por: 'Tatiane Moraes', escritoEm: emDias(-120),
       substituido: false, corrigeUmAnterior: false },
   ],
 };
@@ -1631,7 +1640,7 @@ const AUDITORIA: Record<string, { id: string; acao: string; codigo: string;
       finalidade: 'Audiência concentrada de outubro — cópia para a Defensoria.',
       detalhe: { formato: 'docx' } },
     { id: 'au2', acao: 'Documento do dossiê aberto', codigo: 'document.open',
-      quando: emDias(-2, 14, 5), por: 'Carla Coordenadora',
+      quando: emDias(-2, 14, 5), por: 'Carla Menezes',
       finalidade: null, detalhe: {} },
     { id: 'au3', acao: 'Evolução educacional escrita', codigo: 'education.evolution',
       quando: emDias(-1, 19, 40), por: 'Joana Lima',
@@ -1720,7 +1729,7 @@ for (const ev of LINHA) {
 }
 /* O que cada turno contou na passagem: a equipe da noite e a do dia. */
 const PASSAGEM_DA_NOITE = {
-  quem: 'Nélio Noturno', userId: 'u8', cargo: 'lider_noturno_geral',
+  quem: 'Nélio Fontes', userId: 'u8', cargo: 'lider_noturno_geral',
   contribuicoes: 'Plantão noturno sem intercorrência grave; dois despertares.',
   pendencias: 'O portão dos fundos está emperrado.',
   orientacoes: 'A Maria pode estar cansada hoje — não dormiu bem.',
@@ -1813,7 +1822,7 @@ let PLANTOES: Plantao[] = [
     esperados: EM_CURSO.turno === 'noturno' ? [] : [
       { quem: 'Mário Silva', cargo: 'educador', userId: 'u1' },
       { quem: 'Joana Lima', cargo: 'educador', userId: 'u6' },
-      { quem: 'Lúcia Líder Diurna', cargo: 'lider_diurno', userId: 'u2' },
+      { quem: 'Lúcia Amaral', cargo: 'lider_diurno', userId: 'u2' },
     ] },
 ];
 
@@ -1852,7 +1861,7 @@ const DESMARCADAS = new Map<string, string>();
 const CORES_DA_LINHA = new Map<string, string>([
   ['u1', 'c-brand'],   // Mário Silva
   ['u6', 'c-ok'],      // Joana Lima
-  ['u2', 'c-info'],    // Lúcia Líder Diurna
+  ['u2', 'c-info'],    // Lúcia Amaral
 ]);
 
 /* As cobranças de relato de uma ocorrência grave já aberta na casa fictícia:
@@ -1898,7 +1907,7 @@ const SAIDAS_SOZINHO: Record<string, {
        que não é nenhuma das seis pessoas do quadro — e esta é a decisão que a
        técnica vai defender numa audiência (§8.7.2). Autor que não existe é
        autor que ninguém pode procurar para perguntar por quê. */
-    quem: 'Tatiane Técnica',
+    quem: 'Tatiane Moraes',
   }],
   /* Fase 207: mais três, para o portão ter o que mostrar. Quem decide agora é a
      equipe da casa, educador e líder inclusive. */
@@ -1906,7 +1915,7 @@ const SAIDAS_SOZINHO: Record<string, {
     status: 'liberada',
     motivo: 'Vai e volta da escola e do trabalho de aprendiz desde agosto, sem intercorrência.',
     onde: 'Escola e trabalho de aprendiz.', ate: null,
-    desde: new Date(Date.now() - 40 * 86400_000).toISOString(), quem: 'Tatiane Técnica',
+    desde: new Date(Date.now() - 40 * 86400_000).toISOString(), quem: 'Tatiane Moraes',
   }],
   p09: [{
     status: 'liberada',
@@ -1918,11 +1927,11 @@ const SAIDAS_SOZINHO: Record<string, {
     status: 'suspensa',
     motivo: 'Voltou duas horas depois do combinado ontem; conversamos e combinamos uma semana acompanhada.',
     onde: null, ate: new Date(Date.now() + 5 * 86400_000).toISOString().slice(0, 10),
-    desde: new Date(Date.now() - 1 * 86400_000).toISOString(), quem: 'Lúcia Líder Diurna',
+    desde: new Date(Date.now() - 1 * 86400_000).toISOString(), quem: 'Lúcia Amaral',
   }, {
     status: 'liberada', motivo: 'Vai sozinha à escola desde o começo do ano letivo.',
     onde: 'Escola.', ate: null,
-    desde: new Date(Date.now() - 200 * 86400_000).toISOString(), quem: 'Tatiane Técnica',
+    desde: new Date(Date.now() - 200 * 86400_000).toISOString(), quem: 'Tatiane Moraes',
   }],
 };
 
@@ -1935,16 +1944,16 @@ interface SaidaMock {
 const SAIDAS_PORTAO: SaidaMock[] = [
   { id: 'sp1', personId: 'p14', sozinho: true, comQuem: null, destino: 'Escola',
     voltaPrevista: new Date(Date.now() + 2 * 3600_000).toISOString(),
-    saiuEm: new Date(Date.now() - 3 * 3600_000).toISOString(), quemSaida: 'Paulo da Portaria',
+    saiuEm: new Date(Date.now() - 3 * 3600_000).toISOString(), quemSaida: 'Paulo Brandão',
     voltouEm: null, quemVolta: null, notaSaida: null, notaVolta: null },
   { id: 'sp2', personId: 'p09', sozinho: true, comQuem: null, destino: 'Treino de futebol',
     voltaPrevista: null, saiuEm: new Date(Date.now() - 26 * 3600_000).toISOString(),
-    quemSaida: 'Paulo da Portaria', voltouEm: new Date(Date.now() - 23 * 3600_000).toISOString(),
-    quemVolta: 'Paulo da Portaria', notaSaida: null, notaVolta: null },
+    quemSaida: 'Paulo Brandão', voltouEm: new Date(Date.now() - 23 * 3600_000).toISOString(),
+    quemVolta: 'Paulo Brandão', notaSaida: null, notaVolta: null },
   { id: 'sp3', personId: 'p10', sozinho: false, comQuem: 'Educador Mário', destino: 'Curso profissionalizante',
     voltaPrevista: null, saiuEm: new Date(Date.now() - 50 * 3600_000).toISOString(),
     quemSaida: 'Mário Silva', voltouEm: new Date(Date.now() - 46 * 3600_000).toISOString(),
-    quemVolta: 'Paulo da Portaria', notaSaida: null, notaVolta: null },
+    quemVolta: 'Paulo Brandão', notaSaida: null, notaVolta: null },
 ];
 
 /* PEDIDOS PARA A COZINHA (1030). Um de cada, para a demonstração mostrar a
@@ -2007,7 +2016,7 @@ const PEDIDOS_COZINHA: {
                finalidade: 'Saída ao parque no sábado à tarde.' },
       depois: { data: new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10), quantidade: 20,
                 finalidade: 'Saída ao parque no sábado à tarde.' },
-      em: haMinutos(29 * 60), por: 'Lúcia Líder Diurna' }] },
+      em: haMinutos(29 * 60), por: 'Lúcia Amaral' }] },
   /*
    * O NOME QUE VAI PARA A FOLHA TEM DE SER DE UMA CRIANÇA DA CASA.
    *
@@ -2056,7 +2065,7 @@ const RECEITAS: Record<string, { id: string; nome: string; em: string | null;
   esq1: [{
     id: 'rc-fic-1', nome: 'Receita da consulta de oftalmologia',
     em: new Date(Date.now() - 20 * 86400_000).toISOString().slice(0, 10),
-    prescritor: 'Dra. Lívia Prates (CRM 00000)', anexadoPor: 'Enfermeira Clara',
+    prescritor: 'Dra. Lívia Prates (CRM 00000)', anexadoPor: 'Clara Bittencourt',
     anexadoEm: new Date(Date.now() - 19 * 86400_000).toISOString(),
     tipo: 'receita',
     temArquivo: true, nomeDoArquivo: 'receita-oftalmo.png',
@@ -2069,7 +2078,7 @@ const RECEITAS: Record<string, { id: string; nome: string; em: string | null;
     id: 'rc-fic-2', nome: 'Bula do colírio',
     em: new Date(Date.now() - 20 * 86400_000).toISOString().slice(0, 10),
     tipo: 'bula',
-    prescritor: null, anexadoPor: 'Enfermeira Clara',
+    prescritor: null, anexadoPor: 'Clara Bittencourt',
     anexadoEm: new Date(Date.now() - 19 * 86400_000).toISOString(),
     temArquivo: true, nomeDoArquivo: 'bula-colirio.png',
     arquivo: FOLHA_FICTICIA, mime: 'image/png', referencia: null,
@@ -2227,17 +2236,17 @@ let COMPROMISSOS: Compromisso[] = [
     inicio: HOJE, fim: null,
     motivoSemPrazo: 'Tratamento contínuo conforme laudo fonoaudiológico, sem previsão de alta.',
     responsavelModo: 'pessoa', responsavelNome: 'Mário Silva',
-    marcadoPor: 'Tatiane Técnica',
+    marcadoPor: 'Tatiane Moraes',
     horaSaida: '14:00', endereco: 'Rua das Laranjeiras dos Andradas, 1200 — Centro Histórico' },
   { id: 'c2', tipo: 'atividade', titulo: 'Reforço escolar', local: 'Sala de estudos',
     personId: null, hora: '16:00', duracaoMin: 60, recorrencia: 'semanal', diasSemana: [1, 3, 5],
     inicio: HOJE, fim: null, motivoSemPrazo: 'Acompanhamento pedagógico contínuo da casa.',
-    responsavelModo: 'plantao', responsavelNome: null, marcadoPor: 'Lúcia Líder Diurna' },
+    responsavelModo: 'plantao', responsavelNome: null, marcadoPor: 'Lúcia Amaral' },
   { id: 'c3', tipo: 'visita', titulo: 'Visita da avó materna', local: 'Sala de visitas',
     personId: 'p02', hora: '14:00', duracaoMin: 90, recorrencia: 'quinzenal', diasSemana: [6],
     inicio: HOJE, fim: null, motivoSemPrazo: 'Convivência familiar autorizada, sem prazo na decisão.',
-    responsavelModo: 'pessoa', responsavelNome: 'Tatiane Técnica',
-    marcadoPor: 'Tatiane Técnica' },
+    responsavelModo: 'pessoa', responsavelNome: 'Tatiane Moraes',
+    marcadoPor: 'Tatiane Moraes' },
 ];
 
 interface DoseMock {
@@ -2280,21 +2289,21 @@ const ESQUEMAS: EsquemaMock[] = [
        diferença entre as duas que a Enfermagem lê. */
     prescritaEm: '2026-05-29',
     inicio: '2026-06-01', fim: null,
-    horarios: ['07:30', '19:30'], assinadaPor: 'Enfermeira Clara',
+    horarios: ['07:30', '19:30'], assinadaPor: 'Clara Bittencourt',
     assinadaEm: '2026-06-01T10:00:00-03:00', motivoDaSuspensao: null,
     soEnfermagem: false, motivoSoEnfermagem: null },
   { id: 'esq2', medicamento: 'Amoxicilina 250 mg/5 mL', dose: '5 mL',
     via: 'oral', tipo: 'tratamento', status: 'ativa', rotulo: 'Na grade',
     acolhido: { id: 'p02', nome: 'Bruno' }, condicaoUso: null,
     prescritor: 'Pediatria — UBS do Bairro', inicio: '2026-08-28', fim: '2026-09-04',
-    horarios: ['08:00', '16:00', '00:00'], assinadaPor: 'Enfermeira Clara',
+    horarios: ['08:00', '16:00', '00:00'], assinadaPor: 'Clara Bittencourt',
     assinadaEm: '2026-08-28T09:20:00-03:00', motivoDaSuspensao: null,
     soEnfermagem: false, motivoSoEnfermagem: null },
   { id: 'esq3', medicamento: 'Anti-histamínico', dose: '1 comprimido',
     via: 'oral', tipo: 'uso_continuo', status: 'suspensa', rotulo: 'Suspenso',
     acolhido: { id: 'p01', nome: 'Alice' }, condicaoUso: null,
     prescritor: 'Alergologia — Clínica do Bairro', inicio: '2026-04-10', fim: null,
-    horarios: ['20:00'], assinadaPor: 'Enfermeira Clara',
+    horarios: ['20:00'], assinadaPor: 'Clara Bittencourt',
     assinadaEm: '2026-04-10T11:00:00-03:00',
     motivoDaSuspensao: 'Consulta de retorno em 12/08 na Clínica do Bairro: a alergologista '
       + 'suspendeu o uso contínuo e manterá só o inalador em crise.',
@@ -2308,7 +2317,7 @@ const ESQUEMAS: EsquemaMock[] = [
        "o sistema trocou o remédio de criança". */
     acolhido: { id: 'p07', nome: 'Gabi' }, condicaoUso: null,
     prescritor: 'Endocrinologia — Ambulatório de Referência', inicio: '2026-07-15', fim: null,
-    horarios: ['07:00', '22:00'], assinadaPor: 'Enfermeira Clara',
+    horarios: ['07:00', '22:00'], assinadaPor: 'Clara Bittencourt',
     assinadaEm: '2026-07-15T08:40:00-03:00', motivoDaSuspensao: null,
     soEnfermagem: true,
     motivoSoEnfermagem: 'Aplicação subcutânea com ajuste de dose pela glicemia; a Enfermagem '
@@ -2327,7 +2336,7 @@ const ESQUEMAS: EsquemaMock[] = [
     condicaoUso: 'Dor de cabeça referida ou temperatura acima de 37,8 °C. Intervalo mínimo '
       + 'de 6 horas.',
     prescritor: 'Pediatria — UBS do Bairro', inicio: '2026-09-01', fim: null,
-    horarios: [], assinadaPor: 'Enfermeira Clara',
+    horarios: [], assinadaPor: 'Clara Bittencourt',
     assinadaEm: '2026-09-01T09:10:00-03:00', motivoDaSuspensao: null,
     soEnfermagem: false, motivoSoEnfermagem: null },
   /* Um remédio que a Enfermagem ativou no turno anterior (fase 310): é ele que o cartão do
@@ -2338,7 +2347,7 @@ const ESQUEMAS: EsquemaMock[] = [
     acolhido: { id: 'p11', nome: 'Lara' },
     condicaoUso: 'Tosse que atrapalha o sono. No máximo três vezes ao dia.',
     prescritor: 'Pediatria — UBS do Bairro', inicio: ANTERIOR.abre.slice(0, 10), fim: null,
-    horarios: [], assinadaPor: 'Enfermeira Clara',
+    horarios: [], assinadaPor: 'Clara Bittencourt',
     assinadaEm: new Date(new Date(ANTERIOR.abre).getTime() + 2 * 3_600_000).toISOString(),
     motivoDaSuspensao: null, soEnfermagem: false, motivoSoEnfermagem: null },
 ];
@@ -2520,7 +2529,7 @@ const ESCALA: EscalaMock[] = (() => {
     { userId: 'u1', quem: 'Mário Silva', cargo: 'educador' },
     { userId: 'u6', quem: 'Joana Lima', cargo: 'educador' },
     { userId: 'u7', quem: 'Tainá Souza', cargo: 'educador' },
-    { userId: 'u2', quem: 'Lúcia Líder Diurna', cargo: 'lider_diurno' },
+    { userId: 'u2', quem: 'Lúcia Amaral', cargo: 'lider_diurno' },
   ];
   let n = 0;
   for (let d = -7; d <= 21; d++) {
@@ -2563,7 +2572,7 @@ const ESCALA: EscalaMock[] = (() => {
   out.push({ id: 'esc-ret-1', userId: 'u6', quem: 'Joana Lima', cargo: 'educador',
     data: diaRelativo(3), turno: 'noturno', inicio: null, fim: null, nota: null,
     revogadaEm: emHoras(9, 15), motivoRevogacao: 'Trocou o plantão com a Tainá.',
-    revogadaPor: 'Carla Coordenadora' });
+    revogadaPor: 'Carla Menezes' });
   return out;
 })();
 
@@ -2588,12 +2597,12 @@ const naNoite = (h: number, m: number, folga: number) => !DE_NOITE ? emHoras(h, 
   : atePassado(new Date(new Date(naData(DIA_DO_NOTURNO, h, m)).getTime() + 864e5).toISOString(),
     EM_CURSO.abre, folga);
 const LINHAS_ATA: LinhaAtaMock[] = [
-  { id: 'ln1', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno',
+  { id: 'ln1', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Fontes',
     cargo: 'lider_noturno_geral',
     texto: 'A Maria não dormiu bem e fez xixi; troquei a roupa de cama e ela voltou a dormir. '
       + 'Vale ficar de olho amanhã à tarde.',
     restrita: false, quando: naNoite(4, 10, 16), escritaEm: naNoite(4, 12, 15) },
-  { id: 'ln2', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno',
+  { id: 'ln2', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Fontes',
     cargo: 'lider_noturno_geral',
     texto: 'O portão dos fundos ficou emperrado. Avisei a manutenção pelo caderno da casa.',
     restrita: false, quando: naNoite(5, 30, 12), escritaEm: naNoite(5, 31, 11) },
@@ -2601,7 +2610,7 @@ const LINHAS_ATA: LinhaAtaMock[] = [
     cargo: 'educador',
     texto: 'O Bruno acordou duas vezes com dor de barriga; tomou água e melhorou.',
     restrita: false, quando: naNoite(3, 5, 20), escritaEm: naNoite(3, 6, 19) },
-  { id: 'ln4', ataId: 'ata-noturna', autorId: 'u3', quem: 'Carla Coordenadora',
+  { id: 'ln4', ataId: 'ata-noturna', autorId: 'u3', quem: 'Carla Menezes',
     cargo: 'coordenador',
     texto: 'A visita da genitora da Alice, marcada para sexta, foi remarcada pela Vara. A '
       + 'equipe técnica conversa com ela antes de contar.',
@@ -2619,7 +2628,7 @@ const LINHAS_ATA: LinhaAtaMock[] = [
       cargo: 'educador',
       texto: 'A Alice tossiu à tarde, sem febre. Ficou no pátio coberto e jantou bem.',
       restrita: false, quando: naData(DIA_DO_NOTURNO, 17, 40), escritaEm: naData(DIA_DO_NOTURNO, 17, 41) },
-    { id: 'ld3', ataId: 'ata-diurna', autorId: 'u3', quem: 'Carla Coordenadora',
+    { id: 'ld3', ataId: 'ata-diurna', autorId: 'u3', quem: 'Carla Menezes',
       cargo: 'coordenador',
       texto: 'A Vara pediu o relatório da Alice até sexta. A equipe técnica conversa com a '
         + 'genitora antes de a visita ser remarcada.',
@@ -2702,7 +2711,7 @@ function linhasDaAta(ataId: string, papel: string, quemId = '') {
   const visiveis = alcanca ? todas : todas.filter((l) => !l.restrita);
   return {
     notas: visiveis.map((l) => ({
-      id: l.id, autorId: l.autorId, quem: l.quem, cargo: l.cargo,
+      id: l.id, autorId: l.autorId, quem: l.quem, cargo: l.cargo, profissao: profissaoDe(l.autorId, l.cargo),
       texto: l.texto, restrita: l.restrita,
       /* A cor escolhida do autor, como no servidor. Sem escolha, null — e a
          tela cai no tom automático. */
@@ -2729,7 +2738,7 @@ function escalaDoPeriodo(de: string, ate: string) {
        PESSOA, e não do plantão. Um segundo mapa aqui faria a mesma educadora
        sair de um tom na ATA e de outro na escala (§6.14). */
     const comCor = (x: EscalaMock) => ({
-      ...x, cor: CORES_DA_LINHA.get(x.userId) ?? null,
+      ...x, cor: CORES_DA_LINHA.get(x.userId) ?? null, profissao: profissaoDe(x.userId, x.cargo),
       substituiu: x.substituiu ?? null,
     });
     const vivos = (t: string) =>
@@ -2993,29 +3002,29 @@ const MOVIMENTOS: Record<string, MovimentoEstoque[]> = {
     { id: 'mv8', tipo: 'consumo', quantidade: -1, motivo: 'Dose das 13:00 confirmada.',
       quando: emHoras(13, 5), por: 'Joana Lima' },
     { id: 'mv9', tipo: 'entrada', quantidade: 1, motivo: null, origem: 'Doação', lote: 'IBU0042',
-      validadeDoLote: '2027-03-31', quando: emHoras(8, 0), por: 'Enfermeira Clara' },
+      validadeDoLote: '2027-03-31', quando: emHoras(8, 0), por: 'Clara Bittencourt' },
   ],
   e1: [
     { id: 'mv1', tipo: 'entrada', quantidade: 3, motivo: null,
-      quando: emHoras(9, 15), por: 'Enfermeira Clara' },
+      quando: emHoras(9, 15), por: 'Clara Bittencourt' },
     { id: 'mv2', tipo: 'consumo', quantidade: -1, motivo: 'Dose das 08:00 confirmada.',
       quando: emHoras(8, 5), por: 'Joana Lima' },
   ],
   e2: [
     { id: 'mv3', tipo: 'entrada', quantidade: 6, motivo: null,
-      quando: emHoras(9, 20), por: 'Enfermeira Clara' },
+      quando: emHoras(9, 20), por: 'Clara Bittencourt' },
     { id: 'mv4', tipo: 'consumo', quantidade: -1, motivo: 'Dose das 20:00 confirmada.',
       quando: emHoras(20, 10), por: 'Joana Lima' },
   ],
   e3: [
     { id: 'mv5', tipo: 'entrada', quantidade: 20, motivo: null,
-      quando: emHoras(9, 0), por: 'Enfermeira Clara' },
+      quando: emHoras(9, 0), por: 'Clara Bittencourt' },
     /* A CONFERÊNCIA QUE NÃO FECHOU: é exatamente o caso que fez esta tela
        existir — quem abriu a gaveta achou menos do que o sistema dizia, e o
        movimento é o único lugar onde a diferença tem motivo e nome. */
     { id: 'mv6', tipo: 'ajuste', quantidade: -4, motivo: 'Conferência da gaveta: achei 8, o '
       + 'sistema dizia 12. Não achei registro das quatro.',
-      quando: emHoras(20, 30), por: 'Carla Coordenadora' },
+      quando: emHoras(20, 30), por: 'Carla Menezes' },
   ],
 };
 
@@ -3044,7 +3053,7 @@ interface Triagem {
 const SIGILO_SAUDE: { atId: string | null; evId: string | null; sigiloso: boolean; motivo: string | null;
                       por: string; em: string }[] = [
   { atId: 'at-sig-1', evId: null, sigiloso: true, motivo: 'Pedido da equipe técnica.',
-    por: 'Enfermeira Clara', em: `${diasAtras(12)}T15:00:00-03:00` },
+    por: 'Clara Bittencourt', em: `${diasAtras(12)}T15:00:00-03:00` },
 ];
 let TRIAGENS: Triagem[] = [
   { id: 't1', personId: 'p08', tipo: 'Consulta de pediatria', enviadaPor: 'Mário Silva',
@@ -3065,7 +3074,7 @@ let TRIAGENS: Triagem[] = [
     resumo: 'Dor de dente referida depois do almoço. Atendido na unidade de saúde; '
       + 'prescrita amoxicilina 500 mg 8/8h por 7 dias.' },
   { id: 't3', personId: 'p15', tipo: 'Retorno de endocrinologia', enviadaPor: 'Tainá Souza',
-    enviadaEm: emHoras(9, 10), assinada: true, assinadaPor: 'Enfermeira Clara',
+    enviadaEm: emHoras(9, 10), assinada: true, assinadaPor: 'Clara Bittencourt',
     complemento: 'Grade de glicemia conferida com a receita nova antes de valer na casa.',
     resumo: 'Ajuste de dose conforme laudo. Glicemia antes das refeições mantida.' },
 ];
@@ -3093,7 +3102,7 @@ const ATENDIMENTOS: {
     local: 'Ambulatório de especialidades', especialidade: 'Psiquiatria da infância',
     profissional: 'Dra. Helena Duarte (CRM 00000)', motivo: 'Primeira consulta de acompanhamento.',
     desfecho: 'Acompanhamento mensal combinado com a equipe técnica.',
-    status: 'concluido', retornoEm: null, sigiloso: true, autor: 'Enfermeira Clara' },
+    status: 'concluido', retornoEm: null, sigiloso: true, autor: 'Clara Bittencourt' },
   { id: 'at1', personId: 'p08', tipo: 'consulta', quando: `${diasAtras(21)}T09:30:00-03:00`,
     local: 'UBS Centro', especialidade: 'Pediatria',
     profissional: 'Dra. Lívia Prates (CRM 00000)',
@@ -3126,9 +3135,9 @@ const RESUMOS: { id: string; personId: string; finalidade: string;
   // Gerado e nunca retirado: o papel que ninguém pegou não chegou a lugar
   // nenhum, e é por isso que ele continua aparecendo na lista.
   { id: 'res1', personId: 'p08', finalidade: 'consulta',
-    por: 'Enfermeira Clara', em: `${diasAtras(22)}T08:10:00-03:00`, baixadoEm: null },
+    por: 'Clara Bittencourt', em: `${diasAtras(22)}T08:10:00-03:00`, baixadoEm: null },
   { id: 'res2', personId: 'p15', finalidade: 'exame',
-    por: 'Enfermeira Clara', em: `${diasAtras(30)}T11:00:00-03:00`,
+    por: 'Clara Bittencourt', em: `${diasAtras(30)}T11:00:00-03:00`,
     baixadoEm: `${diasAtras(30)}T11:05:00-03:00` },
 ];
 
@@ -3200,7 +3209,7 @@ let ANEXOS: AnexoMock[] = [
   { id: 'ax1', ocorrenciaId: 'o2', tipo: 'documento_medico',
     nome: 'orientação da consulta de 31-08',
     referencia: 'RESTRITO/AI3/2026/08/saude/orientacao-3108.pdf',
-    restrito: true, autor: 'Enfermeira Clara',
+    restrito: true, autor: 'Clara Bittencourt',
     arquivo: null, nomeDoArquivo: null, mime: null },
   /* O MESMO TIPO DE ANEXO, NA OUTRA FORMA (fase 108): este está guardado no
      sistema, e o botão de olho abre a folha. Os dois convivem de propósito —
@@ -3248,7 +3257,7 @@ let COMUNICACOES: ComunicacaoMock[] = [
     resumo: 'Comunicamos a saída não autorizada ocorrida em 31/08, o retorno às 23h15 '
       + 'acompanhado e as medidas adotadas pela unidade.',
     quando: emHoras(9, 20), aprovadaEm: emHoras(11, 5), entregueEm: null,
-    ocorrenciaId: 'o1', responsavel: 'Tatiane Técnica', autorId: 'u3',
+    ocorrenciaId: 'o1', responsavel: 'Tatiane Moraes', autorId: 'u3',
     personId: 'p01' },
   { id: 'c2', orgao: 'judiciario',
     destinatarioFuncional: 'Vara da Infância e Juventude — 1ª Vara', canal: 'oficio',
@@ -3256,7 +3265,7 @@ let COMUNICACOES: ComunicacaoMock[] = [
     resumo: 'Encaminhamento do relatório semestral de acompanhamento, conforme determinação.',
     quando: emHoras(8, 0), aprovadaEm: emHoras(8, 40),
     entregueEm: new Date(Date.now() - 3 * 86_400_000).toISOString(),
-    ocorrenciaId: null, responsavel: 'Carla Coordenadora', autorId: 'u4',
+    ocorrenciaId: null, responsavel: 'Carla Menezes', autorId: 'u4',
     personId: 'p01' },
 ];
 
@@ -3288,13 +3297,13 @@ let OCORRENCIAS: Ocorrencia[] = [
     medidas: 'Líder Noturno Geral acionado na hora; busca conforme protocolo da casa; '
       + 'acolhido recebido e avaliado pela equipe do plantão.',
     falaEspontanea: null, abertaPor: 'Joana Lima', abertaEm: emHoras(21, 55), quando: emHoras(21, 40),
-    presentes: 'Joana Lima e Nélio Noturno.',
+    presentes: 'Joana Lima e Nélio Fontes.',
     contatos: 'Líder Noturno Geral às 21h45. Família informada pela coordenação às 23h30.',
     pendencias: 'Conversa da equipe técnica com o acolhido amanhã de manhã.',
     status: 'encerrada_operacional',
     avisados: ['Líder Diurno', 'equipe técnica', 'coordenação'],
     sinteses: [
-      { id: 'oa1', autor: 'Nélio Noturno',
+      { id: 'oa1', autor: 'Nélio Fontes',
         texto: 'Etapa operacional encerrada às 23h40, com o acolhido na casa e sem lesão referida.',
         quando: emHoras(23, 40) },
     ] },
@@ -3377,7 +3386,7 @@ let ATAS: AtaMock[] = [
   { id: ANTERIOR.turno === 'noturno' ? 'ata-noturna' : 'ata-diurna', plantaoId: 's0', status: 'fechada', versao: 2,
     /* O que quem fechou deixou escrito para o turno seguinte, no campo de fechar com pendência. */
     pendencias: 'Ligar para a escola do Felipe para confirmar a reunião de quinta.', fechadaEm: ANTERIOR.fecha,
-    fechadaPor: ANTERIOR.turno === 'noturno' ? 'Nélio Noturno' : 'Lúcia Líder Diurna',
+    fechadaPor: ANTERIOR.turno === 'noturno' ? 'Nélio Fontes' : 'Lúcia Amaral',
     /* O conteúdo é o do turno anterior: a noite, de dia; o dia, de noite (fase 204). */
     conteudo: ANTERIOR.turno === 'noturno' ? {
       intercorrencias: 'Noite tranquila, com dois despertares.',
@@ -3420,7 +3429,7 @@ let ATA_GERAL = {
      * mais precisa mostrar é que **nada se apaga** ao corrigir.
      */
     correcoes: i === 5 ? [{
-      por: 'Carla Coordenadora', em: emHoras(9, 40),
+      por: 'Carla Menezes', em: emHoras(9, 40),
       motivo: 'O horário da visita estava 01h20; o registro da portaria mostra 00h50.',
       antes: {
         motivo: 'Visita de rotina às 01h20; sem intercorrência.',
@@ -3481,12 +3490,12 @@ function janelaDeConsulta(escala: string, data: string): { de: string; ate: stri
 
 const ARQUIVO_ATAS: AtaArquivada[] = [
   { data: diasAtras(1),
-    diurno: capa({ fechadaEm: emHoras(19, 10), fechadaPor: 'Lúcia Líder Diurna' }),
+    diurno: capa({ fechadaEm: emHoras(19, 10), fechadaPor: 'Lúcia Amaral' }),
     noturno: capa({ status: 'fechada_com_pendencia', assinaturasFaltantes: 1,
                     pendencias: 'Mário Silva saiu antes do fim do turno e não assinou '
                       + 'a passagem. Fechada com pendência, sem assinatura em nome dele.',
                     episodios: 1, passagens: 2,
-                    fechadaEm: emHoras(7, 20), fechadaPor: 'Nélio Noturno' }),
+                    fechadaEm: emHoras(7, 20), fechadaPor: 'Nélio Fontes' }),
     geral: { id: null, status: 'fechada', houveContato: true, categoria: 'saude',
              motivo: 'Chamado às 02h10 — Bruno com febre; enfermagem orientada por telefone.',
              acao: 'Fui à casa, acompanhei a medicação e conferi o registro.',
@@ -3497,7 +3506,7 @@ const ARQUIVO_ATAS: AtaArquivada[] = [
               * invisível no único arquivo que o Marcelo abre (§6.19).
               */
              correcoes: [{
-               por: 'Lúcia Líder Diurna', em: emHoras(8, 15),
+               por: 'Lúcia Amaral', em: emHoras(8, 15),
                motivo: 'O horário da saída estava 04h10; o registro da portaria mostra 03h40.',
                antes: {
                  motivo: 'Chamado às 02h10 — Bruno com febre; enfermagem orientada por telefone.',
@@ -3507,13 +3516,13 @@ const ARQUIVO_ATAS: AtaArquivada[] = [
                },
              }] } },
   { data: diasAtras(2),
-    diurno: capa({ fechadaEm: emHoras(19, 5), fechadaPor: 'Lúcia Líder Diurna' }),
-    noturno: capa({ fechadaEm: emHoras(7, 5), fechadaPor: 'Nélio Noturno', passagens: 2 }),
+    diurno: capa({ fechadaEm: emHoras(19, 5), fechadaPor: 'Lúcia Amaral' }),
+    noturno: capa({ fechadaEm: emHoras(7, 5), fechadaPor: 'Nélio Fontes', passagens: 2 }),
     geral: { id: null, status: 'fechada', houveContato: false, categoria: null,
              motivo: null, acao: null, pendencias: null, chegada: null, saida: null } },
   { data: diasAtras(5),
     diurno: capa({ aditamentos: 1, fechadaEm: emHoras(19, 30),
-                   fechadaPor: 'Carla Coordenadora' }),
+                   fechadaPor: 'Carla Menezes' }),
     noturno: null,
     geral: null },
 ];
@@ -3685,7 +3694,7 @@ function gerarLivroDaCasa(): AtaArquivada[] {
       const episodios = r.chance(noite ? 0.1 : 0.08) ? [r.um(EPISODIOS_DO_LIVRO)] : [];
       const aditamento = !pendente && r.chance(0.03);
       const fecha = noite ? hora(data, 32, r.entre(5, 40)) : hora(data, 20, r.entre(0, 35));
-      const fechadaPor = noite ? presentes[0].quem : 'Lúcia Líder Diurna';
+      const fechadaPor = noite ? presentes[0].quem : 'Lúcia Amaral';
       const conteudo: Record<string, string> = {
         equipe_presente: presentes.map((p) => p.quem).join(', '),
         acolhidos: preencher(r.um(noite ? ACOLHIDOS_DA_NOITE : ACOLHIDOS_DO_DIA)),
@@ -3709,7 +3718,7 @@ function gerarLivroDaCasa(): AtaArquivada[] {
       const passagens = presentes
         .filter((p) => !faltou || p.userId !== faltou.userId)
         .map((p) => ({ ...p, cargo: 'educador', hora: fecha }));
-      if (!noite) passagens.push({ quem: 'Lúcia Líder Diurna', userId: 'u2', cargo: 'lider_diurno', hora: fecha });
+      if (!noite) passagens.push({ quem: 'Lúcia Amaral', userId: 'u2', cargo: 'lider_diurno', hora: fecha });
       const plantaoId = uid();
       HISTORIA_DO_ARQUIVO.set(plantaoId, {
         abre: noite ? hora(data, 20, 1) : hora(data, 8, 0),
@@ -3769,8 +3778,8 @@ function diaDaCrianca(data: string, pid: string, nome: string) {
   if (r.chance(0.45)) out.push(ev('ativ', em(16, r.entre(0, 30)), 'atividade',
     r.um(['Tema de casa', 'Oficina de desenho', 'Futebol na quadra', 'Leitura na sala de estudos', 'Horta']),
     'Concluída no horário', quem));
-  if (r.chance(0.12)) out.push(ev('saude', em(10, 0), 'saude', r.um(['Consulta de rotina na unidade de saúde', 'Dentista']), 'Atendimento registrado', 'Tatiane Técnica'));
-  if (!util && r.chance(0.5)) out.push(ev('visita', em(15, 0), 'plantao', 'Visita da família na sala de visitas', 'Registrada na portaria', 'Paulo da Portaria'));
+  if (r.chance(0.12)) out.push(ev('saude', em(10, 0), 'saude', r.um(['Consulta de rotina na unidade de saúde', 'Dentista']), 'Atendimento registrado', 'Tatiane Moraes'));
+  if (!util && r.chance(0.5)) out.push(ev('visita', em(15, 0), 'plantao', 'Visita da família na sala de visitas', 'Registrada na portaria', 'Paulo Brandão'));
   return out;
 }
 ARQUIVO_ATAS.sort((x, y) => (x.data < y.data ? 1 : -1));
@@ -3786,7 +3795,7 @@ function capaDe(s: (typeof PLANTOES)[number]) {
     (e) => !s.passagens.some((p) => p.userId === e.userId)).length;
   return { ataId: a.id, plantaoId: s.id, status: a.status === 'aberta' ? 'rascunho' : a.status,
     pendencias: a.pendencias, assinaturasFaltantes: faltam,
-    fechadaEm: a.fechadaEm, fechadaPor: a.fechadaEm ? 'Lúcia Líder Diurna' : null,
+    fechadaEm: a.fechadaEm, fechadaPor: a.fechadaEm ? 'Lúcia Amaral' : null,
     aditamentos: 0, episodios: 0, passagens: s.passagens.length };
 }
 
@@ -3845,15 +3854,15 @@ const COFRE: Credencial[] = [
 /** Histórico POR ACOLHIDO, como no servidor. */
 let COFRE_HIST: { personId: string; quando: string; quem: string;
                   finalidade: string | null; acao: string; excepcional: boolean }[] = [
-  { personId: 'p01', quem: 'Carla Coordenadora', acao: 'abertura', quando: emHoras(9, 12),
+  { personId: 'p01', quem: 'Carla Menezes', acao: 'abertura', quando: emHoras(9, 12),
     finalidade: 'Atualizar cadastro do benefício no gov.br', excepcional: false },
   /* O Gestor Geral da casa fictícia é o Gilberto. Estava 'João Gestor
     ', que não existe em lugar nenhum — e numa tela cujo assunto
      inteiro é QUEM abriu o cofre e para quê, um nome sem dono é a pior linha
      possível do histórico. */
-  { personId: 'p01', quem: 'Gilberto Gestor', acao: 'abertura excepcional', quando: emHoras(8, 5),
+  { personId: 'p01', quem: 'Gilberto Assis', acao: 'abertura excepcional', quando: emHoras(8, 5),
     finalidade: 'Coordenadora em licença; benefício vencia na semana', excepcional: true },
-  { personId: 'p01', quem: 'Carla Coordenadora', acao: 'cadastro',
+  { personId: 'p01', quem: 'Carla Menezes', acao: 'cadastro',
     quando: emHoras(7, 40), finalidade: null, excepcional: false },
 ];
 /**
@@ -3889,21 +3898,21 @@ interface ReuniaoMock {
 const REUNIOES: ReuniaoMock[] = [
   { id: 'rn1', data: diasAtras(3), tipo: 'equipe',
     titulo: 'Organização das saídas para a escola',
-    participantes: 'Carla Coordenadora, Tatiane Técnica, Joana Lima, Mário Silva e a '
+    participantes: 'Carla Menezes, Tatiane Moraes, Joana Lima, Mário Silva e a '
       + 'Enfermagem.',
     pauta: 'Horários de saída, quem acompanha cada criança e o que fazer quando falta '
       + 'gente no turno.',
     notas: 'A escola mudou o horário da saída da tarde. A equipe combinou dois ajustes, '
       + 'registrados abaixo, e a coordenação ficou de avisar a Enfermagem sobre o novo '
       + 'horário da medicação da volta.',
-    por: 'Tatiane Técnica', registradaEm: `${diasAtras(3)}T16:40:00-03:00` },
+    por: 'Tatiane Moraes', registradaEm: `${diasAtras(3)}T16:40:00-03:00` },
   { id: 'rn2', data: diasAtras(24), tipo: 'tecnica',
     titulo: 'Revisão dos PIAs do trimestre',
-    participantes: 'Tatiane Técnica e Carla Coordenadora.',
+    participantes: 'Tatiane Moraes e Carla Menezes.',
     pauta: 'Prazos de revisão e o que falta de documento em cada dossiê.',
     notas: 'Combinado que o dossiê é conferido junto com o PIA, para não descobrir '
       + 'documento vencido na véspera da audiência.',
-    por: 'Tatiane Técnica', registradaEm: `${diasAtras(24)}T15:10:00-03:00` },
+    por: 'Tatiane Moraes', registradaEm: `${diasAtras(24)}T15:10:00-03:00` },
 ];
 let COMBINADOS: CombinadoMock[] = [
   { id: 'cb1', reuniaoId: 'rn1',
@@ -3911,21 +3920,21 @@ let COMBINADOS: CombinadoMock[] = [
       + 'e não mais com quem estiver de folga entrando mais cedo.',
     responsavel: 'Turno da tarde', prazo: null, situacao: 'vigente',
     motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
-    por: 'Tatiane Técnica', criadoEm: `${diasAtras(3)}T16:45:00-03:00`,
+    por: 'Tatiane Moraes', criadoEm: `${diasAtras(3)}T16:45:00-03:00`,
     historico: [] },
   { id: 'cb2', reuniaoId: 'rn1',
     texto: 'Ninguém entra no quarto do Bruno sem bater e esperar resposta — inclusive na '
       + 'ronda da noite, que passa a bater antes de abrir.',
     responsavel: 'Todos os turnos', prazo: null, situacao: 'vigente',
     motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
-    por: 'Carla Coordenadora', criadoEm: `${diasAtras(3)}T16:52:00-03:00`,
+    por: 'Carla Menezes', criadoEm: `${diasAtras(3)}T16:52:00-03:00`,
     historico: [] },
   { id: 'cb3', reuniaoId: 'rn2',
     texto: 'O dossiê é conferido junto com a revisão do PIA, e o que estiver vencido entra '
       + 'na pauta da reunião seguinte.',
     responsavel: 'Equipe técnica', prazo: diasAtras(-45), situacao: 'vigente',
     motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
-    por: 'Tatiane Técnica', criadoEm: `${diasAtras(24)}T15:20:00-03:00`,
+    por: 'Tatiane Moraes', criadoEm: `${diasAtras(24)}T15:20:00-03:00`,
     historico: [] },
   // O encerrado NÃO some: ele fica, com o motivo, porque a equipe cumpriu ele
   // durante semanas e precisa entender por que parou.
@@ -3935,12 +3944,12 @@ let COMBINADOS: CombinadoMock[] = [
     responsavel: 'Enfermagem', prazo: null, situacao: 'revogado',
     motivoDaSituacao: 'A Enfermagem passou a vir às terças. A conferência foi para a terça, '
       + 'e o combinado novo está registrado.',
-    mudadoPor: 'Carla Coordenadora', mudadoEm: `${diasAtras(10)}T11:00:00-03:00`,
-    por: 'Tatiane Técnica', criadoEm: `${diasAtras(24)}T15:25:00-03:00`,
+    mudadoPor: 'Carla Menezes', mudadoEm: `${diasAtras(10)}T11:00:00-03:00`,
+    por: 'Tatiane Moraes', criadoEm: `${diasAtras(24)}T15:25:00-03:00`,
     historico: [{ de: 'Vigente', para: 'Revogado',
       motivo: 'A Enfermagem passou a vir às terças. A conferência foi para a terça, e o '
         + 'combinado novo está registrado.',
-      quem: 'Carla Coordenadora', quando: `${diasAtras(10)}T11:00:00-03:00` }] },
+      quem: 'Carla Menezes', quando: `${diasAtras(10)}T11:00:00-03:00` }] },
 ];
 
 /** A reautenticação vale enquanto a página estiver aberta. */
@@ -3983,7 +3992,7 @@ const BENEFICIOS: BeneficioMock[] = [
     observacoes: 'Saque mensal acompanhado pela coordenação, com recibo arquivado.',
     temAcessoGov: true, responsavelPeloAcesso: 'Coordenação da Casa 03',
     ondeEstaGuardado: 'Guardada no cofre de acessos deste sistema.',
-    atualizadoEm: emHoras(7, 50), atualizadoPor: 'Carla Coordenadora' },
+    atualizadoEm: emHoras(7, 50), atualizadoPor: 'Carla Menezes' },
   // A pendência é o caso que a planilha existe para lembrar.
   { id: 'b2', personId: 'p01', tipo: 'poupanca_institucional', numero: null,
     banco: 'Banco do Bairro', agencia: '0000', agenciaNome: 'Agência Centro',
@@ -3993,24 +4002,24 @@ const BENEFICIOS: BeneficioMock[] = [
       + 'na agência para o dia 12; levar certidão de nascimento e a guia de acolhimento.',
     observacoes: null,
     temAcessoGov: false, responsavelPeloAcesso: null, ondeEstaGuardado: null,
-    atualizadoEm: emHoras(8, 20), atualizadoPor: 'Carla Coordenadora' },
+    atualizadoEm: emHoras(8, 20), atualizadoPor: 'Carla Menezes' },
   { id: 'b3', personId: 'p02', tipo: 'pensao', numero: '111.111.111-1',
     banco: 'Banco do Bairro', agencia: '0001', agenciaNome: 'Agência Norte',
     conta: '22222-2', operacao: null, situacao: 'ativo',
     pendenciaBancaria: false, pendenciaNota: null,
     observacoes: 'Depósito por decisão judicial; extrato conferido todo mês.',
     temAcessoGov: false, responsavelPeloAcesso: null, ondeEstaGuardado: null,
-    atualizadoEm: emHoras(9, 5), atualizadoPor: 'Carla Coordenadora' },
+    atualizadoEm: emHoras(9, 5), atualizadoPor: 'Carla Menezes' },
 ];
 /** Quem abriu, alterou — ou TENTOU e foi recusado. A tentativa não some. */
 let BENEFICIO_HIST: { personId: string; quando: string; quem: string;
                       finalidade: string | null; acao: string; recusada: boolean }[] = [
-  { personId: 'p01', quem: 'Carla Coordenadora', acao: 'consulta',
+  { personId: 'p01', quem: 'Carla Menezes', acao: 'consulta',
     quando: emHoras(9, 30), finalidade: 'Conferir a conta para o saque do BPC de setembro',
     recusada: false },
   { personId: 'p01', quem: 'Mário Silva', acao: 'tentativa recusada',
     quando: emHoras(8, 55), finalidade: null, recusada: true },
-  { personId: 'p01', quem: 'Carla Coordenadora', acao: 'alteração',
+  { personId: 'p01', quem: 'Carla Menezes', acao: 'alteração',
     quando: emHoras(8, 20), finalidade: 'Registro da pendência informada pelo banco',
     recusada: false },
 ];
@@ -4031,20 +4040,20 @@ let TRANSFERENCIAS: Transferencia[] = [
   { id: 'x1', caixa: 'recebida', nomeCivil: 'Kauã Teixeira', nome: 'Kauã', idade: 16,
     outraCasa: 'AI4 · Abrigo Institucional 4',
     motivo: 'Aproximação da rede de apoio familiar materna, que reside no bairro desta unidade.',
-    pedidaPor: 'Cátia Coordenadora', pedidaEm: emHoras(16, 20), situacao: 'solicitada',
+    pedidaPor: 'Cátia Rezende', pedidaEm: emHoras(16, 20), situacao: 'solicitada',
     justificativa: null, decididaPor: null, decididaEm: null,
-    mensagens: [{ id: 'm1', casa: 'AI4', autor: 'Cátia Coordenadora',
+    mensagens: [{ id: 'm1', casa: 'AI4', autor: 'Cátia Rezende',
       texto: 'Temos relatório escolar e da equipe técnica prontos para enviar assim que houver aceite.',
       em: emHoras(16, 25) }] },
   { id: 'x2', caixa: 'enviada', nomeCivil: 'Helena Prado', nome: 'Helena', idade: 6,
     outraCasa: 'ARM2 · Casa-Lar ARM2',
     motivo: 'Perfil de casa-lar indicado pela equipe técnica depois da audiência concentrada.',
-    pedidaPor: 'Carla Coordenadora', pedidaEm: emHoras(10, 0), situacao: 'solicitada',
+    pedidaPor: 'Carla Menezes', pedidaEm: emHoras(10, 0), situacao: 'solicitada',
     justificativa: null, decididaPor: null, decididaEm: null, mensagens: [] },
   { id: 'x3', caixa: 'enviada', nomeCivil: 'Enzo Farias', nome: 'Enzo', idade: 13,
     outraCasa: 'AI1 · Abrigo Institucional 1',
     motivo: 'Pedido da equipe técnica para reaproximação de irmãos.',
-    pedidaPor: 'Tatiane Técnica', pedidaEm: emHoras(9, 0), situacao: 'recusada',
+    pedidaPor: 'Tatiane Moraes', pedidaEm: emHoras(9, 0), situacao: 'recusada',
     justificativa: 'Sem vaga no perfil etário até o fim do mês; sugerimos reavaliar em 30 dias.',
     decididaPor: 'Coordenação AI1', decididaEm: emHoras(11, 0), mensagens: [] },
 ];
@@ -4098,7 +4107,7 @@ const FONTES_CANDIDATAS: Record<string, FonteMock[]> = {
     /* O atendimento da psicologia (fase 218): como referência, sem o que foi trabalhado. */
     { entidade: 'technical_session', id: 'fc-atend', tipo: 'atendimento_tecnico',
       origem: 'Atendimentos da equipe técnica', titulo: 'Psicologia', quando: emDias(-6, 15, 0),
-      autor: 'Tatiane Técnica', classificacao: 'restrito', resumo: '1 arquivo anexado' },
+      autor: 'Tatiane Moraes', classificacao: 'restrito', resumo: '1 arquivo anexado' },
     { entidade: 'health_evolution', id: 'fc2', tipo: 'saude', origem: 'Evoluções de saúde',
       titulo: 'Consulta', quando: emDias(-9, 16, 30), autor: 'Joana Lima',
       classificacao: 'operacional',
@@ -4113,10 +4122,10 @@ const FONTES_CANDIDATAS: Record<string, FonteMock[]> = {
        numa folha que se imprime (precedente da fase 121). */
     { entidade: 'incident', id: 'fc4', tipo: 'ocorrencia', origem: 'Ocorrências',
       titulo: 'violencia_ou_suspeita', quando: emDias(-4, 19, 45),
-      autor: 'Tatiane Técnica', classificacao: 'restrito', resumo: null },
+      autor: 'Tatiane Moraes', classificacao: 'restrito', resumo: null },
     { entidade: 'activity', id: 'fc5', tipo: 'atividade', origem: 'Linha do tempo',
       titulo: 'Reunião de responsáveis na escola', quando: emDias(-2, 9, 0),
-      autor: 'Tatiane Técnica', classificacao: 'operacional', resumo: 'Realizada' },
+      autor: 'Tatiane Moraes', classificacao: 'operacional', resumo: 'Realizada' },
   ],
   f3: [
     { entidade: 'activity', id: 'fc6', tipo: 'atividade', origem: 'Linha do tempo',
@@ -4134,21 +4143,21 @@ let ACOMPANHAMENTOS: Acompanhamento[] = [
   { id: 'f1', personId: 'p01', tipo: 'mensal', periodo: 'agosto de 2026', situacao: 'pendente',
     versao: 1, redator: null, aprovador: null, eixos: {}, devolucao: null, historico: [] },
   { id: 'f2', personId: 'p02', tipo: 'mensal', periodo: 'agosto de 2026', situacao: 'em_aprovacao',
-    versao: 1, redator: 'Tatiane Técnica', aprovador: null, devolucao: null,
+    versao: 1, redator: 'Tatiane Moraes', aprovador: null, devolucao: null,
     eixos: {
       saude: 'Consulta odontológica realizada em 12/08, sem intercorrências.',
       escola: 'Frequência regular; reunião de responsáveis em 20/08.',
       convivencia: 'Participou das atividades coletivas e combinou o revezamento do videogame.',
       familia: 'Visita da avó materna autorizada em 16/08.',
     },
-    historico: [{ id: 'h1', quem: 'Tatiane Técnica', acao: 'enviado para aprovação',
+    historico: [{ id: 'h1', quem: 'Tatiane Moraes', acao: 'enviado para aprovação',
       em: emHoras(11, 0), nota: null }] },
   { id: 'f3', personId: 'p03', tipo: 'semanal', periodo: 'semana de 24 a 30 de agosto',
-    situacao: 'rascunho', versao: 1, redator: 'Tatiane Técnica', aprovador: null,
+    situacao: 'rascunho', versao: 1, redator: 'Tatiane Moraes', aprovador: null,
     devolucao: null, eixos: { escola: 'Entregou o trabalho de ciências em atraso combinado com a escola.' },
     historico: [] },
   { id: 'f4', personId: 'p04', tipo: 'mensal', periodo: 'julho de 2026', situacao: 'aprovado',
-    versao: 1, redator: 'Tatiane Técnica', aprovador: 'Carla Coordenadora',
+    versao: 1, redator: 'Tatiane Moraes', aprovador: 'Carla Menezes',
     devolucao: null,
     eixos: {
       saude: 'Dieta sem lactose mantida; sem intercorrência no período.',
@@ -4156,7 +4165,7 @@ let ACOMPANHAMENTOS: Acompanhamento[] = [
       convivencia: 'Boa adaptação ao quarto novo.',
       familia: 'Sem visitas no período; contato telefônico autorizado mantido.',
     },
-    historico: [{ id: 'h2', quem: 'Carla Coordenadora', acao: 'aprovado',
+    historico: [{ id: 'h2', quem: 'Carla Menezes', acao: 'aprovado',
       em: emHoras(8, 0), nota: null }] },
 ];
 /**
@@ -4202,17 +4211,17 @@ let RELATORIOS: Relatorio[] = [
   { id: 'r1', tipo: 'Judiciário', tipoCod: 'judiciario', personId: 'p02',
     periodo: { de: '2026-08-01', ate: '2026-08-31' }, unidade: 'AI3',
     situacao: 'em_aprovacao', finalidade: 'Audiência concentrada marcada para setembro.',
-    autor: 'Tatiane Técnica', em: emHoras(10, 0), entregas: [] },
+    autor: 'Tatiane Moraes', em: emHoras(10, 0), entregas: [] },
   { id: 'r2', tipo: 'Mensal da casa', tipoCod: 'mensal_da_casa', personId: null,
     periodo: { de: '2026-07-01', ate: '2026-07-31' }, unidade: 'AI3',
     situacao: 'aprovado', finalidade: 'Prestação de contas interna da unidade.',
-    autor: 'Carla Coordenadora', em: emHoras(9, 0),
+    autor: 'Carla Menezes', em: emHoras(9, 0),
     entregas: [{ id: 'en1', destino: 'Diretoria da Fundação', meio: 'Entrega em mãos',
-      em: emHoras(9, 30), protocolo: null, por: 'Carla Coordenadora' }] },
+      em: emHoras(9, 30), protocolo: null, por: 'Carla Menezes' }] },
   { id: 'r3', tipo: 'Alimentação e restrições', tipoCod: 'alimentacao', personId: null,
     periodo: { de: '2026-08-01', ate: '2026-08-31' }, unidade: 'AI3',
     situacao: 'aprovado', finalidade: 'Planejamento do cardápio da cozinha.',
-    autor: 'Tatiane Técnica', em: emHoras(11, 0), entregas: [] },
+    autor: 'Tatiane Moraes', em: emHoras(11, 0), entregas: [] },
 ];
 
 /**
@@ -4381,19 +4390,19 @@ const DOCUMENTOS = [
   { id: 'dc1', personId: 'p01', categoria: 'saude', titulo: 'Receita em vigência',
     versoes: [
       { versao: 1, arquivo: 'receita_2026-06-02_1a2b3c44_V1.pdf', em: emHoras(6, 0),
-        por: 'Enfermeira Clara', vigente: false },
+        por: 'Clara Bittencourt', vigente: false },
       { versao: 2, arquivo: 'receita_2026-08-01_1a2b3c44_V2_ADENDO.pdf', em: emHoras(6, 10),
-        por: 'Enfermeira Clara', vigente: true },
+        por: 'Clara Bittencourt', vigente: true },
     ] },
   { id: 'dc2', personId: 'p01', categoria: 'escolar', titulo: 'Boletim do semestre',
     versoes: [{ versao: 1, arquivo: 'boletim_2026-07-15_7c9d0e21_V1.pdf', em: emHoras(6, 20),
-      por: 'Tatiane Técnica', vigente: true }] },
+      por: 'Tatiane Moraes', vigente: true }] },
   { id: 'dc3', personId: 'p11', categoria: 'judicial_socioassistencial', titulo: 'Guia de acolhimento',
     versoes: [{ versao: 1, arquivo: 'guia_2026-02-25_44ff10ab_V1.pdf', em: emHoras(6, 30),
-      por: 'Carla Coordenadora', vigente: true }] },
+      por: 'Carla Menezes', vigente: true }] },
   { id: 'dc4', personId: 'p02', categoria: 'saude', titulo: 'Encaminhamento odontológico',
     versoes: [{ versao: 1, arquivo: 'encaminhamento_2026-08-12_31ac77e0_V1.pdf', em: emHoras(6, 40),
-      por: 'Tatiane Técnica', vigente: true }] },
+      por: 'Tatiane Moraes', vigente: true }] },
 ];
 
 /** Acolhidos criados no protótipo entram aqui e aparecem em tudo. */
@@ -4717,7 +4726,7 @@ function semearAtendimentos() {
     id: 'atend-alice-1', personId: 'p01', area: 'psicologia', areaOutra: null, dia: diasAtras(6), hora: '14:30',
     relato: 'Desenho livre com o tema da casa. Alice desenhou a família e os colegas do quarto, falou com '
       + 'calma sobre a visita da avó. Fica para o próximo encontro retomar o desenho.',
-    registradoEm: `${diasAtras(6)}T15:20:00-03:00`, por: 'Tatiane Técnica',
+    registradoEm: `${diasAtras(6)}T15:20:00-03:00`, por: 'Tatiane Moraes',
     ondeFoi: 'interno', local: 'Sala de atendimento da casa', profissional: null,
     anexos: [{ id: 'atend-alice-1-a', nome: 'desenho.jpg', tipo: 'image/jpeg', tamanho: 48_000,
                legenda: 'O desenho da sessão', conteudo: jpegFicticio('Desenho da sessão') }],
@@ -4725,18 +4734,18 @@ function semearAtendimentos() {
   /* O relatório da Alice descendo no tempo (fase 221): a psicopedagoga e o serviço
      social também atendem, e o caderno de meses anteriores continua aqui. */
   const mais: [number, string, string, string][] = [
-    [20, 'psicopedagogia', 'Paula Psicopedagoga', 'Leitura de palavras com sílabas simples e jogo da memória '
+    [20, 'psicopedagogia', 'Paula Antunes', 'Leitura de palavras com sílabas simples e jogo da memória '
       + 'com figuras. Alice reconheceu as vogais sem ajuda e pediu para levar o jogo para o quarto. Próximo encontro: '
       + 'sílabas com M e P.'],
-    [34, 'servico_social', 'Sara Assistente Social', 'Conversa sobre a visita da avó no domingo. Alice contou '
+    [34, 'servico_social', 'Sara Barcelos', 'Conversa sobre a visita da avó no domingo. Alice contou '
       + 'que gosta quando a avó traz o caderno de desenhos. Combinado com a família o horário das próximas visitas.'],
     /* O atendimento comportamental da casa (fase 306): a conversa sobre o que aconteceu e o combinado. */
-    [13, 'comportamental', 'Carla Coordenadora', 'Conversa com a Alice sobre a briga com a colega do quarto '
+    [13, 'comportamental', 'Carla Menezes', 'Conversa com a Alice sobre a briga com a colega do quarto '
       + 'por causa do estojo. Ela contou o que sentiu e pediu desculpas do jeito dela. Combinado: quando ficar '
       + 'brava, chama a educadora antes. A equipe da noite vai lembrar o combinado na hora de dormir.'],
-    [41, 'psicologia', 'Tatiane Técnica', 'Atendimento com massinha. Alice montou a casa e o quarto, '
+    [41, 'psicologia', 'Tatiane Moraes', 'Atendimento com massinha. Alice montou a casa e o quarto, '
       + 'nomeou as colegas e disse que dorme melhor com a luz do corredor acesa. Combinado com a equipe da noite.'],
-    [63, 'psicopedagogia', 'Paula Psicopedagoga', 'Primeira avaliação: atenção boa em atividades curtas, '
+    [63, 'psicopedagogia', 'Paula Antunes', 'Primeira avaliação: atenção boa em atividades curtas, '
       + 'cansa depois de quinze minutos. Plano: encontros semanais de meia hora, com jogo no fim.'],
   ];
   for (const [d, area, por, relato] of mais) {
@@ -4775,7 +4784,7 @@ function semearDossie() {
                validoAte: string | null = null, dias = 0): DocumentoMock => ({
     id: uid(), personId: 'p01', chave, categoria, titulo,
     emitidoEm: null, validoAte, origem: null,
-    anexadoEm: emDias(-dias, 9, 15), anexadoPor: 'Tatiane Técnica',
+    anexadoEm: emDias(-dias, 9, 15), anexadoPor: 'Tatiane Moraes',
     aceitoEm: aceito ? emDias(-dias, 9, 40) : null,
     aceitoPor: aceito ? 'Marcelo Barbosa' : null,
     notaDoAceite: aceito ? 'Legível, e é a certidão dela.' : null,
@@ -4797,8 +4806,8 @@ function semearDossie() {
                    origem: string, dias = 0): DocumentoMock => ({
     id, personId: 'p01', chave, categoria: 'saude', titulo,
     emitidoEm: null, validoAte: null, origem,
-    anexadoEm: emDias(-dias, 10, 5), anexadoPor: 'Enfermeira Clara',
-    aceitoEm: emDias(-dias, 10, 5), aceitoPor: 'Enfermeira Clara',
+    anexadoEm: emDias(-dias, 10, 5), anexadoPor: 'Clara Bittencourt',
+    aceitoEm: emDias(-dias, 10, 5), aceitoPor: 'Clara Bittencourt',
     notaDoAceite: `Conferida na tela de origem, por quem anexou: ${origem}`,
     versao: 1, conteudo: jpegFicticio(titulo),
     arquivo: { nome: `${titulo}.jpg`, tipo: 'image/jpeg', tamanho: 41_000, sha256: uid() },
@@ -4854,7 +4863,7 @@ function semearDossie() {
     { id: uid(), personId: 'p01', tipo: 'conquista', quando: diasAtras(30),
       descricao: 'Aprendeu a andar de bicicleta sem rodinhas no pátio, num sábado de manhã.',
       fotos: [],
-      registradoPor: 'Lúcia Líder Diurna', registradoEm: emHoras(11, 30) },
+      registradoPor: 'Lúcia Amaral', registradoEm: emHoras(11, 30) },
   );
   MARCAS_FOTO.push({ id: 'marca-1', fotoId: 'foto-redencao', personId: 'p01', autorizada: true,
     por: 'Mário Silva', em: emHoras(18, 5) });
@@ -4867,8 +4876,8 @@ function semearDossie() {
                  dias: number, aceito: boolean): DocumentoMock => {
     if (!imagem.has(titulo)) imagem.set(titulo, jpegFicticio(titulo));
     return { id: uid(), personId: k.id, chave, categoria, titulo, emitidoEm: null, validoAte: null, origem: null,
-      anexadoEm: emDias(-(dias + i), 9, 15), anexadoPor: 'Tatiane Técnica',
-      aceitoEm: aceito ? emDias(-(dias + i), 9, 40) : null, aceitoPor: aceito ? 'Carla Coordenadora' : null,
+      anexadoEm: emDias(-(dias + i), 9, 15), anexadoPor: 'Tatiane Moraes',
+      aceitoEm: aceito ? emDias(-(dias + i), 9, 40) : null, aceitoPor: aceito ? 'Carla Menezes' : null,
       notaDoAceite: aceito ? 'Legível, e é o papel dela.' : null,
       versao: 1, conteudo: imagem.get(titulo)!,
       arquivo: { nome: `${chave}.jpg`, tipo: 'image/jpeg', tamanho: 48_000, sha256: uid() } };
@@ -4903,8 +4912,8 @@ function semearEpisodio() {
     classificacao: 'desorganizacao',
     relato: 'Acordou chorando e não quis voltar para o quarto. Ficou na sala com a '
       + 'educadora por uns quarenta minutos, tomou água e dormiu em seguida.',
-    quando: DE_NOITE ? naNoite(2, 20, 30) : emHoras(2, 20), registradoPor: 'Nélio Noturno',
-    ciencias: DE_NOITE ? [] : [{ id: 'k1', quem: 'Lúcia Líder Diurna', userId: 'u2',
+    quando: DE_NOITE ? naNoite(2, 20, 30) : emHoras(2, 20), registradoPor: 'Nélio Fontes',
+    ciencias: DE_NOITE ? [] : [{ id: 'k1', quem: 'Lúcia Amaral', userId: 'u2',
       comentario: 'Acompanhei pela manhã; acordou bem e foi para a escola no horário.',
       quando: emHoras(7, 15) }],
   });
@@ -5102,7 +5111,7 @@ const INTERNACOES: InternacaoMock[] = [
     motivo: 'Crise respiratória; ficou em observação e recebeu alta com receita.',
     desde: emDias(-40, 14, 30), ate: emDias(-36, 11, 0),
     status: 'encerrada', desfecho: 'alta',
-    abertaPor: 'Enfermeira Clara', encerradaPor: 'Enfermeira Clara',
+    abertaPor: 'Clara Bittencourt', encerradaPor: 'Clara Bittencourt',
     observacaoDoDesfecho: 'Alta com receita de corticoide por cinco dias.',
     diario: [], medicacaoNoHospital: [], acompanhantes: [] },
 ];
@@ -5358,11 +5367,11 @@ function semearVisitas() {
     const entrou = emDias(d, h, 10);
     VISITAS.push({ id: `vis-${uid()}`, kidId: k.id, contatoId: c.id, documento: c.cpf ? 'CPF' : 'RG',
       entrou, saiu: new Date(Date.parse(entrou) + 95 * 60000).toISOString(),
-      por: 'Paulo da Portaria', saidaPor: 'Paulo da Portaria',
+      por: 'Paulo Brandão', saidaPor: 'Paulo Brandão',
       nota: null, excecao: null, corrigida: false });
   }
   VISITAS.push({ id: `vis-${uid()}`, kidId: k.id, contatoId: madrinha.id, documento: 'CPF',
-    entrou: haMinutos(40), saiu: null, por: 'Tatiane Técnica', saidaPor: null,
+    entrou: haMinutos(40), saiu: null, por: 'Tatiane Moraes', saidaPor: null,
     nota: 'Trouxe o material da escola.',
     excecao: 'Visita remarcada por telefone com a equipe técnica, por causa da consulta de sexta.',
     corrigida: false });
@@ -5376,7 +5385,7 @@ function semearVisitas() {
       const entrou = emDias(d, h, 0);
       VISITAS.push({ id: `vis-${uid()}`, kidId: o.id, contatoId: c.id, documento: c.cpf ? 'CPF' : 'RG',
         entrou, saiu: new Date(Date.parse(entrou) + (70 + n * 10) * 60000).toISOString(),
-        por: 'Paulo da Portaria', saidaPor: 'Paulo da Portaria',
+        por: 'Paulo Brandão', saidaPor: 'Paulo Brandão',
         nota: null, excecao: null, corrigida: false });
     }
   });
@@ -5406,7 +5415,7 @@ function semearVisitas() {
         ja.add(`${k.id}|${entrou.slice(0, 10)}`);
         VISITAS.push({ id: `vis-h-${k.id}-${c.id}-${-d}`, kidId: k.id, contatoId: c.id, documento: c.cpf ? 'CPF' : 'RG',
           entrou, saiu: new Date(Date.parse(entrou) + r.entre(55, 130) * 60000).toISOString(),
-          por: 'Paulo da Portaria', saidaPor: 'Paulo da Portaria',
+          por: 'Paulo Brandão', saidaPor: 'Paulo Brandão',
           nota: r.chance(0.3) ? r.um(NOTAS_DA_VISITA) : null, excecao: null, corrigida: false });
       }
     }
@@ -5606,7 +5615,7 @@ function contatosDe(id: string) {
       { contatoId: `ct-${id}-1`, autorizado: false,
         motivo: 'A Vara suspendeu as visitas até a audiência de julho. A folha da portaria foi '
           + 'refeita no mesmo dia e a guarita recebeu a nova.',
-        por: 'Carla Coordenadora', em: emDias(-150, 15, 20) },
+        por: 'Carla Menezes', em: emDias(-150, 15, 20) },
       { contatoId: `ct-${id}-1`, autorizado: true, motivo: null,
         por: 'Equipe técnica', em: emDias(-80, 11, 10) },
     );
@@ -5647,27 +5656,27 @@ const MARCOS: any[] = [
     tipo: 'primeiro_emprego', quando: `${HOJE.slice(0, 4)}-03-11`,
     descricao: 'Assinou a primeira carteira como jovem aprendiz na Padaria do Bairro, '
       + 'depois do curso de panificação.', instituicao: 'Padaria do Bairro',
-    temComprovante: true, por: 'Tatiane Técnica' },
+    temComprovante: true, por: 'Tatiane Moraes' },
   { id: 'mk2', acolhidoId: 'p18', acolhido: 'Rafa', casa: 'AI3', casaId: 'casa-ai3',
     tipo: 'ingresso_faculdade', quando: `${HOJE.slice(0, 4)}-02-04`,
     descricao: 'Passou em Pedagogia pelo ProUni. Vai continuar na casa até completar 18.',
     instituicao: 'Faculdade Parceira', temComprovante: true,
-    por: 'Tatiane Técnica' },
+    por: 'Tatiane Moraes' },
   { id: 'mk3', acolhidoId: 'p01', acolhido: 'Alice', casa: 'AI3', casaId: 'casa-ai3',
     tipo: 'aprovacao_escolar', quando: `${Number(HOJE.slice(0, 4)) - 1}-12-18`,
     descricao: 'Passou para o 2º ano na Escola do Bairro, com reforço em leitura '
       + 'desde agosto.', instituicao: 'Escola Municipal do Bairro',
-    temComprovante: false, por: 'Tatiane Técnica' },
+    temComprovante: false, por: 'Tatiane Moraes' },
   { id: 'mk4', acolhidoId: 'p09', acolhido: 'Igor', casa: 'AI3', casaId: 'casa-ai3',
     tipo: 'curso_profissionalizante', quando: `${HOJE.slice(0, 4)}-05-30`,
     descricao: 'Concluiu o curso de elétrica predial de 160 horas.',
     instituicao: 'Centro de Formação Profissional', temComprovante: true,
-    por: 'Carla Coordenadora' },
+    por: 'Carla Menezes' },
   { id: 'mk5', acolhidoId: 'p14', acolhido: 'Nina', casa: 'AI3', casaId: 'casa-ai3',
     tipo: 'esporte_ou_arte', quando: `${HOJE.slice(0, 4)}-04-20`,
     descricao: 'Entrou no time de vôlei da escola e viajou para o intermunicipal.',
     instituicao: 'Escola Municipal do Bairro', temComprovante: false,
-    por: 'Tatiane Técnica' },
+    por: 'Tatiane Moraes' },
 ];
 
 /* Conquistas das outras casas, só como contagem — a demonstração não inventa
@@ -6249,6 +6258,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (pessoa) eu = pessoa;
     cofreLiberado = false;   // trocar de cargo fecha o cofre: a porta é por pessoa.
     return { ok: true, id: eu.id, fullName: eu.fullName, role: eu.role, todasAsCasas: TODAS_AS_CASAS.has(eu.id),
+             profissao: profissaoDe(eu.id, eu.role),
              email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id) };
   }
   if (rota === '/auth/password') {
@@ -6268,6 +6278,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       assignments: TODAS_AS_CASAS.has(eu.id) || ['gestor_geral', 'enfermagem', 'lider_noturno_geral'].includes(eu.role)
         ? [] : [{ code: CASA.code, name: CASA.name, role: eu.role }],
       todasAsCasas: TODAS_AS_CASAS.has(eu.id),
+      profissao: profissaoDe(eu.id, eu.role),
     };
   }
   /*
@@ -7190,7 +7201,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
         .map((p) => {
           const dela = ENCONTROS.filter((e) => e.pessoaId === p.id).sort((a, b) => b.dia.localeCompare(a.dia));
-          return { id: p.id, nome: p.nome, cargo: p.cargo, casa: EQUIPE_CASA.some((m) => m.id === p.id) ? cfg.casa.code : null,
+          return { id: p.id, nome: p.nome, cargo: p.cargo, profissao: profissaoDe(p.id, p.cargo), casa: EQUIPE_CASA.some((m) => m.id === p.id) ? cfg.casa.code : null,
                    ultimo: dela[0]?.dia ?? null, proximo: dela[0]?.proximo ?? null };
         }) };
     }
@@ -7303,6 +7314,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       nome: m.nome,
       email: `${m.nome.split(' ')[0].toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}@paodospobres.dev`,
       cargo: m.cargo,
+      profissao: profissaoDe(m.id, m.cargo),
       setor: TIPOS_SETOR.find((t) => t.code === m.cargo)?.label ?? m.cargo,
       transversal: TIPOS_SETOR.find((t) => t.code === m.cargo)?.transversal ?? false,
       casa: CASA.code, casaId: CASA.id,
@@ -7527,6 +7539,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
        administra (identity/1683): de uma casa para todas, ou para a coordenação, que só o
        Gestor Geral cadastra. */
     const membro = EQUIPE_CASA.find((m) => m.id === seg[1]);
+    /* A profissão de quem é da equipe técnica (identity/1722): fica, como no servidor. */
+    if (b.profissao !== undefined && b.profissao !== null && b.profissao !== '' && !ehProfissao(b.profissao)) {
+      return new Recusa(400, `Escolha a profissão na lista: ${PROFISSOES.map((p) => p.rotulo).join(', ')}.`);
+    }
+    if ((b.cargo ?? membro?.cargo) !== 'equipe_tecnica') PROFISSAO_DE.delete(seg[1]);
+    else if (b.profissao !== undefined) {
+      if (b.profissao) PROFISSAO_DE.set(seg[1], String(b.profissao)); else PROFISSAO_DE.delete(seg[1]);
+    }
     const estreita = membro && b.cargo && b.cargo !== membro.cargo && !contaDeTodasAsCasas(seg[1])
       && (cargoDeTodasAsCasas(b.cargo) || b.cargo === 'coordenador');
     /* E nem para outra casa (identity/1685): a senha que a casa de antes sabia não vale na nova. */
@@ -8486,7 +8506,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const novo: Plantao = {
       id: uid(), turno: b.turno, status: 'aberto', abertoEm: new Date().toISOString(),
       fechadoEm: null, passagens: [], recebimentos: [],
-      esperados: [{ quem: 'Nélio Noturno', cargo: 'lider_noturno_geral', userId: 'u8' }],
+      esperados: [{ quem: 'Nélio Fontes', cargo: 'lider_noturno_geral', userId: 'u8' }],
     };
     PLANTOES = [...PLANTOES, novo];
     return { plantaoId: novo.id, novo: true, turno: b.turno };
@@ -9485,7 +9505,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
               id: `${c.plantaoId}-e${i}`, acolhidoId: e.acolhidoId, acolhido: e.acolhido,
               classificacao: e.classificacao, relato: e.relato, quando: e.hora,
               ocorrenciaId: null, registradoPor: e.quem, ciencias: 1, cienciaPropria: false,
-              quemDeuCiencia: [{ id: `${c.plantaoId}-c${i}`, quem: 'Tatiane Técnica',
+              quemDeuCiencia: [{ id: `${c.plantaoId}-c${i}`, quem: 'Tatiane Moraes',
                                  comentario: null, quando: c.fechadaEm }] })),
           };
         }
@@ -9500,7 +9520,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                          + 'tossiu de madrugada; água e travesseiro alto, e dormiu de novo.' }
                    : { acolhidos: 'Café, escola e tema de casa no horário; pátio à tarde, sem '
                          + 'intercorrências de saúde no turno.' } },
-          passagens: [{ id: `${c.plantaoId}-p`, quem: noite ? 'Nélio Noturno' : 'Tainá Souza',
+          passagens: [{ id: `${c.plantaoId}-p`, quem: noite ? 'Nélio Fontes' : 'Tainá Souza',
                         cargo: noite ? 'lider_noturno_geral' : 'educador', userId: noite ? 'u8' : 'u7',
                         contribuicoes: 'Turno registrado na ATA.', pendencias: null, orientacoes: null,
                         medicacao: null, assinadaEm: c.fechadaEm ?? new Date(`${d.data}T19:00:00-03:00`).toISOString(),
@@ -9513,7 +9533,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           linhas: { notas: [{ id: `${c.plantaoId}-n`, texto: noite
                       ? 'O Bruno pediu para ligar para a avó amanhã cedo; combinado com a técnica.'
                       : 'A Maria voltou da escola com bilhete da professora; está na mochila dela.',
-                      quem: noite ? 'Nélio Noturno' : 'Tainá Souza',
+                      quem: noite ? 'Nélio Fontes' : 'Tainá Souza',
                       cargo: noite ? 'lider_noturno_geral' : 'educador',
                       /* Sem o autor, a tela da ATA quebrava ao pintar a borda (fase 206). */
                       autorId: noite ? 'u8' : 'u7', corAutor: null,
@@ -10506,7 +10526,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           .map((o) => todosKids().find((k) => k.id === o.personId)?.nome ?? '').filter(Boolean).sort() : [],
         participantesFora: 0,
         /* Junta arquivo depois só quem registrou (fase 284); os semeados são da técnica. */
-        podeAnexar: criadoPorEmail ? criadoPorEmail === eu.id : (eu.role === 'equipe_tecnica' && x.por === 'Tatiane Técnica'),
+        podeAnexar: criadoPorEmail ? criadoPorEmail === eu.id : (eu.role === 'equipe_tecnica' && x.por === 'Tatiane Moraes'),
         anexos: anexos.map(({ conteudo: _c, ...r }) => r),
       }));
   }
@@ -10518,7 +10538,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const at = ATENDIMENTOS_TECNICOS.find((x) => x.id === seg[2]);
     if (!at) return new Recusa(404, 'Atendimento não encontrado, ou fora do seu alcance.');
-    const meu = at.criadoPorEmail ? at.criadoPorEmail === eu.id : (eu.role === 'equipe_tecnica' && at.por === 'Tatiane Técnica');
+    const meu = at.criadoPorEmail ? at.criadoPorEmail === eu.id : (eu.role === 'equipe_tecnica' && at.por === 'Tatiane Moraes');
     if (!meu) return new Recusa(403, 'O arquivo do atendimento é juntado por quem o registrou.');
     const lista = Array.isArray(b.anexos) ? b.anexos : [];
     if (!lista.length) return new Recusa(400, 'Escolha o arquivo para juntar.');
@@ -14948,10 +14968,10 @@ function resumoDaCozinha() {
     const ela = (k: Kid) => (MENINAS.has(k.nome) ? 'ela' : 'ele');
     const dela = (k: Kid) => (MENINAS.has(k.nome) ? 'dela' : 'dele');
     const a = (k: Kid) => (MENINAS.has(k.nome) ? 'a' : 'o');
-    const tecnica = 'Tatiane Técnica';
-    const social = 'Sara Assistente Social';
-    const psicoped = 'Paula Psicopedagoga';
-    const coordenacao = 'Carla Coordenadora';
+    const tecnica = 'Tatiane Moraes';
+    const social = 'Sara Barcelos';
+    const psicoped = 'Paula Antunes';
+    const coordenacao = 'Carla Menezes';
     const educadores = ['Mário Silva', 'Joana Lima', 'Tainá Souza',
       ...cfg.equipeQueCompleta.filter((p) => p.cargo === 'educador').map((p) => p.nome)];
     const dia = (d: number) => emDias(d).slice(0, 10);
@@ -15171,7 +15191,7 @@ function resumoDaCozinha() {
             'Paracetamol gotas, 1 frasco; termômetro, 1 unidade.', 'Protetor solar, 2 frascos.']),
           fornecedor: 'Farmácia do Bairro', totalCentavos: total, nota: String(1000 + r.entre(0, 8999)),
           cnpj: '11.222.333/0001-81', observacao: null, temAnexo: false, nomeDoAnexo: null,
-          compradoPor: r.um([coordenacao, 'Enfermeira Clara']) });
+          compradoPor: r.um([coordenacao, 'Clara Bittencourt']) });
       }
     }
 
@@ -15260,7 +15280,7 @@ function resumoDaCozinha() {
     INTERNACOES.push({ id: `int-h-${j}`, acolhidoId: internado.id, hospital: 'Hospital de Referência da Criança',
       motivo: r.um(['Pneumonia; ficou três dias em observação.', 'Crise de asma; ficou dois dias em observação.',
         'Desidratação por virose; ficou um dia em observação.']), desde: emDias(d, 10, 0), ate: emDias(d + 3, 15, 0),
-      status: 'encerrada', desfecho: 'alta', abertaPor: 'Enfermeira Clara', encerradaPor: 'Enfermeira Clara',
+      status: 'encerrada', desfecho: 'alta', abertaPor: 'Clara Bittencourt', encerradaPor: 'Clara Bittencourt',
       observacaoDoDesfecho: 'Alta com receita, administrada na casa.',
       diario: [], medicacaoNoHospital: [], acompanhantes: [] });
     }
@@ -15272,9 +15292,9 @@ function resumoDaCozinha() {
       for (let d = -180; d < -2; d += r.entre(5, 9)) {
         const saiu = emDias(d, r.entre(7, 14), 0);
         SAIDAS_PORTAO.push({ id: `sp-h-${k.id}-${-d}`, personId: k.id, sozinho: true, comQuem: null, destino,
-          voltaPrevista: null, saiuEm: saiu, quemSaida: 'Paulo da Portaria',
+          voltaPrevista: null, saiuEm: saiu, quemSaida: 'Paulo Brandão',
           voltouEm: new Date(Date.parse(saiu) + r.entre(3, 6) * 3600_000).toISOString(),
-          quemVolta: 'Paulo da Portaria', notaSaida: null, notaVolta: null });
+          quemVolta: 'Paulo Brandão', notaSaida: null, notaVolta: null });
       }
     }
     void ela; void dela;

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { dia, cargo } from '../rotulos';
+import { dia } from '../rotulos';
+import { EtiquetaDoCargo } from '../cargos';
 import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api } from '../api';
 import { tomDoAutor } from '../rotulos';
@@ -71,7 +72,7 @@ interface Plantao {
   ata: { id: string; status: string; versao: number; conteudo: Record<string, string> | null;
          pendencias: string | null; assinaturasFaltantes: number;
          fechadaEm: string | null } | null;
-  passagens: { id: string; quem: string; cargo: string; assinadaEm: string | null;
+  passagens: { id: string; quem: string; cargo: string; profissao?: string | null; assinadaEm: string | null;
                propria: boolean }[];
   assinaturasPendentes: { quem: string; cargo: string }[];
   /** A escala deste turno foi lançada? (1370) */
@@ -95,7 +96,7 @@ interface Plantao {
  * impressão em preto e branco, ao daltonismo nem à luz do corredor (regra 7).
  */
 interface LinhaDaAta {
-  id: string; autorId: string; quem: string; cargo: string | null; corAutor?: string | null;
+  id: string; autorId: string; quem: string; cargo: string | null; profissao?: string | null; corAutor?: string | null;
   texto: string; restrita: boolean;
   quando: string; escritaEm: string; propria: boolean;
   /** As fotos e documentos da linha (fase 233). */
@@ -638,7 +639,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 <div key={x.id} className="card">
                   <div className="row">
                     <b className="ff grow">{x.quem}</b>
-                    <span className="pill c-info">{cargo(x.cargo)}</span>
+                    <EtiquetaDoCargo cargo={x.cargo} />
                   </div>
                   <div className="mutetxt">ATA de {dia(x.data)} · {x.turno}</div>
                   <div>{x.motivo}</div>
@@ -820,7 +821,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                           caía no fim da linha e o cargo ficava solto. */}
                       <span className="grow">
                         {p.quem}{p.propria ? ' (sua)' : ''}
-                        <span className="mutetxt linhadois">{cargo(p.cargo)}</span>
+                        <span className="linhadois"><EtiquetaDoCargo cargo={p.cargo} profissao={p.profissao} /></span>
                       </span>
                       <span className={`pill ${p.assinadaEm ? 'c-ok' : 'c-warn'}`}>
                         {p.assinadaEm ? `Assinada às ${hhmm(p.assinadaEm)}` : 'Pendente'}
@@ -830,7 +831,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   {plantao.assinaturasPendentes.map((f) => (
                     <li key={f.quem} className="row">
                       <span className="grow">{f.quem}
-                        <span className="mutetxt linhadois">{cargo(f.cargo)}</span></span>
+                        <span className="linhadois"><EtiquetaDoCargo cargo={f.cargo} /></span></span>
                       <span className="pill c-warn">Não passou o plantão</span>
                     </li>
                   ))}
@@ -997,9 +998,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                              key={n.id}>
                       <div className="row">
                         <span className={`pill ${tomDoAutor(n.autorId, n.corAutor)}`}>{n.quem}</span>
-                        <span className="mutetxt grow">
-                          {cargo(n.cargo ?? '')} · {hhmm(n.quando)}
-                        </span>
+                        <EtiquetaDoCargo cargo={n.cargo} profissao={n.profissao} />
+                        <span className="mutetxt grow">{hhmm(n.quando)}</span>
                         {n.restrita && (
                           <span className="pill c-crit">só coordenação, técnica e líder</span>
                         )}

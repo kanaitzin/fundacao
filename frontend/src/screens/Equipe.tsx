@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { pedirAPessoa } from '../pessoa-a-abrir';
-import { Cargo } from '../cargos';
+import { Cargo, EtiquetaDoCargo } from '../cargos';
+import { CARGO_COM_PROFISSAO, PROFISSOES } from '../../../backend/src/modules/identity/profissao.regra';
 import { Explica } from '../explica';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
 
@@ -10,6 +11,8 @@ interface Setor {
 }
 interface Membro {
   id: string; nome: string; email: string; cargo: string; setor: string;
+  /** A profissão de quem é da equipe técnica (identity/1722). */
+  profissao?: string | null;
   transversal: boolean; casa: string | null; casaId: string | null;
   corDaLinha?: string | null;
   ativo: boolean; ultimoAcesso: string | null;
@@ -49,11 +52,6 @@ const quando = (iso: string | null) => {
       timeZone: 'America/Sao_Paulo' });
 };
 
-const TOM: Record<string, string> = {
-  educador: 'c-info', lider_diurno: 'c-ok', equipe_tecnica: 'c-other',
-  cozinha: 'c-warn', portaria: 'c-mute', enfermagem: 'c-med', lider_noturno_geral: 'c-move',
-  coordenador: 'c-brand', gestor_geral: 'c-brand',
-};
 
 /**
  * EQUIPE DA CASA (§5.3).
@@ -212,7 +210,7 @@ export function Equipe({ papel, irPara }: { papel: string; irPara?: (aba: string
           {membros.map((m) => (
             <li key={m.id} className={`membro${m.ativo ? '' : ' inativo'}`}>
               <div className="membro-cabeca">
-                <Cargo nome={m.nome} cargo={m.cargo} />
+                <Cargo nome={m.nome} cargo={m.cargo} profissao={m.profissao} />
                 <div className="grow" style={{ minWidth: 0 }}>
                   <b className="ff">{m.nome}</b>
                   {m.proprio && <> <span className="pill c-mute">você</span></>}
@@ -237,7 +235,7 @@ export function Equipe({ papel, irPara }: { papel: string; irPara?: (aba: string
               <dl className="membro-dados">
                 <div>
                   <dt>Setor</dt>
-                  <dd><span className={`pill ${TOM[m.cargo] ?? 'c-mute'}`}>{m.setor}</span></dd>
+                  <dd><EtiquetaDoCargo cargo={m.cargo} profissao={m.profissao} todasAsCasas={m.todasAsCasas} /></dd>
                 </div>
                 <div>
                   <dt>Casa</dt>
@@ -358,7 +356,7 @@ export function Equipe({ papel, irPara }: { papel: string; irPara?: (aba: string
         {setores.map((s) => (
           <div className="card" key={s.code}>
             <div className="row">
-              <span className={`pill ${TOM[s.code] ?? 'c-mute'}`}>{s.label}</span>
+              <EtiquetaDoCargo cargo={s.code} />
               <span className="mutetxt grow">
                 {porSetor(s.code)} {porSetor(s.code) === 1 ? 'pessoa' : 'pessoas'}
               </span>
@@ -508,6 +506,9 @@ function FormCadastro({ setores, casas, membro, ehGestor, onFechar, onSalvo, onE
   const [nome, setNome] = useState(membro?.nome ?? '');
   const [email, setEmail] = useState(membro?.email ?? '');
   const [cargo, setCargo] = useState(membro?.cargo ?? setores[0]?.code ?? '');
+  /* A profissão de quem é da equipe técnica (pedido de 14/11): Assistente social, Psicóloga... */
+  const [profissao, setProfissao] = useState(membro?.profissao ?? '');
+  const comProfissao = cargo === CARGO_COM_PROFISSAO;
   const [casaId, setCasaId] = useState(membro?.casaId ?? casas.find((c) => c.propria)?.id ?? '');
   const [ocupado, setOcupado] = useState(false);
   const [todas, setTodas] = useState(false);
@@ -524,13 +525,15 @@ function FormCadastro({ setores, casas, membro, ehGestor, onFechar, onSalvo, onE
       const r = editar
         ? await api(`/staff/${membro!.id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ nome, cargo, casaId: setor?.exigeCasa ? casaId : null }),
+            body: JSON.stringify({ nome, cargo, casaId: setor?.exigeCasa ? casaId : null,
+                                   ...(comProfissao ? { profissao: profissao || null } : {}) }),
           })
         : await api('/staff', {
             method: 'POST',
             body: JSON.stringify(geral
               ? { nome, email, cargo, todasAsCasas: true }
-              : { nome, email, cargo, casaId: setor?.exigeCasa ? casaId : null }),
+              : { nome, email, cargo, casaId: setor?.exigeCasa ? casaId : null,
+                  ...(comProfissao && profissao ? { profissao } : {}) }),
           });
       onSalvo(r);
     } catch (e) {
@@ -567,6 +570,17 @@ function FormCadastro({ setores, casas, membro, ehGestor, onFechar, onSalvo, onE
             {setores.map((s) => <option key={s.code} value={s.code}>{s.label}</option>)}
           </select>
           {setor && <p className="mutetxt">{setor.descricao}</p>}
+
+          {comProfissao && (
+            <>
+              <label className="f" htmlFor="profissao">Profissão</label>
+              <select id="profissao" value={profissao} onChange={(e) => setProfissao(e.target.value)}>
+                <option value="">Sem profissão escrita (aparece Equipe técnica)</option>
+                {PROFISSOES.map((p) => <option key={p.cod} value={p.cod}>{p.rotulo}</option>)}
+              </select>
+              <p className="mutetxt">Aparece ao lado do nome, no lugar de Equipe técnica.</p>
+            </>
+          )}
 
           {!editar && ehGestor && cargo === 'coordenador' && (
             <label className="row" style={{ gap: 8, marginTop: 12 }}>

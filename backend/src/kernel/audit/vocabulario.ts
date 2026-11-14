@@ -361,6 +361,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'staff.create': 'Pessoa da equipe cadastrada',
   'staff.create_transversal': 'Pessoa da equipe cadastrada em cargo transversal',
   'staff.update': 'Cadastro de pessoa da equipe alterado',
+  'staff.profissao': 'Profissão de pessoa da equipe técnica alterada',
   'staff.deactivate': 'Pessoa da equipe desativada',
   'staff.reactivate': 'Pessoa da equipe reativada',
   'staff.reset_password': 'Senha de pessoa da equipe redefinida',

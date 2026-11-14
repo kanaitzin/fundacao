@@ -68,17 +68,17 @@ const MENINOS_DO_MODELO = ['Bruno', 'Caio', 'Davi', 'Enzo', 'Felipe', 'Igor', 'K
  * Gestor, Coordenação Geral, Marcelo) não está aqui: é a mesma pessoa nas oito.
  */
 const EQUIPE_DO_MODELO: { nome: string; curto: string; cargo: string; f: boolean }[] = [
-  { nome: 'Carla Coordenadora', curto: 'Carla', cargo: 'coordenador', f: true },
-  { nome: 'Cátia Coordenadora', curto: 'Cátia', cargo: 'coordenador', f: true },
-  { nome: 'Tatiane Técnica', curto: 'Tatiane', cargo: 'equipe_tecnica', f: true },
-  { nome: 'Sara Assistente Social', curto: 'Sara', cargo: 'equipe_tecnica', f: true },
-  { nome: 'Paula Psicopedagoga', curto: 'Paula', cargo: 'equipe_tecnica', f: true },
-  { nome: 'Lúcia Líder Diurna', curto: 'Lúcia', cargo: 'lider_diurno', f: true },
+  { nome: 'Carla Menezes', curto: 'Carla', cargo: 'coordenador', f: true },
+  { nome: 'Cátia Rezende', curto: 'Cátia', cargo: 'coordenador', f: true },
+  { nome: 'Tatiane Moraes', curto: 'Tatiane', cargo: 'equipe_tecnica', f: true },
+  { nome: 'Sara Barcelos', curto: 'Sara', cargo: 'equipe_tecnica', f: true },
+  { nome: 'Paula Antunes', curto: 'Paula', cargo: 'equipe_tecnica', f: true },
+  { nome: 'Lúcia Amaral', curto: 'Lúcia', cargo: 'lider_diurno', f: true },
   { nome: 'Mário Silva', curto: 'Mário', cargo: 'educador', f: false },
   { nome: 'Joana Lima', curto: 'Joana', cargo: 'educador', f: true },
   { nome: 'Tainá Souza', curto: 'Tainá', cargo: 'educador', f: true },
-  { nome: 'Paulo da Portaria', curto: 'Paulo', cargo: 'portaria', f: false },
-  { nome: 'Cida da Cozinha', curto: 'Cida', cargo: 'cozinha', f: true },
+  { nome: 'Paulo Brandão', curto: 'Paulo', cargo: 'portaria', f: false },
+  { nome: 'Cida Prado', curto: 'Cida', cargo: 'cozinha', f: true },
 ];
 
 /** As famílias da casa-modelo que aparecem por nome (contatos e visitas). */

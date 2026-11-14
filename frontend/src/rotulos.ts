@@ -1,3 +1,4 @@
+import { rotuloDaProfissao } from '../../backend/src/modules/identity/profissao.regra';
 /**
  * ROTULOS DE CARGO.
  *
@@ -23,6 +24,16 @@ export const ROTULO_CARGO: Record<string, string> = {
 /** O código cru só aparece quando o cargo é desconhecido — e aí ele é a pista. */
 export const cargo = (code: string | null | undefined): string =>
   (code ? ROTULO_CARGO[code] ?? code : '—');
+
+/**
+ * O NOME QUE VAI NA ETIQUETA: a profissão de quem é da equipe técnica (Assistente social,
+ * Psicóloga, pedido de 14/11) e, sem ela, o nome do cargo. A Coordenação Geral é o cargo
+ * coordenador com a marca das oito casas.
+ */
+export const rotuloDoCargo = (code: string | null | undefined, profissao?: string | null,
+                              todasAsCasas?: boolean): string =>
+  (todasAsCasas && code === 'coordenador' ? 'Coordenação Geral'
+    : rotuloDaProfissao(code, profissao) ?? cargo(code));
 
 /**
  * A COR DE CADA AUTOR.

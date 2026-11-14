@@ -83,6 +83,8 @@ function leiturasComAlvo(): Leitura[] {
  * até alguém dizer o que ele é.
  */
 const MAPA: Record<string, string> = {
+  /* Os encontros de alinhamento de uma pessoa da equipe (fase 322). */
+  '/alignments/encontros/pessoa/:pessoaId#pessoaId': 'app_user',
   '/archive/:id#id': 'archive_item',
   '/checks/:id#id': 'collective_check',
   '/audit/report/:reportId#reportId': 'report_document',
@@ -186,6 +188,15 @@ describe('A sondagem de alcance — toda leitura, com registro real da Casa 03',
   async function daCasa3(tabela: string): Promise<string | undefined> {
     if (tabela === 'person') return crianca;
     if (tabela === 'house') return AI3;
+    if (tabela === 'app_user') {
+      /* Quem trabalha só na Casa 03: um educador, para a coordenação de outra casa não alcançar. */
+      return (await admin.query(`
+        SELECT u.id::text FROM app_user u
+         WHERE u.role = 'educador' AND u.active
+           AND EXISTS (SELECT 1 FROM user_house_assignment a WHERE a.user_id = u.id AND a.house_id = $1)
+           AND NOT EXISTS (SELECT 1 FROM user_house_assignment a WHERE a.user_id = u.id AND a.house_id <> $1)
+         ORDER BY u.email LIMIT 1`, [AI3])).rows[0]?.id;
+    }
     const { rows: cols } = await admin.query(
       `SELECT column_name FROM information_schema.columns WHERE table_name = $1`, [tabela]);
     const tem = (c: string) => cols.some((x) => x.column_name === c);

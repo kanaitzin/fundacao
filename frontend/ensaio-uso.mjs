@@ -274,13 +274,13 @@ const cafe = await conteudo();
 cobrar('e a chamada confirmada diz quem a fechou, e a que horas',
   /Chamada confirmada por .+ às \d{2}:\d{2}/.test(cafe), cafe.slice(0, 200));
 cobrar('o fecho não é a mesma pessoa que abriu — são dois atos',
-  /Aberta por Joana Lima/.test(cafe) && /confirmada por Lúcia Líder Diurna/.test(cafe),
+  /Aberta por Joana Lima/.test(cafe) && /confirmada por Lúcia Amaral/.test(cafe),
   cafe.slice(0, 200));
 await clicar(/← Chamadas/);
 /* E a lista diz quem fez sem precisar abrir (fase 276, avaliação humana de 05/11). */
 const listaDasChamadas = await conteudo();
 cobrar('o cartão da chamada confirmada diz quem confirmou e a que horas, sem abrir',
-  /Confirmada por Lúcia Líder Diurna[^\n]* às \d{2}:\d{2}/.test(listaDasChamadas), listaDasChamadas.slice(0, 300));
+  /Confirmada por Lúcia Amaral[^\n]* às \d{2}:\d{2}/.test(listaDasChamadas), listaDasChamadas.slice(0, 300));
 
 await aba('Dia');
 /*
@@ -2264,7 +2264,7 @@ if (await verMovimento.count()) {
     'o histórico mostrava caixas chegando e nenhuma saindo — era esse o defeito');
   /* O nome de alguém da equipe (até a 277 se achava pela palavra fictícia). */
   cobrar('cada linha do movimento tem o nome de quem a fez',
-    /Enfermeira Clara|Carla Coordenadora|Cátia Coordenadora|Tatiane Técnica|Sara Assistente Social|Paula Psicopedagoga|Lúcia Líder Diurna|Tainá Souza|Joana Lima|Mário Silva/.test(folha));
+    /Clara Bittencourt|Carla Menezes|Cátia Rezende|Tatiane Moraes|Sara Barcelos|Paula Antunes|Lúcia Amaral|Tainá Souza|Joana Lima|Mário Silva/.test(folha));
   await fechar();
 }
 
@@ -2282,7 +2282,7 @@ cobrar('a coordenação vê o rastro do registro da criança',
 cobrar('e o rastro abre', await clicar(/Ver o rastro/));
 const rastro = await conteudo();
 cobrar('com o nome de quem agiu e a FINALIDADE declarada',
-  /Finalidade declarada/i.test(rastro) && /Enfermeira Clara|Carla Coordenadora|Cátia Coordenadora|Tatiane Técnica|Sara Assistente Social|Paula Psicopedagoga|Lúcia Líder Diurna|Tainá Souza|Joana Lima|Mário Silva/.test(rastro),
+  /Finalidade declarada/i.test(rastro) && /Clara Bittencourt|Carla Menezes|Cátia Rezende|Tatiane Moraes|Sara Barcelos|Paula Antunes|Lúcia Amaral|Tainá Souza|Joana Lima|Mário Silva/.test(rastro),
   'a finalidade é a razão de metade destas linhas existirem');
 /*
  * O TRABALHO DA EQUIPE (fase 117).
@@ -2321,7 +2321,7 @@ cobrar('com a finalidade escrita, o período abre e mostra o que foi feito',
   /Chamada aberta|ATA|Dose confirmada|Pedido à cozinha/i.test(trabalho),
   trabalho.slice(0, 200));
 cobrar('cada linha tem o nome de quem fez, e a hora',
-  /Enfermeira Clara|Carla Coordenadora|Cátia Coordenadora|Tatiane Técnica|Sara Assistente Social|Paula Psicopedagoga|Lúcia Líder Diurna|Tainá Souza|Joana Lima|Mário Silva/.test(trabalho) && /\d{2}:\d{2}/.test(trabalho),
+  /Clara Bittencourt|Carla Menezes|Cátia Rezende|Tatiane Moraes|Sara Barcelos|Paula Antunes|Lúcia Amaral|Tainá Souza|Joana Lima|Mário Silva/.test(trabalho) && /\d{2}:\d{2}/.test(trabalho),
   trabalho.slice(0, 200));
 cobrar('e NENHUM total aparece — nem registros, nem plantões, nem média',
   !/\b\d+\s*(registros|plantões|a[çc][õo]es|doses no per[íi]odo)\b/i.test(trabalho),
@@ -3725,7 +3725,7 @@ cargoAtual = 'gestor_geral';
 if (!(await aba('Equipe'))) await doMais('Equipe');
 const equipe176 = await conteudo();
 cobrar('a Equipe do gestor mostra a Coordenação Geral, com as oito casas',
-  /Graça da Coordenação Geral/.test(equipe176) && /Coordenação Geral/.test(equipe176));
+  /Graça Vieira/.test(equipe176) && /Coordenação Geral/.test(equipe176));
 cobrar('e oferece tornar Coordenação Geral quem é da coordenação de uma casa',
   (await pg.getByRole('button', { name: /^Tornar Coordenação Geral$/ }).count()) > 0);
 /* A própria Coordenação Geral entra pela conta dela. Recarregar zera o
@@ -4869,7 +4869,7 @@ console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fa
   /* Onde foi, o local e quem atendeu (fase 284). */
   await f.getByRole('button', { name: /^Externo/ }).click();
   await f.locator('#at-local').fill('Casa da madrinha, Restinga');
-  await f.locator('#at-prof').fill('Sara Assistente Social');
+  await f.locator('#at-prof').fill('Sara Barcelos');
   await f.locator('#at-hora').fill('00:05');
   await f.locator('#at-relato').fill('Ligação para a madrinha sobre o passeio da escola (ensaio 275).');
   await f.getByRole('button', { name: /^Registrar/ }).last().click(); await esp(1300);
@@ -4877,7 +4877,7 @@ console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fa
   cobrar('o atendimento registrado aparece no alto, com a hora escrita', /às 00:05/.test(primeiro) && /madrinha/.test(primeiro), primeiro.slice(0, 120));
   cobrar('e diz Assistência Social, que foi fora da casa, onde e quem atendeu (fase 284)',
     /Assistência Social/.test(primeiro) && /Externo, fora da casa, Casa da madrinha/.test(primeiro)
-      && /Atendimento por Sara Assistente Social/.test(primeiro), primeiro.slice(0, 200));
+      && /Atendimento por Sara Barcelos/.test(primeiro), primeiro.slice(0, 200));
   cobrar('quem registrou pode juntar arquivo ao atendimento',
     await pgO.locator('ol.relatorio-tecnico > li.linha-atendimento').first().getByRole('button', { name: 'Juntar arquivo' }).count() === 1);
   /* O PDF do atendimento se vê na tela (fase 304): o quadro do navegador ficava em branco no
@@ -5880,7 +5880,7 @@ console.log('\n🤝 Os encontros de alinhamento (fase 322)');
   await portaE('Encontros de alinhamento');
   const geral = await mainE().innerText();
   cobrar('a Coordenação Geral vê a coordenação da casa e a Enfermagem na equipe',
-    /Carla Coordenadora/.test(geral) && /Enfermeira Clara/.test(geral));
+    /Carla Menezes/.test(geral) && /Clara Bittencourt/.test(geral));
   await cargoE('gestor_geral');
   await pgE.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(350);
   cobrar('o Gestor Geral não tem a tela dos encontros',

@@ -30,7 +30,7 @@
  * vai no rótulo acessível — quem não distingue os tons, quem imprime em preto e
  * branco e quem usa leitor de tela recebem a mesma informação.
  */
-import { ROTULO_CARGO } from './rotulos';
+import { rotuloDoCargo } from './rotulos';
 
 /**
  * OS NOVE CARGOS, em fundo cheio com letra branca.
@@ -94,10 +94,10 @@ export function iniciais(nome?: string | null): string {
  * o nome inteiro e o cargo por extenso. O círculo é decoração de uma
  * informação que já está escrita, e some sem prejuízo para quem não o vê.
  */
-export function Cargo({ nome, cargo, tamanho }: {
-  nome?: string | null; cargo?: string | null; tamanho?: 'sm' | 'md';
+export function Cargo({ nome, cargo, tamanho, profissao }: {
+  nome?: string | null; cargo?: string | null; tamanho?: 'sm' | 'md'; profissao?: string | null;
 }) {
-  const rotulo = cargo ? ROTULO_CARGO[cargo] ?? cargo : 'cargo não informado';
+  const rotulo = cargo ? rotuloDoCargo(cargo, profissao) : 'cargo não informado';
   return (
     <span className={`cargo-chip${tamanho === 'sm' ? ' sm' : ''}`}
           style={{ background: corDoCargo(cargo) }}
@@ -105,6 +105,27 @@ export function Cargo({ nome, cargo, tamanho }: {
           aria-label={`${nome ?? ''} · ${rotulo}`.trim()}
           role="img">
       {iniciais(nome)}
+    </span>
+  );
+}
+
+/**
+ * A ETIQUETA DO CARGO, ao lado do nome (pedido de 14/11: *para diferenciar o cargo do
+ * nome da pessoa, com cores, como tínhamos combinado*).
+ *
+ * O nome fica na letra de sempre, e o cargo vai num retângulo de cantos arredondados,
+ * cheio na cor do cargo e com letra branca: a mesma cor do círculo de iniciais, nunca a
+ * família de estado. A forma é outra que a da pílula de estado (que é clara, com letra
+ * colorida), para não se lerem uma pela outra. Quem é da equipe técnica aparece pela
+ * profissão (Assistente social, Psicóloga); a cor continua a do cargo.
+ */
+export function EtiquetaDoCargo({ cargo, profissao, todasAsCasas }: {
+  cargo?: string | null; profissao?: string | null; todasAsCasas?: boolean;
+}) {
+  if (!cargo) return null;
+  return (
+    <span className="cargo-etiqueta" style={{ background: corDoCargo(cargo) }}>
+      {rotuloDoCargo(cargo, profissao, todasAsCasas)}
     </span>
   );
 }

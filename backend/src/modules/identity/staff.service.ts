@@ -5,6 +5,7 @@ import { AuthenticatedUser, RoleCode } from '../../kernel/contracts';
 import { randomInt } from 'node:crypto';
 import { hashPassword } from '../../kernel/common/crypto';
 import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../kernel/common/senha.regra';
+import { CARGO_COM_PROFISSAO, PROFISSOES, ehProfissao } from './profissao.regra';
 
 /**
  * SETORES — os cargos do §5, com a descrição que a tela mostra.
@@ -82,7 +83,8 @@ export class StaffService {
 
   async list(user: AuthenticatedUser) {
     const rows = await this.db.asUser(user.id, async (c) => {
-      const { rows } = await c.query(`SELECT * FROM app_staff_list()`);
+      const { rows } = await c.query(
+        `SELECT s.*, app_user_profissao(s.id) AS profissao FROM app_staff_list() s`);
       return rows;
     });
     return rows.map((r) => ({
@@ -91,6 +93,8 @@ export class StaffService {
       email: r.email,
       cargo: r.role,
       setor: LABEL.get(r.role as RoleCode) ?? r.role,
+      /* A profissão de quem é da equipe técnica (identity/1722): vai na etiqueta no lugar do cargo. */
+      profissao: r.profissao ?? null,
       transversal: SETORES.find((s) => s.code === r.role)?.transversal ?? false,
       casa: r.house_code,
       casaId: r.house_id,
@@ -107,8 +111,9 @@ export class StaffService {
 
   async create(user: AuthenticatedUser, input: {
     nome: string; email: string; cargo: RoleCode; casaId?: string; senhaInicial?: string;
-    todasAsCasas?: boolean;
+    todasAsCasas?: boolean; profissao?: string | null;
   }) {
+    const profissao = this.profissaoDoPedido(input);
     if (input.todasAsCasas && (input.cargo !== 'coordenador' || input.casaId)) {
       throw new BadRequestException(
         'A Coordenação Geral é uma coordenação sem casa: escolha o cargo Coordenação e deixe a casa em branco.');
@@ -123,8 +128,15 @@ export class StaffService {
     const id = input.todasAsCasas
       ? await this.comando(user, 'app_create_coordenacao_geral($1,$2,$3)',
           [input.email ?? '', input.nome ?? '', hash])
-      : await this.comando(user, 'app_create_staff($1,$2,$3::role_code,$4,$5)',
-          [input.email ?? '', input.nome ?? '', input.cargo, input.casaId ?? null, hash]);
+      : await this.naConta(user, async (c) => {
+          const { rows: [n] } = await c.query(`SELECT * FROM app_create_staff($1,$2,$3::role_code,$4,$5)`,
+            [input.email ?? '', input.nome ?? '', input.cargo, input.casaId ?? null, hash]);
+          /* A profissão vai na mesma transação: a conta não nasce pela metade. */
+          if (profissao && input.cargo === CARGO_COM_PROFISSAO) {
+            await c.query(`SELECT app_definir_profissao($1, $2)`, [n.out_id, profissao]);
+          }
+          return n;
+        });
     return {
       id: id.out_id,
       senhaInicial: senha,
@@ -134,8 +146,9 @@ export class StaffService {
   }
 
   async update(user: AuthenticatedUser, id: string, input: {
-    nome?: string; cargo?: RoleCode; casaId?: string;
+    nome?: string; cargo?: RoleCode; casaId?: string; profissao?: string | null;
   }) {
+    const profissao = this.profissaoDoPedido(input);
     /*
      * A SENHA DE ANTES NÃO ACOMPANHA A CONTA para um cargo que quem a sabia não
      * administra (1683), nem para outra casa (1685): da casa para todas as casas, de
@@ -146,6 +159,12 @@ export class StaffService {
     const r = await this.naConta(user, async (c) => {
       await c.query(`SELECT * FROM app_update_staff($1,$2,$3::role_code,$4)`,
         [id, input.nome ?? null, input.cargo ?? null, input.casaId ?? null]);
+      /* A profissão, quando o pedido a traz e a conta é (ou passou a ser) da equipe técnica.
+         Quem deixa a equipe técnica deixa a profissão pelo gatilho da 1722. */
+      if (profissao !== undefined) {
+        const { rows: [k] } = await c.query(`SELECT app_user_cargo($1) AS cargo`, [id]);
+        if (k?.cargo === CARGO_COM_PROFISSAO) await c.query(`SELECT app_definir_profissao($1, $2)`, [id, profissao]);
+      }
       return this.depoisDaMudanca(c, id);
     });
     if (!r.senha) return { ok: true, ...(r.emailAConfirmar ? { emailAConfirmar: r.emailAConfirmar } : {}) };
@@ -158,6 +177,17 @@ export class StaffService {
            + 'pessoa; ela é mostrada uma única vez.'
            + (r.emailAConfirmar ? ` ${FRASE_DO_EMAIL_A_CONFIRMAR}` : ''),
     };
+  }
+
+  /** A profissão do pedido: ausente (não mexe), vazia (tira) ou uma da lista. */
+  private profissaoDoPedido(input: { profissao?: unknown }): string | null | undefined {
+    if (!input || !('profissao' in input) || input.profissao === undefined) return undefined;
+    if (input.profissao === null || input.profissao === '') return null;
+    if (!ehProfissao(input.profissao)) {
+      throw new BadRequestException(
+        `Escolha a profissão na lista: ${PROFISSOES.map((p) => p.rotulo).join(', ')}.`);
+    }
+    return input.profissao;
   }
 
   /**
@@ -213,6 +243,9 @@ export class StaffService {
       }
       if (m.includes('coordenacao_geral_so_para_coordenador')) {
         throw new BadRequestException('A Coordenação Geral é do cargo Coordenação. Troque o cargo antes.');
+      }
+      if (m.includes('profissao_so_da_tecnica')) {
+        throw new BadRequestException('A profissão é dita só para quem é da equipe técnica.');
       }
       if (m.includes('usuario_inexistente')) throw new NotFoundException('Pessoa não encontrada.');
       throw e;
