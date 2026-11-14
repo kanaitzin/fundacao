@@ -5,27 +5,23 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-13T23:00-03:00
-- **Situação:** em andamento a 320 (a Chamada e O Dia da Casa revistos, a pedido de 13/11). Feitos: o que falta nas folhas, o Fechar da folha de decidir, o protótipo sem as crianças do acervo na chamada e com quem marcou, a linha da chamada no Dia lida das chamadas, o Abrir chamada abrindo a chamada certa, e o adendo da chamada confirmada (checks/1719, decidido pelo dono em 13/11: fazer). Falta: a revisão do `banco-de-dados` (rodando), a sonda nos cargos que faltavam (rodando), a suíte nas duas condições, o `ensaio:uso` e o do celular, e o fechamento (MEDIDO-320 no §2). A 319 está no site.
-- **Fase:** 315 a 319, fechadas. A 320 está aberta aqui.
+- **Atualizado em:** 2026-11-14T01:00-03:00
+- **Situação:** fechada a 320 (a Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada, checks/1719 e 1720), esperando o sim do dono para ir ao site (o site está na 319).
+- **Fase:** 315 a 320, fechadas. A próxima livre é a 321.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora
 
-A 320, a Chamada e O Dia da Casa revistos (pedido de 13/11, *revise agora a chamada e o dia da casa*), com a
-mesma sonda da 319 adaptada (`scratchpad/dia/sonda.mjs`, que se perde com a sessão: ela toca cada botão até dois
-níveis, preenche cada folha e anota botão apagado sem frase, folha sem Fechar e botão que não faz nada).
+Nada. A 320 fechou com a suíte verde nas duas condições (1607 de 1607), o `ensaio:uso` (918) e o do celular (388).
 
 ## Onde parou, e o próximo passo
 
-1. O adendo da chamada confirmada: a técnica e a coordenação acrescentam a correção de uma criança, o registro da
-   hora fica, a correção fica ao lado com nome e motivo (migração nova em `checks`, com o `banco-de-dados`).
-2. A sonda de novo nos cargos que registram, a suíte nas duas condições, o `ensaio:uso` e o do celular, e o fechamento.
+1. Publicar a 320 no site (`claude/work-system-code-ready-0e3hh2`) só com o sim do dono.
+2. O que a equipe do Pão achar testando esta semana.
 
 ## Arquivos desta frente
 
-`Chamada.tsx`, `Dia.tsx`, `Saude.tsx` (só a folha da dose), `mock-casa.ts`, `chamada-a-abrir.ts`, o módulo `checks`
-do servidor, o `ensaio-uso.mjs`, o protótipo gerado e os documentos de fechamento.
+Nenhum reservado agora.
 
 ## O que rodou e o que não rodou
 
