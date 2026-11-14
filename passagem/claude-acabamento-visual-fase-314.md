@@ -5,14 +5,14 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-14T15:30-03:00
+- **Atualizado em:** 2026-11-14T17:40-03:00
 - **Situação:** fechada a 321 (o e-mail do esqueci pelo Gmail do Pão e o link do esqueci do protótipo que abre em outra aba) e publicada no site em 14/11, com o sim do dono. Mandado ao dono um e-mail de teste com o link do site; esperando o que ele disser.
 - **Fase:** 315 a 321, fechadas. A próxima livre é a 322.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora
 
-Nada. A 320 fechou com a suíte verde nas duas condições (1607 de 1607), o `ensaio:uso` (918) e o do celular (388).
+Nada. Depois da 321, em 14/11, rodaram as duas medidas que faltavam: a Casa 03 em trinta dias contra o servidor de verdade (sem achado) e o `ensaio:aparelhos` (oito aparelhos, sem achado, depois de consertar o próprio ensaio, que tirava anexo tocando com `force` atrás da barra do pé no tablet deitado).
 
 ## Onde parou, e o próximo passo
 

@@ -242,6 +242,16 @@ async function folhaDoAtendimento(pg) {
   return pg.locator('.overlay').last();
 }
 
+/** Tira o anexo como a pessoa tira: rola até o botão ficar no meio e toca nele, sem
+    forçar. Com `force` o toque ia ao ponto do botão mesmo atrás da barra fixa do pé da
+    folha, e no tablet deitado caía no Cancelar e fechava a folha (achado em 14/11). */
+async function tirarAnexo(pg, folha, k) {
+  const b = folha.getByRole('button', { name: `Tirar o anexo ${k}` });
+  await b.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => undefined);
+  await esp(pg, 200);
+  await b.click({ timeout: 4000 }).catch(() => undefined);
+}
+
 /** O botão cabe na tela, tem tamanho de dedo e nada está por cima dele. */
 async function tocavel(pg, loc) {
   return loc.evaluate((el) => {
@@ -353,7 +363,7 @@ async function oAparelho(navegador, a) {
     const t = await tocavel(pg, b);
     cobrar(`"${nome}" se alcança, rolando a folha, sem a barra do pé por cima`, t.dentro && t.tamanho >= 24 && t.livre, JSON.stringify(t));
   }
-  await folha.getByRole('button', { name: 'Tirar o anexo 1' }).click({ force: true }).catch(() => undefined); await esp(pg, 300);
+  await tirarAnexo(pg, folha, 1); await esp(pg, 300);
 
   /* 4. A câmera em sequência, como no WhatsApp (fase 233): três fotos seguidas, e o Concluir entrega as três. */
   const tirarFotos = folha.getByRole('button', { name: 'Tirar fotos' });
@@ -381,7 +391,7 @@ async function oAparelho(navegador, a) {
       fotos.length === 3 && fotos.every((f) => Math.max(f.w, f.h) <= 2000 && f.w > 0), JSON.stringify(fotos));
     await pg.screenshot({ path: `${PASTA}/${a.nome.replace(/\W+/g, '-')}-tres-fotos.png` });
     for (let k = 3; k >= 1; k--) {
-      await folha.getByRole('button', { name: `Tirar o anexo ${k}` }).click({ force: true }).catch(() => undefined); await esp(pg, 150);
+      await tirarAnexo(pg, folha, k); await esp(pg, 150);
     }
   }
 
