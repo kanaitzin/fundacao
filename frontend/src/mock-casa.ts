@@ -1708,7 +1708,11 @@ const naData = (data: string, h: number, m = 0) =>
 /** O instante, mas nunca depois de agora menos `folga` minutos, nem antes de `minimo`. */
 const atePassado = (iso: string, minimo: string, folga = 5) => {
   const teto = Date.now() - folga * 60e3;
-  return new Date(Math.max(new Date(minimo).getTime() + 60e3, Math.min(new Date(iso).getTime(), teto))).toISOString();
+  /* Nunca depois de agora: no primeiro minuto do turno, o "um minuto depois de abrir"
+     caía no futuro, e a passagem aparecia assinada às 20:02 quando eram 20:01 (achado
+     pelo ensaio:uso em 14/11, que rodou nesse minuto). */
+  return new Date(Math.min(Date.now(),
+    Math.max(new Date(minimo).getTime() + 60e3, Math.min(new Date(iso).getTime(), teto)))).toISOString();
 };
 /* De dia: o noturno de ontem fechou às 08:05, e o diurno de hoje está aberto.
    De noite: o diurno do dia em que o noturno começou fechou às 20:05, e o
