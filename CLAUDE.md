@@ -482,7 +482,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 321 | **o e-mail do esqueci e do convite pelo Gmail do Pão** (pedido de 14/11): decidido pelo dono que o domínio é do Google e que no piloto o remetente é a conta dele, pela senha de app; o primeiro envio a um Gmail de verdade (o modelo do esqueci, com nome fictício, à caixa do dono, pelo conector desta sessão); e o `instalar.sh` conferindo a senha de app e o remetente igual à conta, que o Gmail troca calado |
 | 322 | **os encontros de alinhamento** (pedido de 14/11): a coordenação da casa e a Coordenação Geral registram o encontro mensal, trimestral, semestral ou anual com quem trabalha, com pontos positivos, o que melhorar e combinados; a pessoa lê, dá ciência e comenta; o próximo encontro avisa no sino (`staff_alignment`, alignments/1721); sem nota nem pontuação; e a proibição de ranking passa a proteger só as crianças; e **o cargo numa etiqueta colorida ao lado do nome**, os nomes fictícios sem o cargo no sobrenome, e **a profissão da equipe técnica** (Assistente social, Psicóloga; identity/1722) |
 
-**Medido no fim da 322:** 262 migrações, 159 tabelas, 182 suítes, 1612 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 322:** 263 migrações, 159 tabelas, 182 suítes, 1614 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -607,7 +607,9 @@ o item respondido sai do §0.
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
 
-**EM ANDAMENTO — fases 322 a 324, pedidas e decididas pelo dono em 14/11** (não pergunte de novo):
+**FEITO — fase 322** (§2, der.md): os encontros de alinhamento, a etiqueta do cargo e a profissão da equipe técnica, pedidos e decididos pelo dono em 14/11 (o pedido inteiro no bloco abaixo). Escrita por uma conta e conferida por outra, a pedido do dono. **Tela que quase todo cargo alcança nunca é a tela de entrada**: a ordem alfabética das portas punha os Encontros na frente, e a portaria, que não tem aba do turno, passou a abrir neles (`primeira` no `App.tsx`). **Função nova que lê ou escreve pela identidade de quem chama confere que a conta está ativa** (`app_quem_chama_esta_ativo`, alignments/1723): a política que pergunta só *é a própria pessoa?* deixava a conta desativada ler e responder. **Aviso do relógio só se marca como dado quando há quem receba.** MEDIDO-322 **Anotado, sem mexer:** qualquer conta da casa pode chamar a função do relógio e consumir o aviso do dia (o próximo encontro, como o PIA, a receita e a reavaliação): é regra do relógio inteiro. **E para a Fundação:** quem recebe o aviso do próximo encontro quando quem registrou saiu (hoje fica pendente). **Próxima:** a 323 (o ranking) e a 324 (o funcionário do mês), decididas no bloco abaixo.
+
+**EM ANDAMENTO — fases 323 e 324, pedidas e decididas pelo dono em 14/11** (não pergunte de novo):
 - **A regra mudou:** a proibição de ranking protege só as crianças e os adolescentes (§5 regra 3); o ranking das casas e
   da equipe é permitido para a Coordenação Geral e o Gestor Geral. Contagem por criança continua proibida: o número da
   casa soma o cuidado das crianças dela e nunca mostra uma criança.
