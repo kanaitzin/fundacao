@@ -9,6 +9,7 @@ import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, useComFoto } from '../avatar';
 import { Explica } from '../explica';
+import { OQueFalta } from '../o-que-falta';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
@@ -1441,6 +1442,10 @@ export function FolhaDose({ dose, onFechar, onConfirmar }: {
           </>
         )}
 
+        <OQueFalta itens={[
+          !estado && 'escolher o resultado',
+          escolhido?.exigeObs && !nota.trim() && 'escrever a observação, que este resultado pede',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!podeConfirmar}

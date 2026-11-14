@@ -43,6 +43,7 @@ import { QUEM_LE_O_ULTIMO_CONTATO, VINCULO_QUE_NAO_CONTA, ultimoContato }
 import { QUEM_PREPARA_A_SAIDA, ROTULO_DA_VIVENCIA, folhaDeTransicao, folhaDoLivroDaVida }
   from '../../backend/src/modules/reports/saida-folha';
 import { quantos } from '../../backend/src/kernel/common/quantos';
+import { textoDaChamadaAberta, textoDoQueFaltaNaChamada } from '../../backend/src/modules/checks/chamada-no-dia.regra';
 import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import {
@@ -1104,6 +1105,33 @@ const acoes = (e: Ev, papel: string) => {
 const ESTADO_FEITO = /^(Concluída no horário|Concluída com atraso|Administrado no horário|Chamada confirmada|ATA fechada)$|^Dada (às|fora do horário)/;
 const comFeito = <T extends { state: string }>(e: T) => ({ ...e, feito: ESTADO_FEITO.test(e.state) });
 
+/**
+ * AS CHAMADAS NA LINHA DO DIA, lidas das chamadas (fase 320). A linha era escrita à
+ * mão (Almoço às 12:00, 4 de 12) e a tela da Chamada dizia outra coisa (11:30, 2 de
+ * 14). Agora sai das mesmas chamadas, com a conta e a frase do servidor
+ * (`checks.timeline.ts`).
+ */
+function linhaComChamadas(): Ev[] {
+  const chamadas: Ev[] = CHAMADAS.map((k) => {
+    const pendente = k.status !== 'confirmada';
+    const esperados = todosKids().filter((p) =>
+      (!estaInternado(p.id) && !estaComAFamilia(p.id)) || k.resultados[p.id]).length;
+    const conferidos = Object.keys(k.resultados).length;
+    const faltam = esperados - conferidos;
+    return {
+      id: `check:${k.id}`, source: 'chamada', at: k.horario,
+      kind: k.tipo === 'alimentacao' ? 'refeicao' : 'chamada',
+      title: k.titulo, personId: null, personName: null,
+      state: pendente ? textoDaChamadaAberta(conferidos, esperados) : 'Chamada confirmada',
+      severity: pendente && faltam > 0 ? 'atencao' : 'normal',
+      note: pendente && faltam > 0 ? textoDoQueFaltaNaChamada(faltam) : undefined,
+      actions: pendente ? [{ command: 'check.open', label: 'Abrir chamada' }] : [],
+    } as Ev;
+  });
+  return [...LINHA.filter((e) => !e.id.startsWith('check:')), ...chamadas]
+    .sort((a, b) => a.at.localeCompare(b.at));
+}
+
 let LINHA: Ev[] = [
   { id: 'activity:a1', source: 'rotina', at: emHoras(7, 0), kind: 'rotina', title: 'Despertar e higiene',
     personId: null, personName: null, state: 'Concluída no horário', severity: 'normal' },
@@ -1140,11 +1168,6 @@ let LINHA: Ev[] = [
    * ação de NAVEGAÇÃO. O protótipo não tinha nenhum evento desses, e por isso
    * não mostrava — nem denunciava — que a tela do Dia não sabia atendê-los.
    */
-  { id: 'check:c1', source: 'chamada', at: emHoras(12, 0), kind: 'refeicao',
-    title: 'Almoço — chamada', personId: null, personName: null,
-    state: 'Chamada aberta — 4/12 conferidos', severity: 'atencao',
-    note: 'Faltam 8 acolhidos para conferir',
-    actions: [{ command: 'check.open', label: 'Abrir chamada' }] },
   { id: 'shift:s1', source: 'plantao', at: emHoras(7, 0), kind: 'plantao',
     title: 'Plantão diurno', personId: null, personName: null,
     state: 'Plantão aberto, 1 passagem assinada', severity: 'normal',
@@ -4370,6 +4393,9 @@ if (cfg.casa.id === CASA_MODELO) {
     const k = KIDS.find((x) => x.id === id);
     if (k) ACERVO.push({ kid: k, saiuEm: new Date(Date.now() - dias * 86_400_000).toISOString(), motivo, episodios: 1 });
   }
+  /* Quem saiu há meses não come na casa hoje (fase 320): as chamadas semeadas
+     nasciam com a lista de fábrica, e o café dizia 20 de 15 conferidos. */
+  for (const c of CHAMADAS) for (const [id] of EGRESSOS) delete c.resultados[id];
 }
 
 const todosKids = () => [...KIDS, ...NOVOS].filter(
@@ -7357,7 +7383,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   if (rota === '/timeline/all') {
     /* Esta casa só; o `mock.ts` junta as casas que a pessoa alcança (fase 225). */
-    const eventos = LINHA.map((e) => ({ ...comFeito(e), casa: CASA.code }))
+    const eventos = linhaComChamadas().map((e) => ({ ...comFeito(e), casa: CASA.code }))
       .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     return {
       data: String(q.get('date') ?? ''),
@@ -7381,7 +7407,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const agora = new Date().toISOString();
     const porPessoa = new Map<string, typeof LINHA>();
     const coletivos: typeof LINHA = [];
-    for (const e of LINHA) {
+    for (const e of linhaComChamadas()) {
       if (!e.personId) { coletivos.push(e); continue; }
       porPessoa.set(e.personId, [...(porPessoa.get(e.personId) ?? []), e]);
     }
@@ -7438,7 +7464,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      *
      * A dose já era filtrada aqui desde a 1010; o item da agenda não era.
      */
-    const naCasa = LINHA.filter((e) => !e.personId
+    const naCasa = linhaComChamadas().filter((e) => !e.personId
       || !(estaInternado(e.personId) || estaComAFamilia(e.personId)));
     const eventos = so ? naCasa.filter((e) => e.responsible === eu.fullName) : naCasa;
     const criticos = eventos.filter((e) => e.severity === 'critico').length;

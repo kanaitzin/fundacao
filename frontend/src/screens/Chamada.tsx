@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, apiOuFila } from '../api';
 import { Icone } from '../icones';
 import { CORES_DA_CASA, corDaCasa } from '../cores-da-casa';
+import { OQueFalta } from '../o-que-falta';
+import { chamadaPedida } from '../chamada-a-abrir';
 
 /**
  * CHAMADA COLETIVA (§10).
@@ -133,6 +135,12 @@ export function Chamada({ houseId }: { houseId: string }) {
   }, [houseId]);
 
   useEffect(() => { carregarLista(); }, [carregarLista]);
+  /* Vinda do Abrir chamada da linha do Dia (fase 320): abre aquela chamada direto. */
+  useEffect(() => {
+    const id = chamadaPedida();
+    if (id) abrir(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const carregarModelos = useCallback(async () => {
     try { setModelos(await api<Modelos>(`/checks/models?houseId=${houseId}`)); }
     catch { setModelos(null); }
@@ -761,6 +769,10 @@ function FolhaAbrir({ tipos, aviso, onFechar, onAbrir }: {
           aparece para ser conferido; quem sair no meio continua com o que já foi registrado.
         </p>
 
+        <OQueFalta itens={[
+          !kind && 'escolher o que está sendo conferido',
+          kind !== '' && titulo.trim().length < 3 && 'dar um nome à chamada, com pelo menos 3 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode}
@@ -800,7 +812,10 @@ function FolhaDoModelo({ tipos, modelo, onFechar, onSalvar, onTirar }: {
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [tirando, setTirando] = useState(false);
-  const pode = tipo !== '' && titulo.trim().length >= 3 && /^\d{2}:\d{2}$/.test(hora) && cor !== '' && !ocupado;
+  /* Quantas pessoas é opcional; escrito, é um número inteiro de 1 a 200, como o servidor aceita. */
+  const pessoasCerto = !pessoas.trim() || (/^\d+$/.test(pessoas.trim()) && Number(pessoas) >= 1 && Number(pessoas) <= 200);
+  const pode = tipo !== '' && titulo.trim().length >= 3 && /^\d{2}:\d{2}$/.test(hora) && cor !== ''
+    && pessoasCerto && !ocupado;
   const escolhida = cor ? corDaCasa(cor) : null;
 
   async function salvar() {
@@ -872,6 +887,13 @@ function FolhaDoModelo({ tipos, modelo, onFechar, onSalvar, onTirar }: {
         </div>
         <p className="mutetxt">A cor só diz qual é a chamada. Se ela foi feita, quem diz é a etiqueta ao lado.</p>
 
+        <OQueFalta itens={[
+          !tipo && 'escolher o que está sendo conferido',
+          titulo.trim().length < 3 && 'dar um nome à chamada, com pelo menos 3 letras',
+          !/^\d{2}:\d{2}$/.test(hora) && 'escolher o horário',
+          !pessoasCerto && 'escrever quantas pessoas como um número de 1 a 200, ou deixar em branco',
+          !cor && 'escolher a cor',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={salvar}>
@@ -936,7 +958,11 @@ function FolhaOpcao({ linha, opcoes, onFechar, onMarcar }: {
           </>
         )}
 
-        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+        <OQueFalta itens={[
+          !op && 'escolher o que aconteceu',
+          escolhida?.excecao && nota.trim().length < 5 && 'escrever o fato, com pelo menos 5 letras',
+        ]} />
+        <div className="row rodape">
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow" disabled={!pronto}
                   onClick={() => onMarcar(op, nota.trim() || undefined)}>

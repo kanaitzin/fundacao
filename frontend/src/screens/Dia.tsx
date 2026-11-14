@@ -10,6 +10,8 @@ import type { Dose } from './Saude';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
 import { EscolherAnexo, base64De } from '../anexos';
 import type { Escolhido } from '../anexos';
+import { OQueFalta } from '../o-que-falta';
+import { pedirAChamada } from '../chamada-a-abrir';
 
 /**
  * O DIA — a linha do tempo (§9).
@@ -624,7 +626,10 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
                     */}
                   {ev.actions!.map((a) => DESTINO[a.command] && (
                     <button key={a.command} className="btn sm"
-                            onClick={() => irPara(DESTINO[a.command])}>
+                            onClick={() => {
+                              if (a.command === 'check.open' && ev.id.startsWith('check:')) pedirAChamada(ev.id.slice(6));
+                              irPara(DESTINO[a.command]);
+                            }}>
                       {a.label}
                     </button>
                   ))}
@@ -1066,6 +1071,8 @@ function FolhaPorOutro({ evento, houseId, onFechar, onRegistrar }: {
   onRegistrar: (realizadoPor: string, motivo: string) => void;
 }) {
   const [equipe, setEquipe] = useState<{ id: string; nome: string }[]>([]);
+  /* A lista da equipe que não chegou deixava o Escolha… vazio sem frase (fase 320). */
+  const [equipeFalhou, setEquipeFalhou] = useState(false);
   const [quem, setQuem] = useState('');
   const [motivo, setMotivo] = useState('');
   const pode = quem !== '' && motivo.trim().length >= 5;
@@ -1075,8 +1082,8 @@ function FolhaPorOutro({ evento, houseId, onFechar, onRegistrar }: {
     // aceitar os dois formatos evita que a folha fique vazia por um detalhe
     // de contrato — e uma folha vazia às 23h é a folha que ninguém usa.
     api<any>(`/activities/agenda/staff?houseId=${houseId}`)
-      .then((r) => setEquipe(Array.isArray(r) ? r : (r?.equipe ?? [])))
-      .catch(() => setEquipe([]));
+      .then((r) => { setEquipe(Array.isArray(r) ? r : (r?.equipe ?? [])); setEquipeFalhou(false); })
+      .catch(() => { setEquipe([]); setEquipeFalhou(true); });
   }, [houseId]);
 
   return (
@@ -1103,7 +1110,16 @@ function FolhaPorOutro({ evento, houseId, onFechar, onRegistrar }: {
           registrou, com este motivo. Ninguém assina no lugar de ninguém.
         </div>
 
-        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+        {equipeFalhou && (
+          <div className="notice c-warn" role="status">
+            Não consegui carregar a equipe da casa. Feche a folha e abra de novo; se continuar, confira a internet.
+          </div>
+        )}
+        <OQueFalta itens={[
+          !quem && 'escolher quem realizou',
+          motivo.trim().length < 5 && 'escrever por que você está registrando, com pelo menos 5 letras',
+        ]} />
+        <div className="row rodape">
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow" disabled={!pode}
                   onClick={() => onRegistrar(quem, motivo.trim())}>
@@ -1160,18 +1176,17 @@ function FolhaExcecao({ evento, onFechar, onRegistrar }: {
         <textarea id="nota" value={nota} onChange={(e) => setNota(e.target.value)}
                   placeholder="Ex.: o transporte não chegou até as 14h30; a clínica remarcou para sexta." />
 
-        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+        <OQueFalta itens={[
+          !estado && 'escolher o que aconteceu',
+          nota.trim().length < 5 && 'escrever o fato, com pelo menos 5 letras',
+        ]} />
+        <div className="row rodape">
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow" disabled={!podeRegistrar}
                   onClick={() => onRegistrar(estado, nota.trim())}>
             Registrar
           </button>
         </div>
-        {!podeRegistrar && (
-          <p className="mutetxt" style={{ marginBottom: 0 }}>
-            Escolha o que aconteceu e descreva o fato — é o que a próxima pessoa vai ler.
-          </p>
-        )}
       </div>
     </div>
   );
@@ -1191,14 +1206,16 @@ function FolhaDelegar({ evento, houseId, onFechar, onDelegar }: {
   onFechar: () => void; onDelegar: (paraId: string, motivo: string) => void;
 }) {
   const [equipe, setEquipe] = useState<{ id: string; nome: string }[]>([]);
+  /* A lista da equipe que não chegou deixava o Escolha… vazio sem frase (fase 320). */
+  const [equipeFalhou, setEquipeFalhou] = useState(false);
   const [quem, setQuem] = useState('');
   const [motivo, setMotivo] = useState('');
   const pode = quem !== '' && motivo.trim().length >= 5;
 
   useEffect(() => {
     api<any>(`/activities/agenda/staff?houseId=${houseId}`)
-      .then((r) => setEquipe(Array.isArray(r) ? r : (r?.equipe ?? [])))
-      .catch(() => setEquipe([]));
+      .then((r) => { setEquipe(Array.isArray(r) ? r : (r?.equipe ?? [])); setEquipeFalhou(false); })
+      .catch(() => { setEquipe([]); setEquipeFalhou(true); });
   }, [houseId]);
 
   return (
@@ -1226,9 +1243,18 @@ function FolhaDelegar({ evento, houseId, onFechar, onDelegar }: {
         <textarea id="del-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Ex.: Mário foi acompanhar a Lara na consulta; Joana assume o reforço." />
 
+        {equipeFalhou && (
+          <div className="notice c-warn" role="status">
+            Não consegui carregar a equipe da casa. Feche a folha e abra de novo; se continuar, confira a internet.
+          </div>
+        )}
+        <OQueFalta itens={[
+          !quem && 'escolher quem assume',
+          motivo.trim().length < 5 && 'escrever o motivo, com pelo menos 5 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={!pode} onClick={() => onDelegar(quem, motivo)}>
+          <button className="btn grow" disabled={!pode} onClick={() => onDelegar(quem, motivo.trim())}>
             Passar adiante
           </button>
         </div>
@@ -1256,10 +1282,13 @@ function FolhaMotivoSimples({ titulo, explicacao, rotulo, exemplo, botao, onFech
         <h3 id="t-sub">{titulo}</h3>
         <div className="notice c-info">{explicacao}</div>
         <label className="f" htmlFor="sub-txt">
-          {rotulo} <small>— pelo menos 15 caracteres</small>
+          {rotulo}
         </label>
         <textarea id="sub-txt" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                   placeholder={exemplo} />
+        <OQueFalta itens={[
+          motivo.trim().length < 15 && 'escrever o motivo, com pelo menos 15 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onEnviar(motivo.trim())}>
@@ -1285,6 +1314,7 @@ export function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusa
   onRecusar: (motivo: string) => void;
 }) {
   const [equipe, setEquipe] = useState<{ id: string; nome: string; cargo: string }[]>([]);
+  const [equipeFalhou, setEquipeFalhou] = useState(false);
   const [quem, setQuem] = useState('');
   const [nota, setNota] = useState('');
   const [recusando, setRecusando] = useState(false);
@@ -1292,15 +1322,20 @@ export function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusa
 
   useEffect(() => {
     api<any>(`/activities/agenda/staff?houseId=${houseId}`)
-      .then((r) => setEquipe(r?.equipe ?? r ?? []))
-      .catch(() => setEquipe([]));
+      .then((r) => { setEquipe(Array.isArray(r) ? r : (r?.equipe ?? [])); setEquipeFalhou(false); })
+      .catch(() => { setEquipe([]); setEquipeFalhou(true); });
   }, [houseId]);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-dec"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
-        <h3 id="t-dec">{pedido.atividade}</h3>
+        <div className="row">
+          <h3 id="t-dec" className="grow">{pedido.atividade}</h3>
+          {/* A folha nascia sem Fechar (fase 320): quem só queria ler o pedido
+              tinha de decidir ou tocar fora dela. */}
+          <button type="button" className="btn sm ghost" onClick={onFechar}>Fechar</button>
+        </div>
         <div className="bloco">
           <small>O que {pedido.pedidoPor} escreveu</small>
           {pedido.motivo}
@@ -1328,6 +1363,12 @@ export function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusa
             <p className="mutetxt">
               Quem assume recebe o aviso e toma ciência na própria conta.
             </p>
+            {equipeFalhou && (
+              <div className="notice c-warn" role="status">
+                Não consegui carregar a equipe da casa. Feche a folha e abra de novo; se continuar, confira a internet.
+              </div>
+            )}
+            <OQueFalta itens={[!quem && 'escolher quem assume, ou tocar em Não vai ter substituto']} />
             <div className="row rodape">
               <button className="btn sec grow" onClick={() => setRecusando(true)}>
                 Não vai ter substituto
@@ -1345,6 +1386,7 @@ export function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusa
             </label>
             <textarea id="dec-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                       placeholder="Ex.: não há outra pessoa na escala hoje; a consulta será remarcada pela técnica." />
+            <OQueFalta itens={[motivo.trim().length < 10 && 'escrever o motivo, com pelo menos 10 letras']} />
             <div className="row rodape">
               <button className="btn sec grow" onClick={() => setRecusando(false)}>Voltar</button>
               <button className="btn grow" disabled={motivo.trim().length < 10}
@@ -1425,6 +1467,11 @@ function FolhaUrgente({ houseId, onFechar, onCriar }: {
         <textarea id="urg-ins" value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)}
                   placeholder="Ex.: levar a carteirinha e a caderneta de vacinação; a van sai às 13h30." />
 
+        <OQueFalta itens={[
+          titulo.trim().length < 3 && 'dizer o que é, com pelo menos 3 letras',
+          !quando && 'escolher o dia e a hora',
+          motivo.trim().length < 10 && 'escrever por que ela é urgente, com pelo menos 10 letras',
+        ]} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onCriar({
@@ -1701,6 +1748,8 @@ function FolhaSeNecessario({ prescricao, onFechar, onRegistrar }: {
         <textarea id="prn-nota" value={nota} onChange={(e) => setNota(e.target.value)}
                   placeholder="Ex.: tomou com suco; voltou a dormir em 20 minutos." />
 
+        <OQueFalta itens={[motivo.trim().length < 10
+          && 'escrever por que foi preciso agora, com pelo menos 10 letras: febre sozinho não diz à Enfermagem se deve virar prescrição']} />
         <div className="row rodape">
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow" disabled={!pode}
@@ -1711,12 +1760,6 @@ function FolhaSeNecessario({ prescricao, onFechar, onRegistrar }: {
             Registrar com o meu nome
           </button>
         </div>
-        {!pode && (
-          <p className="mutetxt" style={{ marginBottom: 0 }}>
-            Escreva o que aconteceu — "febre" sozinho não diz à Enfermagem se deve virar
-            prescrição.
-          </p>
-        )}
       </div>
     </div>
   );
@@ -1752,6 +1795,7 @@ function FolhaDesfecho({ dose, onFechar, onRegistrar }: {
         <textarea id="prn-desf" value={texto} onChange={(e) => setTexto(e.target.value)}
                   placeholder="Ex.: a febre cedeu em cerca de 40 minutos; dormiu até as 7h e não voltou." />
 
+        <OQueFalta itens={[texto.trim().length < 10 && 'escrever o que se observou, com pelo menos 10 letras']} />
         <div className="row rodape">
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow" disabled={!pode}
@@ -2002,6 +2046,12 @@ export function FolhaFrequencia({ titulo, situacaoFixa, corrige, onFechar, onSal
                       placeholder="Ex.: a escola mandou o retorno do mês." />
           </>
         )}
+        <OQueFalta itens={[
+          !situacao && 'escolher como foi',
+          situacao !== '' && situacao !== 'presente' && motivo.trim().length < 3
+            && (situacao === 'ausente' ? 'escrever o motivo informado' : 'escrever por que não teve aula'),
+          corrige && correcao.trim().length < 5 && 'escrever o motivo da correção, com pelo menos 5 letras',
+        ]} />
         <div className="row rodape">
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow" disabled={!pode} onClick={async () => {

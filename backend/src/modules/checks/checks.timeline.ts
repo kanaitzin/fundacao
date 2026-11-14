@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { TimelineRegistry } from '../../kernel/events/timeline-registry.service';
 import { TimelineEvent, TimelineProvider, TimelineQuery } from '../../kernel/contracts';
 import { ChecksService } from './checks.service';
+import { textoDaChamadaAberta, textoDoQueFaltaNaChamada } from './chamada-no-dia.regra';
 
 /**
  * Provedor de Linha do Tempo do módulo `checks`.
@@ -46,11 +47,11 @@ export class ChecksTimelineProvider implements TimelineProvider, OnModuleInit {
         personId: null,
         personName: null,
         houseId: q.houseId,
-        state: pendente ? `Chamada aberta — ${k.conferidos}/${k.esperados} conferidos` : 'Chamada confirmada',
+        state: pendente ? textoDaChamadaAberta(k.conferidos, k.esperados) : 'Chamada confirmada',
         severity: pendente ? (faltam > 0 ? 'atencao' : 'normal') : 'normal',
         /* Coletiva: confirmada por qualquer pessoa da equipe, fica feita para todos. */
         feito: !pendente,
-        note: pendente && faltam > 0 ? `Faltam ${faltam} acolhidos para conferir` : null,
+        note: pendente && faltam > 0 ? textoDoQueFaltaNaChamada(faltam) : null,
         actions: pendente ? [{ command: 'check.open', label: 'Abrir chamada' }] : [],
       };
     });

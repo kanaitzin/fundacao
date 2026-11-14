@@ -327,8 +327,9 @@ for (const [oQue, botao] of [['a chamada', /Abrir chamada/],
 }
 /* E o botão precisa LEVAR: um que não navega é pior que nenhum. */
 await clicar(/Abrir chamada/);
-cobrar('e o botão leva mesmo à chamada',
-  /Janta|Almoço|Café|conferid/i.test(await conteudo()), (await conteudo()).slice(0, 100));
+cobrar('e o botão leva mesmo à chamada, aberta, e não à lista (fase 320)',
+  /← Chamadas/.test(await conteudo()) && /Faltam conferir|Já conferidos/i.test(await conteudo()),
+  (await conteudo()).slice(0, 160));
 
 /* A COR DA TELA (fase 182; o Rio Grande do Sul desde 11/10; sem o alto contraste desde 30/10): a folha mostra as sete, escolher troca a tela e
    fica lembrado no aparelho; volta-se ao claro para o resto do percurso. */

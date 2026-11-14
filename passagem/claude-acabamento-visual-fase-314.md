@@ -5,30 +5,27 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-14T10:00-03:00
-- **Situação:** fechada a 319 (o cadastro e o perfil dizem o que falta) e publicada no site em 14/11, com o sim do dono. Esperando o que a equipe do Pão achar testando esta semana.
-- **Fase:** 315 a 319, fechadas. A próxima livre é a 320.
+- **Atualizado em:** 2026-11-13T23:00-03:00
+- **Situação:** em andamento a 320 (a Chamada e O Dia da Casa revistos, a pedido de 13/11): feitos o que falta nas folhas da Chamada e do Dia, o Fechar da folha de decidir a substituição, o café e o almoço do protótipo sem as crianças do acervo, a linha da chamada no Dia lida das chamadas, e o Abrir chamada do Dia abrindo a chamada certa. Falta: o adendo da chamada confirmada (decidido pelo dono em 13/11: fazer), a sonda de novo, os ensaios e o fechamento. A 319 está no site.
+- **Fase:** 315 a 319, fechadas. A 320 está aberta aqui.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora
 
-Nada. A conta do visual escreveu a 316 inteira (o roteiro do turno no alto do Dia, a folha Mais
-em grade, os Acolhidos com a lista primeiro, o título em toda tela, o atalho da ATA) e parou
-antes da medida, com o marcador `MEDIDO-316` no `CLAUDE.md`. A outra conta assumiu o branch a
-partir do `6d67a49`, mediu e fechou.
+A 320, a Chamada e O Dia da Casa revistos (pedido de 13/11, *revise agora a chamada e o dia da casa*), com a
+mesma sonda da 319 adaptada (`scratchpad/dia/sonda.mjs`, que se perde com a sessão: ela toca cada botão até dois
+níveis, preenche cada folha e anota botão apagado sem frase, folha sem Fechar e botão que não faz nada).
 
 ## Onde parou, e o próximo passo
 
-1. **O protótipo online não foi atualizado com a 316.** Ele sai do branch
-   `claude/work-system-code-ready-0e3hh2`, que está na 315 (`4220c3c`). Levar a 316 para lá
-   publica: fazer só com o sim do dono.
-2. Juntar o `claude/cargo-nulo-recusado` como fase 317: ver a nota dele.
+1. O adendo da chamada confirmada: a técnica e a coordenação acrescentam a correção de uma criança, o registro da
+   hora fica, a correção fica ao lado com nome e motivo (migração nova em `checks`, com o `banco-de-dados`).
+2. A sonda de novo nos cargos que registram, a suíte nas duas condições, o `ensaio:uso` e o do celular, e o fechamento.
 
 ## Arquivos desta frente
 
-Nenhum reservado agora. Enquanto a 316 esteve aberta, eram os da tela (`App.tsx`,
-`Acolhidos.tsx`, `Dia.tsx`, `Ata.tsx`, `Ocorrencias.tsx`, `OQueMudou.tsx`, `styles.css`), os
-ensaios, o protótipo gerado e os documentos de fechamento.
+`Chamada.tsx`, `Dia.tsx`, `Saude.tsx` (só a folha da dose), `mock-casa.ts`, `chamada-a-abrir.ts`, o módulo `checks`
+do servidor, o `ensaio-uso.mjs`, o protótipo gerado e os documentos de fechamento.
 
 ## O que rodou e o que não rodou
 
