@@ -154,8 +154,10 @@ de leitura:
 - **Segredo nunca no código.** `.env` fora do versionamento.
 - **Log nunca copia conteúdo sensível** — só ID e metadado. Vale para token de
   convite e link de acesso.
-- **Nada de WhatsApp**, GPS, conta compartilhada, ranking de casas ou de
-  pessoas, pontuação de comportamento, decisão automática sobre diagnóstico,
+- **Nada de WhatsApp**, GPS, conta compartilhada, ranking de acolhidos ou
+  contagem por criança (o ranking das casas e da equipe é permitido para a
+  Coordenação Geral e o Gestor Geral desde 14/11, decisão do dono), pontuação
+  de comportamento, decisão automática sobre diagnóstico,
   culpa, risco, punição, medicação ou destino, exclusão silenciosa, sobrescrita
   de registro fechado, CPF ou diagnóstico em nome de arquivo.
 - **Cor comunica estado operacional** — nunca julgamento sobre a pessoa.
@@ -603,6 +605,25 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**EM ANDAMENTO — fases 322 a 324, pedidas e decididas pelo dono em 14/11** (não pergunte de novo):
+- **A regra mudou:** a proibição de ranking protege só as crianças e os adolescentes (§5 regra 3); o ranking das casas e
+  da equipe é permitido para a Coordenação Geral e o Gestor Geral. Contagem por criança continua proibida: o número da
+  casa soma o cuidado das crianças dela e nunca mostra uma criança.
+- **322, os encontros de alinhamento** (mensal, trimestral, semestral, anual) na Equipe: registram **só a coordenação da
+  casa** (para todos da casa) **e a Coordenação Geral** (para todos abaixo dela); leem **a própria pessoa, quem
+  registrou, a coordenação da casa e a Coordenação Geral**; pontos positivos, o que podemos melhorar (opcional) e os
+  combinados; **a pessoa dá ciência e pode comentar**, e quem registrou é avisado; **quem registra marca a data do
+  próximo encontro e recebe o aviso no sino nesse dia**. Sem nota nem pontuação no encontro; o que foi registrado
+  não se apaga nem se reescreve (correção como adendo). A Equipe leva também ao *trabalho da equipe* da pessoa (117).
+- **323, o ranking**, para a Coordenação Geral e o Gestor Geral: as casas por **organização documental** (dossiê
+  completo, PIA e reavaliação em dia, receita e vacinação em dia, ATAs fechadas no prazo), pelo **cuidado** (doses no
+  horário, chamadas confirmadas, frequência escolar marcada, atendimentos e visitas) e pelo **uso do sistema**, por casa
+  e por pessoa dentro de cada casa. Avisado ao dono: mede registro, não cuidado; a casa com crianças mais difíceis
+  pode parecer pior.
+- **324, o funcionário do mês, os dois:** um por casa, escolhido pela coordenação com o porquê, e um da Fundação,
+  escolhido pela Coordenação Geral com o porquê. *Quem vê* não foi respondido: o da casa, a equipe da casa; o da
+  Fundação, as oito casas (o mais aberto que cabe no pedido; conferir com o dono).
 
 **FEITO — fase 321** (§2, §12.8, PARA-A-REUNIAO A5): o e-mail do esqueci minha senha e do convite pelo Gmail da Fundação, a pedido de 14/11 (*vamos continuar e deixar isso ok*). **Decidido pelo dono em 14/11** (não pergunte de novo): o domínio `paodospobres.com.br` é do Google, e no piloto o convite e o esqueci saem da conta dele, pela senha de app; o custo (depende de uma pessoa; trocar são duas linhas do `.env`) está no §12.8. **O endereço da conta dele não entra no repositório**, que é público: no documento é *a conta do dono do projeto*. **Remetente pelo Gmail é o mesmo endereço da conta que entra** (o Gmail troca calado), e o `instalar.sh` avisa a diferença e recusa a senha vazia ou a do exemplo. **Ligar o envio é deploy**: os passos estão no §12.8, e se fazem na máquina do 1.0 só quando o dono pedir; a senha de app vai só no `.env` do servidor, nunca no chat nem no código. **O primeiro envio a um Gmail de verdade:** o modelo do esqueci, montado pela `mensagem-do-email.ts` com nome fictício e link `.invalid`, mandado pelo conector do Gmail desta sessão para a caixa do dono, em 14/11; **como apareceu é ele quem diz** (o logo, o botão, o spam, o celular), e a resposta entra no §12.8. **O SMTP do servidor continua sem prova**: esta sessão não alcança servidor de e-mail. **O link do esqueci no protótipo abre em outra aba e no celular** (o dono tocou no link do e-mail de teste e caiu em *inválido*: o pedido ficava só na aba em que foi feito): o link leva de quem é e quando foi pedido (`linkDoEsqueci`, `pedidoDoLink` no `mock-casa.ts`), vale uma hora e serve uma vez naquele navegador; o diário do protótipo não refaz a troca de senha ao recarregar (o link já está gasto), e os atalhos continuam entrando. **Medido na 321:** a prova no navegador (pedido num aparelho, aberto noutro, a senha nova entra; de novo, inválido; de duas horas atrás, vencido), a `o-servidor-do-pao` (18 de 18), a suíte inteira nas DUAS condições de relógio (1608 de 1608 nas duas), o `ensaio:uso` (923 cobranças, sem reprovação) e o do celular (388 telas, sem achado). **E depois do fechamento, em 14/11:** a Casa 03 em trinta dias contra o servidor de verdade (tudo bate, nenhuma leitura acima de 268 ms; na API, só a recusa conhecida das vagas; onze contas e o esqueci, sem achado; a Acolhe+AI com o modelo, verde; não rodava desde a 299) e o `ensaio:aparelhos` (oito aparelhos, 222 cobranças, sem achado). **O `ensaio:aparelhos` achou um defeito dele mesmo:** tirava os anexos tocando com `force`, e no tablet deitado o botão ficou atrás da barra fixa do pé da folha depois que as 284 e 309 acrescentaram campos; o toque caía no Cancelar e fechava a folha. Hoje ele rola até o botão e toca sem forçar (`tirarAnexo`). **Toque com `force` em ensaio só onde nada pode estar por cima.** **Não rodou:** o envio pelo SMTP do servidor. **Próxima:** a resposta do dono sobre o e-mail de teste; o 1.0, quando ele pedir; e o que a equipe do Pão achar testando esta semana.
 

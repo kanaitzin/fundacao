@@ -966,8 +966,11 @@ Além dos e2e, sete suítes estáticas — todas já pegaram erro de verdade:
    código de aparelho.
 3. **PROIBIDO, sem exceção:** WhatsApp ou envio de dados por WhatsApp; GPS ou
    rastreamento; conta compartilhada; acesso a outra casa fora das exceções
-   funcionais; ranking de casas, acolhidos ou equipe; pontuação de
-   comportamento; decisão automática sobre diagnóstico, culpa, risco, punição,
+   funcionais; ranking de acolhidos e contagem por criança; pontuação de
+   comportamento (**o ranking das casas e da equipe é permitido**, por decisão
+   do dono do projeto em 14/11, para a Coordenação Geral e o Gestor Geral: a
+   proibição protege só as crianças e os adolescentes; o número de uma casa
+   pode somar o cuidado das crianças dela, e nunca mostra uma criança); decisão automática sobre diagnóstico, culpa, risco, punição,
    visita, medicação, destino ou transferência; exclusão simples ou silenciosa;
    sobrescrever registro fechado; CPF, diagnóstico ou conteúdo judicial em nome
    de arquivo; envio automático para Judiciário, Conselho Tutelar, MP ou saúde;
