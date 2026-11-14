@@ -108,6 +108,17 @@ else
   if [[ "$(val EMAIL_MODO)" == smtp ]]; then
     [[ -n "$(val SMTP_HOST)" && -n "$(val EMAIL_REMETENTE)" ]] && ok "e-mail por SMTP ($(val SMTP_HOST))" \
       || falta "SMTP sem servidor ou remetente" "§12.8"
+    # A senha de app que ficou a do exemplo (fase 321): o servidor sobe e todo e-mail falha.
+    senha_smtp=$(val SMTP_PASS)
+    [[ -n "$senha_smtp" && "$senha_smtp" != "$(exemplo SMTP_PASS)" ]] && ok "a senha de app do SMTP está escrita" \
+      || falta "SMTP_PASS vazia ou a do exemplo" "a senha de app da conta que envia, sem os espaços (§12.8)"
+    # O Gmail troca o remetente pela conta que entrou quando o endereço é outro (fase 321).
+    if [[ "$(val SMTP_HOST)" == smtp.gmail.com ]]; then
+      remetente=$(val EMAIL_REMETENTE); remetente=${remetente##*<}; remetente=${remetente%%>*}
+      if [[ "${remetente,,}" == "$(val SMTP_USER | tr '[:upper:]' '[:lower:]')" ]]; then ok "o remetente é a conta que entra no Gmail"
+      else aviso "o remetente ($remetente) não é a conta que entra no Gmail ($(val SMTP_USER))" \
+        "o Gmail troca o remetente pela conta que entrou, salvo se o endereço estiver em Enviar e-mail como; use o mesmo endereço (§12.8)"; fi
+    fi
   else falta "EMAIL_MODO=$(val EMAIL_MODO)" "sem SMTP não há convite nem esqueci minha senha (§12.8)"; fi
   [[ "$(val RELOGIO_USER_EMAIL)" == *@paodospobres.com.br ]] && ok "conta do relógio $(val RELOGIO_USER_EMAIL)" \
     || falta "RELOGIO_USER_EMAIL=$(val RELOGIO_USER_EMAIL)" "a conta institucional do relógio (§12.7)"

@@ -5,9 +5,9 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-14T12:45-03:00
-- **Situação:** fechada a 320 (a Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada, checks/1719 e 1720) e publicada no site em 14/11, com o sim do dono. Esperando o que a equipe do Pão achar testando esta semana.
-- **Fase:** 315 a 320, fechadas. A próxima livre é a 321.
+- **Atualizado em:** 2026-11-14T13:40-03:00
+- **Situação:** em andamento a 321 (o e-mail do esqueci e do convite pelo Gmail do Pão, decidido pelo dono em 14/11): a conferência no `instalar.sh` e os documentos feitos, o e-mail de teste mandado à caixa do dono; falta a suíte nas duas condições e o fechamento (MEDIDO-321). A 320 está no site.
+- **Fase:** 315 a 320, fechadas. A 321 está aberta aqui.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora

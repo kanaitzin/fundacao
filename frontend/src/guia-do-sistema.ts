@@ -149,6 +149,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 321, dia: '14/11/2026',
+    texto: 'O e-mail do esqueci minha senha e do convite está pronto para sair pelo Gmail da Fundação quando o sistema estiver no ar: com o logo do Pão dos Pobres, o botão para criar a senha e a validade do link em destaque. Nesta versão de demonstração nenhum e-mail sai: o link para a senha nova aparece na própria tela.' },
   { fase: 320, dia: '13/11/2026', aba: 'chamada',
     texto: 'A Chamada e O Dia da Casa ficaram mais claros. Na chamada confirmada, a equipe técnica e a coordenação podem escrever um adendo: abrem o nome da criança, tocam em Escrever um adendo, escolhem o que de fato aconteceu e escrevem o motivo. A marcação da hora continua como foi feita, e o adendo aparece ao lado, com o nome de quem escreveu e a hora, também na presença do perfil da criança. Cada marcação diz quem marcou. O Abrir chamada da linha do Dia abre aquela chamada direto, e a linha diz os mesmos números da tela da Chamada. E as folhas da Chamada e do Dia dizem, acima do botão apagado, o que ainda falta preencher; a folha de decidir a substituição ganhou o Fechar.' },
   { fase: 319, dia: '13/11/2026',

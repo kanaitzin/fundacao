@@ -65,7 +65,7 @@ garante*.
 | A2 | O endereço na internet, o certificado (HTTPS) e se o servidor é alcançado de fora do prédio. **Sem HTTPS a câmera, o microfone e o aviso no celular não funcionam** | §12.9, §12.11 |
 | A3 | Os **dois discos espelhados** (RAID 1) no servidor. Se não houver, é a compra mais importante | §12.4.1, §4.25 |
 | A4 | **Onde fica a cópia fora do prédio** (outro prédio do Pão ou nuvem da Fundação), e quem roda o ensaio de restauração uma vez por mês | §12.4.1, §4.25 |
-| A5 | O e-mail: provedor, remetente (uma conta ou apelido que não seja de ninguém), quem administra o DNS (SPF, DKIM, DMARC), e se a equipe abre e-mail no celular ou só no computador | §12.8 |
+| A5 | O e-mail: ~~provedor~~ e ~~remetente~~ respondidos em 14/11 (o domínio é do Google, e no piloto sai da conta do dono do projeto, pela senha de app; fase 321); falta quem administra o Google do Pão (se permite senha de app, e o SPF, DKIM e DMARC do domínio), e se a equipe abre e-mail no celular ou só no computador | §12.8 |
 | A6 | A **conta do relógio**: uma conta de serviço, e não de pessoa, para o que o sistema gera sozinho (as doses do dia às 5h, os avisos). E quem recebe o aviso quando ele falha | §12.7 |
 | A7 | Um **lugar à parte para o treino**, com o banco de demonstração das oito casas fictícias, separado do de produção | §12.0, etapa 3 |
 | A8 | **A IA:** é a pergunta 2 do alto | §12.12 |
@@ -280,7 +280,7 @@ Conferido em 10/11 contra o código, e nada disso volta à mesa:
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **320 fases.** 180 suítes e 1596 testes; a suíte inteira, verde em duas condições de
+- **321 fases.** 180 suítes e 1597 testes; a suíte inteira, verde em duas condições de
   relógio na fase 290, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

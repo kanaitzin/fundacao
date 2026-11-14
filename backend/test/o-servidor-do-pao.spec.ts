@@ -137,6 +137,26 @@ describe('Os arquivos do servidor do Pão', () => {
     expect(r.stdout).not.toMatch(/BANCO_LIMITE_CONSULTA_MS=0/);
   });
 
+  it('o e-mail pelo Gmail: a senha de app escrita e o remetente igual à conta que entra (fase 321)', () => {
+    const rodar = (trocas: Record<string, string>) => {
+      let texto = readFileSync(join(RAIZ, '.env.example'), 'utf8');
+      for (const [k, v] of Object.entries(trocas)) texto = texto.replace(new RegExp(`^${k}=.*$`, 'm'), `${k}=${v}`);
+      const env = join(mkdtempSync(join(tmpdir(), 'instalar-')), '.env');
+      writeFileSync(env, texto);
+      return spawnSync('bash', [join(RAIZ, 'scripts', 'instalar.sh')], {
+        env: { ...process.env, ENV_ARQUIVO: env }, encoding: 'utf8', timeout: 60_000,
+      }).stdout;
+    };
+    const gmail = { EMAIL_MODO: 'smtp', SMTP_HOST: 'smtp.gmail.com', SMTP_USER: 'conta.que.envia@paodospobres.dev' };
+    const errado = rodar(gmail);
+    expect(errado).toMatch(/SMTP_PASS vazia ou a do exemplo/);
+    expect(errado).toMatch(/não é a conta que entra no Gmail \(conta\.que\.envia@paodospobres\.dev\)/);
+    const certo = rodar({ ...gmail, SMTP_PASS: 'abcdefghijklmnop',
+      EMAIL_REMETENTE: 'Rede Acolher <Conta.Que.Envia@paodospobres.dev>' });
+    expect(certo).toMatch(/a senha de app do SMTP está escrita/);
+    expect(certo).toMatch(/o remetente é a conta que entra no Gmail/);
+  });
+
   /*
    * A Acolhe+AI no computador do Pão (fase 247). O serviço só usa o motor local com
    * o endereço e o modelo, e sem um deles cai calado no modo guia: a conferência
