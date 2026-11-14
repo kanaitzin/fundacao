@@ -83,6 +83,7 @@ import { recusaDasDatasDoCadastro } from '../../backend/src/modules/people/datas
 import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../backend/src/kernel/common/senha.regra';
 import { PROFISSOES, ehProfissao } from '../../backend/src/modules/identity/profissao.regra';
 import { idDoPrototipo, sorteioDoPrototipo, sorteioFixo } from './prototipo-guardado';
+import { FRASE_NAO_ACOMPANHA, acompanhaCrianca } from '../../backend/src/modules/identity/quem-acompanha.regra';
 
 /** A senha inicial do protótipo, sorteada como no servidor (fase 291). */
 function senhaInicialDoPrototipo(): string {
@@ -7742,6 +7743,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const quem = EQUIPE_CASA.find((m) => m.id === String(b.paraId ?? ''));
     if (!quem) return new Recusa(400, 'Esta pessoa não está na equipe desta unidade hoje.');
+    if (!acompanhaCrianca(quem.cargo)) return new Recusa(400, FRASE_NAO_ACOMPANHA);
     const ev = LINHA.find((e) => (e.id.split(':')[1] ?? e.id) === seg[1]);
     if (ev) {
       ev.responsible = quem.nome;
@@ -7764,6 +7766,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const ev = LINHA.find((e) => e.id.endsWith(seg[1]));
     // Registro pelo colega: os DOIS nomes, sempre juntos (§8.2). No protótipo
     // isso aparece exatamente como vai aparecer na linha do tempo real.
+    if (b.realizadoPor && !acompanhaCrianca(EQUIPE_CASA.find((m) => m.id === b.realizadoPor)?.cargo)) {
+      return new Recusa(400, FRASE_NAO_ACOMPANHA);
+    }
     const colega = b.realizadoPor
       ? EQUIPE_CASA.find((m) => m.id === b.realizadoPor)?.nome ?? 'Colega'
       : null;
@@ -7835,6 +7840,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400,
         'A atividade já foi encerrada enquanto o pedido esperava. Como ela já aconteceu, '
         + 'recuse o pedido escrevendo o motivo.');
+    }
+    if (!acompanhaCrianca(EQUIPE_CASA.find((m) => m.id === b.substitutoId)?.cargo)) {
+      return new Recusa(400, FRASE_NAO_ACOMPANHA);
     }
     const nome = EQUIPE_CASA.find((m) => m.id === b.substitutoId)?.nome ?? 'Colega';
     // `atribuida` é o valor que o banco aceita — o mock não pode inventar outro.
@@ -11021,10 +11029,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       if (!QUEM_ABRE_INT.includes(eu.role)) {
         return new Recusa(403, 'Designar acompanhante é da equipe técnica e da coordenação.');
       }
+      const escolhido = EQUIPE_CASA.find((m: any) => m.id === b.userId);
+      if (escolhido && !acompanhaCrianca(escolhido.cargo)) return new Recusa(400, FRASE_NAO_ACOMPANHA);
       for (const a of i.acompanhantes) if (!a.ate) a.ate = HOJE;
       /* A tela manda `userId`; o mock traduz para o nome, como o servidor faz
        * com `app_user_display_name`. */
-      const escolhido = EQUIPE_CASA.find((m: any) => m.id === b.userId);
       i.acompanhantes.unshift({
         id: `acomp-${i.acompanhantes.length + 1}`,
         quem: escolhido?.nome ?? String(b.quem ?? 'Educador'), de: HOJE, ate: null,
@@ -11726,7 +11735,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
     return {
       haEscala,
-      equipe: EQUIPE_CASA.map((m) => ({
+      /* A cozinha e a portaria não acompanham criança (1724), como no servidor. */
+      equipe: EQUIPE_CASA.filter((m) => acompanhaCrianca(m.cargo)).map((m) => ({
         id: m.id, nome: m.nome, cargo: m.cargo,
         naEscala: doDia.some((e) => e.userId === m.id && noHorario(e)),
       }))

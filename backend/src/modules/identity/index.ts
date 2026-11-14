@@ -13,4 +13,5 @@ export { AuthService } from './auth.service';
 export { DevicesService } from './devices.service';
 export { StaffService, SETORES } from './staff.service';
 export { EscalaService } from './escala.service';
+export { NAO_ACOMPANHAM_CRIANCA, FRASE_NAO_ACOMPANHA, acompanhaCrianca } from './quem-acompanha.regra';
 export type { AuthenticatedUser } from '../../kernel/contracts';

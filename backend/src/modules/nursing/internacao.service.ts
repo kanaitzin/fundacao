@@ -11,6 +11,7 @@ import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { paginasDoPdf } from '../../kernel/documentos/paginas-do-pdf';
 import { folhaDaInternacao, AnexoDaInternacao } from './internacao-folha';
+import { FRASE_NAO_ACOMPANHA } from '../identity';
 
 /**
  * A INTERNAÇÃO HOSPITALAR (migração 0890).
@@ -571,6 +572,8 @@ export class InternacaoService {
       await c.query(
         `UPDATE hospitalization_companion SET to_date = app_hoje()
           WHERE hospitalization_id = $1 AND to_date IS NULL`, [id]);
+      const { rows: [podeAcompanhar] } = await c.query(`SELECT app_acompanha_crianca($1) AS ok`, [input.userId]);
+      if (podeAcompanhar?.ok !== true) throw new BadRequestException(FRASE_NAO_ACOMPANHA);
       const { rows: [r] } = await c.query(
         `INSERT INTO hospitalization_companion (hospitalization_id, user_id, from_date,
                                                 note, assigned_by)

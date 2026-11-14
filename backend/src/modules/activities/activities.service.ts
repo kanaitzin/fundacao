@@ -7,6 +7,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { quantos } from '../../kernel/common/quantos';
+import { FRASE_NAO_ACOMPANHA } from '../identity';
 
 /** Estados que encerram a atividade — depois deles só cabe adendo. */
 const ESTADOS_FINAIS = new Set([
@@ -209,6 +210,8 @@ export class ActivitiesService {
       throw new BadRequestException('Esta exceção exige justificativa objetiva: fato e contexto, sem rótulo.');
     }
 
+    if (input.realizadoPor) await this.conferirQueAcompanha(user, input.realizadoPor);
+
     const res = await this.db.asUser(user.id, async (c) => {
       // FOR UPDATE + leitura do estado: a atividade já encerrada não é
       // reescrita. Antes, `ESTADOS_FINAIS` só escondia o botão na tela — quem
@@ -374,6 +377,7 @@ export class ActivitiesService {
       if (m.includes('pessoa_nao_e_da_casa')) {
         throw new BadRequestException('Esta pessoa não está na equipe desta unidade hoje.');
       }
+      if (m.includes('pessoa_nao_acompanha_crianca')) throw new BadRequestException(FRASE_NAO_ACOMPANHA);
       throw e;
     });
 
@@ -488,6 +492,13 @@ export class ActivitiesService {
     return { id: r.s.id, status: 'solicitada', aviso: 'Pedido registrado no sistema, com motivo e autoria.' };
   }
 
+  /** A cozinha e a portaria não realizam nem substituem atividade de criança (1724). */
+  private async conferirQueAcompanha(user: AuthenticatedUser, quem: string) {
+    const ok = await this.db.asUser(user.id, async (c) =>
+      (await c.query(`SELECT app_acompanha_crianca($1) AS ok`, [quem])).rows[0]?.ok === true);
+    if (!ok) throw new BadRequestException(FRASE_NAO_ACOMPANHA);
+  }
+
   async assignSubstitute(user: AuthenticatedUser, substitutionId: string, substituteId: string, note?: string) {
     /*
      * Encontrado no ensaio de uso, e é o defeito que mais dói no plantão.
@@ -507,6 +518,7 @@ export class ActivitiesService {
     if (!PODE_AUTORIZAR_SUB.includes(user.role)) {
       throw new ForbiddenException('Somente o líder do turno, a equipe técnica ou a coordenação autorizam substituição.');
     }
+    await this.conferirQueAcompanha(user, substituteId);
     const r = await this.db.asUser(user.id, async (c) => {
       // A ordem importa: o estado da atividade é conferido ANTES de decidir o
       // pedido. Entre o pedido e a autorização, alguém pode ter concluído a

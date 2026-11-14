@@ -9,6 +9,7 @@ import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
+import { acompanhaCrianca } from '../../../backend/src/modules/identity/quem-acompanha.regra';
 
 /**
  * INTERNAÇÃO HOSPITALAR.
@@ -675,7 +676,9 @@ function FolhaAcompanhante({ onFechar, onDesignar }: {
   useEffect(() => {
     api<any[]>('/staff')
       .then((r) => {
-        const lista = r.map((m) => ({ id: m.id, nome: m.nome ?? m.fullName, papel: m.papel }));
+        /* A cozinha e a portaria não acompanham criança (1724). */
+        const lista = r.filter((m) => m.ativo !== false && acompanhaCrianca(m.cargo))
+          .map((m) => ({ id: m.id, nome: m.nome ?? m.fullName, papel: m.papel }));
         setEquipe(lista);
         setUserId(lista[0]?.id ?? '');
       })
