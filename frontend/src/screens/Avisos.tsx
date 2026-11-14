@@ -51,6 +51,7 @@ export const ONDE: Record<string, { tela: string; aba: string }> = {
   substitution_request: { tela: 'Painel do plantão', aba: 'plantao' },
   ata: { tela: 'ATA', aba: 'ata' },
   ata_read_request: { tela: 'ATA', aba: 'ata' },
+  staff_alignment: { tela: 'Encontros de alinhamento', aba: 'encontros' },
   ata_write_request: { tela: 'ATA', aba: 'ata' },
   general_night_ata: { tela: 'ATA', aba: 'ata' },
   shift: { tela: 'Passagem de plantão', aba: 'passagem' },

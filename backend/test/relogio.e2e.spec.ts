@@ -58,10 +58,12 @@ describe('O relógio', () => {
 
     expect(r.dia).toBe(hojeNaInstituicao());
     expect(r.casas).toBeGreaterThanOrEqual(8);
-    /* Dez rotinas por casa (a sétima, o PIA, é da fase 178; a oitava, a receita
+    /* Onze rotinas por casa (a sétima, o PIA, é da fase 178; a oitava, a receita
        e a vacinação, da 191; a nona, a reavaliação, da 269; a décima, o vínculo
-       educacional terminando, da 282). Se alguma sumir, o número cai e o teste avisa. */
-    expect(r.rodadas).toBe(r.casas * 10);
+       educacional terminando, da 282; a décima primeira, o próximo encontro de
+       alinhamento, da 322), e uma fora das casas: o encontro de quem atende todas
+       as casas. Se alguma sumir, o número cai e o teste avisa. */
+    expect(r.rodadas).toBe(r.casas * 11 + 1);
     expect(r.falhas).toEqual([]);
 
     const { rows: [ev] } = await admin.query(

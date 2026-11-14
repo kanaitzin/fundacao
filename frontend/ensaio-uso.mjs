@@ -5828,6 +5828,68 @@ console.log('\n📋 A Chamada e o Dia da Casa (fase 320)');
 }
 
 /*
+ * OS ENCONTROS DE ALINHAMENTO (fase 322, decidido pelo dono em 14/11): a coordenação da
+ * casa registra pela Equipe, o educador lê o seu e dá ciência com comentário, a
+ * Coordenação Geral vê a equipe e a Enfermagem, e o Gestor Geral não tem a tela.
+ */
+console.log('\n🤝 Os encontros de alinhamento (fase 322)');
+{
+  const pgE = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosE = [];
+  pgE.on('pageerror', (e) => errosE.push(e.message));
+  const esp = (ms = 700) => pgE.waitForTimeout(ms);
+  const mainE = () => pgE.locator('main.conteudo');
+  const cargoE = async (c) => { cargoAtual = c; await pgE.locator('select.troca-cargo-sel').selectOption(c); await esp(1000); };
+  const portaE = async (titulo) => {
+    await pgE.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(350);
+    await pgE.locator('.overlay .sheet button.card.row')
+      .filter({ has: pgE.locator('b.ff', { hasText: new RegExp(`^\\s*${titulo}\\s*$`) }) }).first().click();
+    await esp(1000);
+  };
+  await pgE.goto(`file://${ARQUIVO}`); await esp();
+  await pgE.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgE.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  await cargoE('coordenador');
+  await portaE('Equipe');
+  cobrar('a Equipe tem Alinhamentos no cartão de quem trabalha na casa, e não no da coordenação',
+    (await pgE.getByRole('button', { name: /Encontros de alinhamento de Mário/ }).count()) === 1
+    && (await pgE.getByRole('button', { name: /Encontros de alinhamento de Carla/ }).count()) === 0);
+  await pgE.getByRole('button', { name: /Encontros de alinhamento de Mário/ }).click(); await esp(900);
+  await mainE().getByRole('button', { name: 'Registrar um encontro' }).click(); await esp(400);
+  const folhaE = pgE.locator('[role=dialog]');
+  cobrar('a folha do encontro diz o que falta', /Falta escolher se o encontro/.test(await folhaE.innerText()));
+  await folhaE.getByRole('button', { name: 'Semestral' }).click();
+  await folhaE.locator('#enc-positivos').fill('Organizou a mudança de quarto das meninas com escuta e paciência.');
+  await folhaE.getByRole('button', { name: 'Registrar o encontro' }).click(); await esp(900);
+  cobrar('o encontro registrado aparece nos encontros do Mário, com a periodicidade',
+    /mudança de quarto das meninas/.test(await mainE().innerText()) && /Semestral/.test(await mainE().innerText()));
+  await mainE().getByRole('button', { name: /Ver o trabalho desta pessoa/ }).click(); await esp(900);
+  cobrar('e de lá se vê o trabalho dele, com ele já escolhido',
+    /O trabalho da equipe/.test(await mainE().innerText())
+    && /pessoa:u1/.test(await mainE().locator('select').first().inputValue().catch(() => '')));
+  await cargoE('educador');
+  await portaE('Encontros de alinhamento');
+  const meus = await mainE().innerText();
+  cobrar('o educador lê o próprio encontro, sem a lista da equipe',
+    /espera.* a sua ciência/.test(meus) && /mudança de quarto/.test(meus) && !/A equipe/.test(meus));
+  await mainE().locator('textarea').first().fill('Combinado, conto com a equipe para a próxima mudança.');
+  await mainE().getByRole('button', { name: 'Dar ciência e comentar' }).first().click(); await esp(900);
+  cobrar('a ciência e o comentário ficam no encontro', /Ciência dada em/.test(await mainE().innerText())
+    && /próxima mudança/.test(await mainE().innerText()));
+  await cargoE('coordenacao_geral');
+  await portaE('Encontros de alinhamento');
+  const geral = await mainE().innerText();
+  cobrar('a Coordenação Geral vê a coordenação da casa e a Enfermagem na equipe',
+    /Carla Coordenadora/.test(geral) && /Enfermeira Clara/.test(geral));
+  await cargoE('gestor_geral');
+  await pgE.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(350);
+  cobrar('o Gestor Geral não tem a tela dos encontros',
+    (await pgE.locator('.overlay .sheet b.ff', { hasText: /^\s*Encontros de alinhamento\s*$/ }).count()) === 0);
+  cobrar('nenhuma exceção nos encontros', errosE.length === 0, errosE[0]);
+  await pgE.close();
+}
+
+/*
  * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
  * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.
  * Antes, a mesma linha entrava duas vezes na ATA, e a linha da ATA não se apaga.

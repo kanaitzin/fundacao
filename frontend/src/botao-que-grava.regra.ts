@@ -16,6 +16,8 @@ export const FEITO_DO_VERBO: Record<string, string> = {
   cadastrar: 'Cadastrado', anexar: 'Anexado', pedir: 'Pedido', encerrar: 'Encerrado',
   devolver: 'Devolvido', criar: 'Criado', liberar: 'Liberado', substituir: 'Substituído',
   retirar: 'Retirado', tirar: 'Tirado', escalar: 'Escalado', mandar: 'Enviado',
+  /* O Dar ciência do encontro de alinhamento (fase 322). */
+  dar: 'Feito',
 };
 
 /** A frase do botão, ou nada se o verbo dele não é de gravar. */

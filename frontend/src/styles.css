@@ -3174,3 +3174,12 @@ label{ letter-spacing:-.005em }
 /* O adendo da chamada confirmada (fase 320): ao lado da marcação da hora, nunca no lugar dela. */
 .adendos-da-chamada{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:6px }
 .adendos-da-chamada li{ margin:0 }
+
+/* OS ENCONTROS DE ALINHAMENTO (fase 322): a lista sem marcador nem recuo, e cada parte
+   do encontro com o nome em cima e o texto embaixo, na largura do cartão. */
+.lista-encontros, .lista-encontros-equipe{ list-style:none; margin:10px 0 0; padding:0; display:grid; gap:10px }
+.lista-encontros-equipe > li{ padding:8px 0; border-bottom:1px solid var(--line) }
+.lista-encontros-equipe > li:last-child{ border-bottom:0 }
+.encontro-partes{ margin:10px 0 6px }
+.encontro-partes dt{ font-weight:700; font-size:13px; color:var(--ink-2); margin-top:8px }
+.encontro-partes dd{ margin:2px 0 0; white-space:pre-wrap; overflow-wrap:anywhere }

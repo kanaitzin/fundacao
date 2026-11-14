@@ -6,7 +6,8 @@
     "medications",
     "activities",
     "people",
-    "nursing"
+    "nursing",
+    "alignments"
   ],
   "publica": [
     "RelogioModule",

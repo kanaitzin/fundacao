@@ -1,19 +1,23 @@
 {
   "name": "alignments",
-  "descricao": "Reuniões de equipe, combinados e a pauta que quem trabalha na casa propõe (§9.4): o que ficou estabelecido, escrito num lugar só e legível por todo mundo do turno — e a resposta a quem propôs, inclusive quando é não.",
+  "descricao": "Reuniões de equipe, combinados e a pauta que quem trabalha na casa propõe (§9.4): o que ficou estabelecido, escrito num lugar só e legível por todo mundo do turno — e a resposta a quem propôs, inclusive quando é não. E o encontro de alinhamento com quem trabalha (fase 322): a coordenação e a Coordenação Geral escrevem, a pessoa lê e dá ciência.",
   "depends": [
     "identity"
   ],
   "publica": [
     "AlignmentsModule",
-    "AlignmentsService"
+    "AlignmentsService",
+    "EncontrosService"
   ],
   "tabelas": [
     "team_meeting",
     "team_agreement",
     "agreement_change",
     "meeting_agenda_item",
-    "house_statute"
+    "house_statute",
+    "staff_alignment",
+    "staff_alignment_reply",
+    "staff_alignment_addendum"
   ],
   "removivel": true,
   "observacao": "Sem ele a casa não perde nenhum fluxo operacional: os combinados voltam a viver no papel da reunião e na memória de quem estava lá — que é exatamente o problema que ele resolve."

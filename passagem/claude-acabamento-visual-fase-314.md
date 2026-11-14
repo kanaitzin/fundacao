@@ -5,9 +5,9 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-14T17:40-03:00
-- **Situação:** fechada a 321 (o e-mail do esqueci pelo Gmail do Pão e o link do esqueci do protótipo que abre em outra aba) e publicada no site em 14/11, com o sim do dono. Mandado ao dono um e-mail de teste com o link do site; esperando o que ele disser.
-- **Fase:** 315 a 321, fechadas. A próxima livre é a 322.
+- **Atualizado em:** 2026-11-14T19:20-03:00
+- **Situação:** fase 322 (os encontros de alinhamento) feita e sendo conferida; depois vêm a 323 (o ranking das casas, do uso e do gasto, para a CG e o Gestor) e a 324 (o funcionário do mês). As decisões do dono de 14/11 estão no CLAUDE.md, no bloco EM ANDAMENTO.
+- **Fase:** 322 em fechamento; 323 e 324 a seguir. A próxima livre é a 325.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora

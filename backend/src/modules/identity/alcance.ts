@@ -83,6 +83,7 @@ export const AREAS = {
   portaria: 'Portaria: quem pode visitar',
   campos_do_perfil: 'O que o plantão vê no perfil',
   trabalho: 'O trabalho da equipe',
+  encontros: 'Encontros de alinhamento',
   periodo: 'O período da casa',
   metricas: 'As oito casas, em números',
   casas: 'Unidades',
@@ -138,6 +139,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'O turno da casa dele, com a criança na frente. É quem mais registra e quem menos '
       + 'precisa navegar.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word: a '
           + 'solicitação de lanche, a de cesta e a tabela de restrições da casa.',
@@ -191,6 +195,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Conduz o turno diurno da casa: o que o educador alcança, mais o fechamento.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word: a '
           + 'solicitação de lanche, a de cesta e a tabela de restrições da casa.',
@@ -265,6 +272,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Psicologia e serviço social da casa: o caso, não o turno.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'portaria', titulo: AREAS.portaria,
         faz: 'Marca, no contato da criança, quem está autorizado a visitar, com CPF e foto 3×4, '
           + 'e gera a folha em Word que vai para a guarita.',
@@ -372,6 +382,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'Cargo não utilizado por enquanto: a cozinha recebe as folhas em papel, '
       + 'e quem as gera é a equipe da casa.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Vê nome, restrição e substituição orientada.',
         servidor: 'Sem perfil, sem CPF, sem diagnóstico, sem caso, sem histórico. A lista traz '
@@ -398,6 +411,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'Vê quem pode visitar hoje, com foto, documento e horário combinado, e registra a '
       + 'entrada e a saída. Não abre perfil, saúde, relato, ocorrência nem ATA.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'portaria', titulo: AREAS.portaria,
         faz: 'Confere quem chega pela foto e pelo documento, e registra a entrada e a saída da visita.',
         servidor: 'Fora do dia, do horário ou da validade combinados, a entrada é recusada. A '
@@ -418,6 +434,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'Saúde das oito unidades. Alcança mais de uma casa pela função, como o Líder '
       + 'Noturno Geral e a Coordenação Geral.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'internacao', titulo: AREAS.internacao,
         faz: 'Acompanha a criança internada, registra a medicação que o hospital deu e baixa o '
           + 'relatório completo da internação.',
@@ -450,6 +469,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'A noite das oito unidades. Também exceção funcional.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word: a '
           + 'solicitação de lanche, a de cesta e a tabela de restrições da casa.',
@@ -497,6 +519,13 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'encontros', titulo: AREAS.encontros,
+        faz: 'Registra o encontro de alinhamento com quem trabalha na casa (mensal, trimestral, semestral ou '
+          + 'anual), com os pontos positivos, o que podemos melhorar e os combinados, e lê os de antes. A '
+          + 'Coordenação Geral registra com todos abaixo dela. E lê os próprios encontros.',
+        servidor: 'Não há nota nem pontuação. O registro não se reescreve: a correção é um adendo. A coordenação '
+          + 'da casa não lê o encontro de outra coordenação; quem lê é a pessoa, quem registrou, a coordenação da '
+          + 'casa e a Coordenação Geral.' },
       { area: 'sugestoes', titulo: AREAS.sugestoes,
         faz: 'Lê as sugestões de melhoria que a equipe da casa deixou com a Acolhe+AI, com o nome '
           + 'de quem sugeriu. A Coordenação Geral lê as das oito casas.',

@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 156 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 159 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,11 +90,11 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **260 migrações** | `.sql` dentro das partições |
-| **156 tabelas** | `CREATE TABLE` nas migrações |
-| **180 suítes** | `backend/test/*.spec.ts` |
-| **1597 testes** | `it(` / `test(` nas suítes |
-| **40 telas React** | `frontend/src/screens/*.tsx` |
+| **261 migrações** | `.sql` dentro das partições |
+| **159 tabelas** | `CREATE TABLE` nas migrações |
+| **181 suítes** | `backend/test/*.spec.ts` |
+| **1606 testes** | `it(` / `test(` nas suítes |
+| **41 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **15 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
 | protótipo com **≈9560 KB** | `prototipo/rede-acolher-prototipo.html` |
@@ -532,6 +532,7 @@ arqueologia.
 | 319 | **O resto do cadastro e o perfil do acolhido dizem o que falta** (pedido de 13/11: *revise o resto do cadastro e do perfil do acolhido também*). **Medido com duas sondas no protótipo:** uma preencheu e gravou cada formulário do perfil nos cinco cargos que registram, e outra tocou em todos os botões das nove abas como técnica e como educador (132 e 60). **Vinte folhas do perfil e do dossiê nasciam com o botão de gravar apagado sem dizer por quê** (o atendimento de saúde, o atendimento técnico e o comportamental, o familiar novo e a correção dele, a alergia, a restrição, a conquista, encerrar o vínculo, a correção do cadastro, a saída, o sigilo, juntar arquivo, baixar os atendimentos, anexar ao dossiê, a vivência, a foto da criança e do familiar, tirar a foto, retirar o familiar, encerrar a alergia e a decisão da saída sozinha); hoje todas dizem, logo acima do botão, o que ainda falta (`frontend/src/o-que-falta.tsx`, `OQueFalta`, que some quando nada falta). **O cadastro aceitava data impossível**: nascimento no futuro, 31 de fevereiro, acolhimento antes do nascimento e guia com data que ainda não chegou; hoje a regra `people/datas-do-cadastro.regra.ts`, lida pelo servidor, pela tela e pelo protótipo, recusa as quatro com frase, e a idade acima de 18 anos avisa sem travar (um caso novo na `cadastro`, que reprova sem o conserto). E a conferência do cadastro mostra a idade e o CPF com os pontos, o aviso de cadastro incompleto aponta onde completar cada coisa (os cuidados em Atualizar escola, cuidados e equipe; a família em Acrescentar contato; a referência escrita no cadastro não se edita depois), e Voltar e Continuar ficam lado a lado no celular, devolvendo uma linha à tela. **Não é defeito, e ficou:** a folha do relato da volta da família continua aberta depois de gravar, de propósito (mostra o que foi escrito e deixa continuar). O `ensaio:uso` ganhou o bloco *O resto do cadastro e o perfil*. |
 | 320 | **A Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada** (pedido de 13/11: *revise agora a chamada e o dia da casa também*; o adendo decidido pelo dono no mesmo dia). **Medido com a sonda da 319 adaptada às duas telas**, tocando em cada botão até dois níveis e preenchendo cada folha, nos cargos que registram. **Achou:** **treze folhas com o botão de gravar apagado sem dizer por quê** (a exceção da chamada, abrir chamada, a chamada da casa, quem realizou, o que aconteceu, passar para outra pessoa, o pedido de substituição, decidir a substituição nas duas metades, a atividade urgente, o remédio se necessário, o desfecho, a frequência e a confirmação da dose), hoje com o `OQueFalta`; **a folha de decidir a substituição sem Fechar**; a lista da equipe que não carregava deixando o *Escolha…* vazio sem frase; **no protótipo, o café dizendo 20 de 15 conferidos** (as crianças do acervo marcadas) e o almoço com uma criança que saiu da casa há dois meses; **a linha do almoço no Dia escrita à mão** (12:00, 4 de 12) enquanto a Chamada dizia 11:30, 2 de 14, hoje lida das chamadas pela mesma frase do servidor (`checks/chamada-no-dia.regra.ts`), que dizia *Faltam 1 acolhidos*; **toda marcação do protótipo assinada por quem estava olhando**, com a hora de agora; a conferência de mesa e o fechamento do protótipo contando a criança que estava com a família; e o *Abrir chamada* do Dia levando à lista, e não à chamada (`chamada-a-abrir.ts`). **E a tela prometia que a correção da chamada confirmada entrava como adendo pela equipe técnica, e o adendo não existia:** hoje a técnica e a coordenação escrevem o que de fato aconteceu e o motivo, ao lado da marcação da hora, que não muda (`check_result_addendum`, `app_adendo_da_chamada`, checks/1719, `adendo.regra.ts`); o adendo aparece na chamada e na presença do perfil, para todos que leem a chamada. **Medido na 320:** a sonda das duas telas antes e depois, em seis cargos (depois, nenhuma folha com o botão apagado sem frase nem sem Fechar); o adendo, o *Abrir chamada* e a marcação com quem marcou no navegador a 390 e a 1366 px; a revisão do `banco-de-dados`, que provou num banco à parte **o adendo para quem chegou à casa depois da chamada** e **o INSERT direto de chamada já confirmada em nome de outra pessoa**, fechados na 1720 (a opção conferida só pelo servidor e o motivo lido por toda a casa ficaram como na marcação); a `o-adendo-da-chamada` (7 de 7); a suíte inteira nas DUAS condições de relógio (1607 de 1607 nas duas); o `ensaio:uso` (918 cobranças, sem reprovação) e o do celular (388 telas, sem achado); e, depois do fechamento, o `ensaio:cabe` da técnica e da coordenação a 390 px (559 estados e 353 voltas), o `ensaio:acolhe` dos dois cargos e o de acessibilidade nos temas claro e escuro (394 telas), sem achado. **Não rodou:** o `ensaio:aparelhos`, a simulação contra o servidor e a revisão do `auditor-seguranca-lgpd`. |
 | 321 | **O e-mail do esqueci minha senha e do convite pelo Gmail do Pão** (pedido de 14/11: *vamos continuar e deixar isso ok*). **Decidido pelo dono:** o domínio da Fundação é do Google, e no piloto o remetente é a conta dele, pela senha de app (o custo, anotado no §12.8: os e-mails dependem de uma pessoa, e trocar depois são duas linhas). **O primeiro envio a um Gmail de verdade:** o e-mail do esqueci, montado pela mesma `mensagem-do-email.ts`, com o logo dentro da mensagem, nome fictício e um link que não abre nada (`.invalid`), mandado pelo conector do Gmail desta sessão para a caixa do dono, que diz como apareceu; o SMTP do servidor continua sem prova, porque esta sessão não alcança servidor de e-mail. **O `instalar.sh` passa a conferir a senha de app** (recusa a vazia e a do exemplo) **e o remetente igual à conta que entra no Gmail**: com outro endereço, o Gmail troca o remetente pela conta, calado; um caso novo na `o-servidor-do-pao`. **E o link do esqueci no protótipo** (o dono abriu o e-mail de teste, tocou no link e caiu em *inválido*: o link de teste era falso de propósito, e por trás dele havia um defeito de verdade): o pedido do esqueci ficava só na aba em que foi feito, e o link aberto em outra aba ou no celular dizia sempre *Convite inválido*. Hoje o link do protótipo leva de quem é e quando foi pedido (`linkDoEsqueci` no `mock-casa.ts`), vale uma hora e serve uma vez naquele navegador. **Medido na 321:** a prova no navegador (o link pedido num aparelho, aberto noutro, cria a senha nova e entra; o mesmo link de novo diz inválido; o de duas horas atrás, vencido), a `o-servidor-do-pao` (18 de 18; o caso novo reprova sem a conferência), a suíte inteira nas DUAS condições de relógio (1608 de 1608 nas duas), o `ensaio:uso` (923 cobranças, sem reprovação) e o do celular (388 telas, sem achado); e, depois do fechamento, a Casa 03 em trinta dias contra o servidor de verdade (tudo bate; na API, só a recusa conhecida das vagas; onze contas e o esqueci, sem achado; a Acolhe+AI com o modelo, verde) e o `ensaio:aparelhos` (oito aparelhos, sem achado, depois de o ensaio deixar de tocar com `force` no Tirar o anexo: no tablet deitado o botão ficava atrás da barra do pé, e o toque caía no Cancelar). **Não rodou:** o envio pelo SMTP do servidor. |
+| 322 | **Os encontros de alinhamento com quem trabalha** (pedido e decisões do dono em 14/11). A coordenação da casa registra o encontro com quem trabalha na casa dela (menos outra coordenação), e a Coordenação Geral com todos abaixo dela (menos o Gestor Geral): mensal, trimestral, semestral ou anual, com os pontos positivos, o que podemos melhorar (se tiver) e os combinados, e o próximo encontro, cujo dia o relógio avisa a quem registrou, uma vez (`staff_alignment`, alignments/1721, onze rotinas por casa e uma fora das casas). Leem a própria pessoa, quem registrou, a coordenação da casa (menos o encontro de outra coordenação) e a Coordenação Geral; o Gestor Geral não lê. A pessoa dá ciência uma vez, com comentário, e quem registrou é avisado; o adendo é de quem registrou e não muda o que estava escrito. **Sem nota e sem pontuação.** A tela *Encontros de alinhamento* é de toda a equipe (cada um lê os seus) e, para a coordenação, mostra a equipe em ordem de nome; na Equipe, o botão *Alinhamentos* do cartão abre os encontros da pessoa, e de lá se vê o trabalho dela (fase 117), já escolhida. **E a regra mudou, por decisão do dono:** a proibição de ranking (§5 regra 3) protege só as crianças e os adolescentes; o ranking das casas e da equipe para a Coordenação Geral e o Gestor Geral vem na 323, e o funcionário do mês na 324. **Medido na 322:** a `o-encontro-de-alinhamento` (9 de 9: quem registra, quem lê, a ciência, o adendo, a Coordenação Geral com a coordenação e a Enfermagem, as datas, o relógio uma vez só, e a aplicação sem escrita direta), as conferências de catálogo e código, e a sonda no protótipo a 390 e 1366 px (a coordenação registra pela Equipe, o Ver o trabalho chega com a pessoa escolhida, o educador dá ciência com comentário, a Coordenação Geral vê a equipe e a Enfermagem, e o Gestor Geral não tem a tela; nenhum erro, nada andando para o lado). |
 
 ---
 
@@ -579,7 +580,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-260 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+261 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -646,12 +647,12 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              180 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              181 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       40 telas React
+│   │   ├── screens/       41 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo, que
 │   │   │                  roda sem servidor. No sistema real quem gera é o
@@ -3116,7 +3117,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 260 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 261 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

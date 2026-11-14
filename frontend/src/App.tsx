@@ -24,6 +24,7 @@ import { PrimeiroAcesso } from './screens/PrimeiroAcesso';
 import { SenhaPessoal } from './screens/SenhaPessoal';
 import { Equipe } from './screens/Equipe';
 import { Trabalho } from './screens/Trabalho';
+import { Encontros } from './screens/Encontros';
 import { Periodo } from './screens/Periodo';
 import { Metricas } from './screens/Metricas';
 import { Dia } from './screens/Dia';
@@ -499,7 +500,7 @@ export function App() {
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria' | 'campos_do_perfil'
-    | 'trabalho' | 'periodo' | 'metricas'
+    | 'trabalho' | 'encontros' | 'periodo' | 'metricas'
     | 'alinhamentos' | 'painel' | 'sincronizacao' | 'implantacao' | 'sugestoes'
     | 'rotina' | 'escala' | 'avisos' | 'guia' | null>(null);
   /* Vale para UMA abertura: saindo dos Acolhidos, a escolha some. Sem isto,
@@ -1423,7 +1424,14 @@ export function App() {
                          papel={me.role} />
         )}
 
-        {abaEfetiva === 'equipe' && administra && <Equipe papel={me.role} />}
+        {abaEfetiva === 'equipe' && administra && (
+          <Equipe papel={me.role}
+                  irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); marcarChegada(); }} />
+        )}
+        {abaEfetiva === 'encontros' && ve('encontros') && (
+          <Encontros meuId={me.id} ve={ve}
+                     irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); marcarChegada(); }} />
+        )}
 
         {abaEfetiva === 'metricas' && ve('metricas') && <Metricas />}
         {abaEfetiva === 'trabalho' && ve('trabalho') && <Trabalho />}

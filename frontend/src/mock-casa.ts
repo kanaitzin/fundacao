@@ -440,6 +440,38 @@ const USUARIOS: Record<string, { id: string; fullName: string; role: string; sen
 };
 /** Quem coordena as oito casas, como a coluna `todas_as_casas` do servidor (1634). */
 const TODAS_AS_CASAS = new Set<string>(['u0', 'u13']);
+
+/**
+ * OS ENCONTROS DE ALINHAMENTO, semeados (fase 322). A Carla com o Mário (esperando a ciência
+ * dele) e com a Joana (com ciência), e o Marcelo, Coordenação Geral, com a Carla.
+ */
+const diaAntes = (dias: number) => {
+  const d = new Date(`${HOJE}T12:00:00-03:00`); d.setDate(d.getDate() - dias);
+  return d.toISOString().slice(0, 10);
+};
+const ENCONTROS: {
+  id: string; pessoaId: string; porId: string; casa: string | null; periodicidade: string; dia: string;
+  positivos: string; melhorar: string | null; combinados: string | null; proximo: string | null; em: string;
+  ciencia: { em: string; comentario: string | null } | null;
+  adendos: { id: string; texto: string; por: string; em: string }[];
+}[] = [
+  { id: 'enc1', pessoaId: 'u1', porId: 'u4', casa: cfg.casa.code, periodicidade: 'mensal', dia: diaAntes(6),
+    positivos: 'Acolhe as crianças com calma na hora de dormir, e a passagem de plantão dela é das mais completas.',
+    melhorar: 'Registrar a linha da ATA antes de sair do turno, para a noite não começar sem ela.',
+    combinados: 'Escrever a linha da ATA até as 19h45 e conversar de novo no mês que vem.',
+    proximo: diaAntes(-24), em: `${diaAntes(6)}T15:30:00-03:00`, ciencia: null, adendos: [] },
+  { id: 'enc2', pessoaId: 'u6', porId: 'u4', casa: cfg.casa.code, periodicidade: 'mensal', dia: diaAntes(34),
+    positivos: 'Conduziu a roda de conversa de sábado com cuidado, e os adolescentes participaram.',
+    melhorar: null, combinados: 'Levar a ideia da roda para a reunião de equipe.',
+    proximo: diaAntes(-4), em: `${diaAntes(34)}T16:00:00-03:00`,
+    ciencia: { em: `${diaAntes(33)}T08:10:00-03:00`, comentario: 'Obrigado. Levo a roda para a reunião.' },
+    adendos: [] },
+  { id: 'enc3', pessoaId: 'u4', porId: 'u0', casa: cfg.casa.code, periodicidade: 'trimestral', dia: diaAntes(40),
+    positivos: 'A casa fechou as ATAs no prazo o trimestre inteiro, e a equipe nova foi bem recebida.',
+    melhorar: 'Organizar a escala do mês com uma semana de antecedência.',
+    combinados: 'Conversar de novo no fim do próximo trimestre.',
+    proximo: diaAntes(-50), em: `${diaAntes(40)}T10:00:00-03:00`, ciencia: null, adendos: [] },
+];
 /* O e-mail que veio da casa, na conta promovida para todas as casas (identity/1685):
    até o Gestor Geral ou a Coordenação Geral confirmar, o esqueci e o convite esperam. */
 const EMAIL_A_CONFIRMAR = new Set<string>();
@@ -7119,6 +7151,97 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         : 'Nenhum registro no período, nas casas que você alcança. Isso não quer dizer que '
           + 'ninguém trabalhou — quer dizer que nada deste período chega até aqui.',
     };
+  }
+  /* ---------- Os encontros de alinhamento (fase 322): a mesma regra do banco (1721). ---------- */
+  if (seg[0] === 'alignments' && seg[1] === 'encontros') {
+    const pessoaPor = (id: string) => EQUIPE_CASA.find((m) => m.id === id)
+      ?? Object.values(USUARIOS).map((u) => ({ id: u.id, nome: u.fullName, cargo: u.role })).find((u) => u.id === id);
+    const ehGeral = (id: string) => TODAS_AS_CASAS.has(id);
+    const transversais = Object.values(USUARIOS)
+      .filter((u) => ['enfermagem', 'lider_noturno_geral'].includes(u.role))
+      .map((u) => ({ id: u.id, nome: u.fullName, cargo: u.role }));
+    const alinhaCom = (alvo: string) => {
+      if (eu.role !== 'coordenador' || alvo === eu.id || DESATIVADOS.has(alvo)) return false;
+      const p = pessoaPor(alvo);
+      if (!p) return false;
+      if (ehGeral(eu.id)) return p.cargo !== 'gestor_geral' && !ehGeral(alvo);
+      return p.cargo !== 'coordenador' && !ehGeral(alvo) && EQUIPE_CASA.some((m) => m.id === alvo);
+    };
+    const le = (e: typeof ENCONTROS[number]) => e.pessoaId === eu.id || e.porId === eu.id
+      || (eu.role === 'coordenador' && (ehGeral(eu.id) || (e.casa !== null && pessoaPor(e.pessoaId)?.cargo !== 'coordenador')));
+    const emPortugues = (e: typeof ENCONTROS[number]) => ({
+      ...e, pessoa: pessoaPor(e.pessoaId)?.nome ?? '', por: pessoaPor(e.porId)?.nome ?? '',
+      periodicidadeRotulo: ({ mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' } as Record<string, string>)[e.periodicidade],
+    });
+    if (seg[2] === 'vocabulario') {
+      return { periodicidades: [
+        { code: 'mensal', label: 'Mensal' }, { code: 'trimestral', label: 'Trimestral' },
+        { code: 'semestral', label: 'Semestral' }, { code: 'anual', label: 'Anual' }],
+        aviso: 'O encontro fica escrito com os pontos positivos, o que podemos melhorar e os combinados.' };
+    }
+    if (seg[2] === 'comigo') {
+      const meus = ENCONTROS.filter((e) => e.pessoaId === eu.id).map(emPortugues);
+      return { encontros: meus, semCiencia: meus.filter((e) => !e.ciencia).length };
+    }
+    if (seg[2] === 'equipe') {
+      if (eu.role !== 'coordenador') return { pessoas: [], podeRegistrar: false };
+      const todos = [...EQUIPE_CASA, ...(ehGeral(eu.id) ? transversais : [])].filter((p) => alinhaCom(p.id));
+      return { podeRegistrar: true, pessoas: todos
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+        .map((p) => {
+          const dela = ENCONTROS.filter((e) => e.pessoaId === p.id).sort((a, b) => b.dia.localeCompare(a.dia));
+          return { id: p.id, nome: p.nome, cargo: p.cargo, casa: EQUIPE_CASA.some((m) => m.id === p.id) ? cfg.casa.code : null,
+                   ultimo: dela[0]?.dia ?? null, proximo: dela[0]?.proximo ?? null };
+        }) };
+    }
+    if (seg[2] === 'pessoa' && metodo === 'GET') {
+      const lidos = ENCONTROS.filter((e) => e.pessoaId === seg[3] && le(e)).map(emPortugues);
+      const pode = alinhaCom(seg[3]);
+      if (!pode && !lidos.length && seg[3] !== eu.id) return new Recusa(404, 'Pessoa não encontrada.');
+      return { pessoa: pessoaPor(seg[3])?.nome ?? null, podeRegistrar: pode, encontros: lidos };
+    }
+    if (seg.length === 2 && metodo === 'POST') {
+      if (eu.role !== 'coordenador') {
+        return new Recusa(403, 'O encontro de alinhamento é registrado pela coordenação da casa ou pela Coordenação Geral.');
+      }
+      if (!alinhaCom(String(b.pessoaId ?? ''))) {
+        return new Recusa(403, 'Você registra o encontro com quem trabalha na sua casa; a Coordenação Geral, com todos abaixo dela.');
+      }
+      if (!['mensal', 'trimestral', 'semestral', 'anual'].includes(String(b.periodicidade))) {
+        return new Recusa(400, 'Escolha se o encontro é mensal, trimestral, semestral ou anual.');
+      }
+      const dia = String(b.dia || HOJE);
+      if (dia > HOJE) return new Recusa(400, 'O dia do encontro não pode ser depois de hoje.');
+      if (String(b.positivos ?? '').trim().length < 10) {
+        return new Recusa(400, 'Escreva os pontos positivos, com pelo menos 10 letras.');
+      }
+      if (b.proximo && String(b.proximo) <= dia) return new Recusa(400, 'O próximo encontro precisa ser depois deste.');
+      const id = uid();
+      ENCONTROS.unshift({
+        id, pessoaId: String(b.pessoaId), porId: eu.id,
+        casa: EQUIPE_CASA.some((m) => m.id === b.pessoaId) ? cfg.casa.code : null,
+        periodicidade: String(b.periodicidade), dia, positivos: String(b.positivos).trim(),
+        melhorar: String(b.melhorar ?? '').trim() || null, combinados: String(b.combinados ?? '').trim() || null,
+        proximo: b.proximo ? String(b.proximo) : null, em: new Date().toISOString(), ciencia: null, adendos: [],
+      });
+      return { ok: true, id, aviso: 'Encontro registrado. A pessoa recebe o aviso para ler e dar ciência.' };
+    }
+    const e = ENCONTROS.find((x) => x.id === seg[2]);
+    if (seg[3] === 'ciencia' && metodo === 'POST') {
+      if (!e || e.pessoaId !== eu.id) return new Recusa(404, 'Encontro não encontrado.');
+      if (e.ciencia) return new Recusa(409, 'A sua ciência já está registrada neste encontro.');
+      const comentario = String(b.comentario ?? '').trim() || null;
+      e.ciencia = { em: new Date().toISOString(), comentario };
+      return { ok: true, aviso: comentario ? 'Ciência e comentário registrados.' : 'Ciência registrada.' };
+    }
+    if (seg[3] === 'adendo' && metodo === 'POST') {
+      if (!e || e.porId !== eu.id) return new Recusa(404, 'Encontro não encontrado.');
+      const texto = String(b.texto ?? '').trim();
+      if (texto.length < 10) return new Recusa(400, 'Escreva o adendo, com pelo menos 10 letras.');
+      e.adendos.push({ id: uid(), texto, por: eu.fullName, em: new Date().toISOString() });
+      return { ok: true, aviso: 'Adendo registrado. O que estava escrito continua como estava.' };
+    }
+    return new Recusa(404, 'Encontro não encontrado.');
   }
   if (rota === '/staff' && metodo === 'POST') {
     if (b.todasAsCasas && eu.role !== 'gestor_geral') {

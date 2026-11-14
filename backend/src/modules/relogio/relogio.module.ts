@@ -5,6 +5,7 @@ import { ActivitiesModule } from '../activities';
 import { PeopleModule } from '../people';
 import { IdentityModule } from '../identity';
 import { NursingModule } from '../nursing';
+import { AlignmentsModule } from '../alignments';
 import { ImplantacaoController } from './implantacao.controller';
 import { ImplantacaoService } from './implantacao.service';
 
@@ -18,7 +19,7 @@ import { ImplantacaoService } from './implantacao.service';
  * exatamente o que não se deixa num `crontab`.
  */
 @Module({
-  imports: [IdentityModule, MedicationsModule, ActivitiesModule, PeopleModule, NursingModule],
+  imports: [IdentityModule, MedicationsModule, ActivitiesModule, PeopleModule, NursingModule, AlignmentsModule],
   controllers: [ImplantacaoController],
   providers: [RelogioService, ImplantacaoService],
   exports: [RelogioService, ImplantacaoService],

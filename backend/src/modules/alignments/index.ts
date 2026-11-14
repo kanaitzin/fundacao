@@ -7,3 +7,4 @@
  */
 export { AlignmentsModule } from './alignments.module';
 export { AlignmentsService } from './alignments.service';
+export { EncontrosService } from './encontros.service';

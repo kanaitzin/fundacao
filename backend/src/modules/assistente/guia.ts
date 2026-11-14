@@ -103,6 +103,7 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 - Acompanhamentos (acompanhamentos): relatórios semanais e mensais por eixo, aprovação e devolução com motivo.
 - O período da casa (periodo): como foi a casa na semana, no mês ou no intervalo escolhido, com relatório em Word.
 - O trabalho da equipe (trabalho): o que cada pessoa e cada setor registrou, em ordem, sem contar nada.
+- Encontros de alinhamento (encontros): o registro de cada encontro mensal, trimestral, semestral ou anual entre a coordenação e quem trabalha, com pontos positivos, o que podemos melhorar e os combinados; a pessoa lê o seu e dá ciência.
 - O trabalho social (impacto): o que o acolhimento produziu nas oito casas, a trajetória de cada criança.
 - Painel das unidades (painel): ocupação, entradas e saídas, e o quadro de cada mês, sem ranking.
 - Equipe (equipe): contas, cargos, convites, quem trabalha na casa por setor.
@@ -277,6 +278,10 @@ export const FORA_DO_CATALOGO: Record<string, string> = {
   '/health': 'responde se o servidor está de pé, sem dado de ninguém',
   '/avisos-no-celular/chave': 'é a chave pública do aviso no celular',
   '/users/me': 'quem conversa já vai no contexto',
+  '/alignments/encontros/vocabulario': 'são só as quatro periodicidades do encontro de alinhamento',
+  '/alignments/encontros/comigo': 'o encontro de alinhamento é entre a pessoa e a coordenação; a assistente não lê',
+  '/alignments/encontros/equipe': 'o encontro de alinhamento é entre a pessoa e a coordenação; a assistente não lê',
+  '/alignments/encontros/pessoa/:x': 'o encontro de alinhamento é entre a pessoa e a coordenação; a assistente não lê',
   '/devices': 'aparelhos e sincronização são da TI',
   '/sync/conflicts': 'aparelhos e sincronização são da TI',
   '/sync/status': 'aparelhos e sincronização são da TI',

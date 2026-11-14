@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { pedirAPessoa } from '../pessoa-a-abrir';
 import { Cargo } from '../cargos';
 import { Explica } from '../explica';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
@@ -81,7 +82,7 @@ const NOME_DO_TOM: Record<string, string> = {
 };
 const TONS = Object.keys(NOME_DO_TOM);
 
-export function Equipe({ papel }: { papel: string }) {
+export function Equipe({ papel, irPara }: { papel: string; irPara?: (aba: string) => void }) {
   const [aba, setAba] = useState<'pessoas' | 'aparelhos'>('pessoas');
   const [membros, setMembros] = useState<Membro[]>([]);
   /* Chegou a equipe (fase 260): antes disso, a conta não diz zero. */
@@ -101,6 +102,15 @@ export function Equipe({ papel }: { papel: string }) {
   const [registrando, setRegistrando] = useState(false);
   const [revogando, setRevogando] = useState<Aparelho | null>(null);
   const [confirmando, setConfirmando] = useState<Membro | null>(null);
+
+  /* Com quem eu faço o encontro de alinhamento (fase 322): a rota diz, e o banco decide. */
+  const [alinhaveis, setAlinhaveis] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (papel !== 'coordenador') return;
+    api<{ pessoas: { id: string }[] }>('/alignments/encontros/equipe')
+      .then((r) => setAlinhaveis(new Set(r.pessoas.map((p) => p.id))))
+      .catch(() => undefined);
+  }, [papel]);
 
   const ehGestor = papel === 'gestor_geral';
   const minhaCasa = casas.find((c) => c.propria) ?? null;
@@ -253,6 +263,15 @@ export function Equipe({ papel }: { papel: string }) {
                   </dd>
                 </div>
               </dl>
+                {alinhaveis.has(m.id) && irPara && (
+                  <div className="membro-acoes">
+                    <button className="btn sm sec"
+                            aria-label={`Encontros de alinhamento de ${m.nome}`}
+                            onClick={() => { pedirAPessoa('encontros', m.id); irPara('encontros'); }}>
+                      Alinhamentos
+                    </button>
+                  </div>
+                )}
                 {m.editavel && !m.proprio && (
                   <div className="membro-acoes">
                     <button className="btn sm ghost" onClick={() => { setEditando(m); setForm(true); }}>

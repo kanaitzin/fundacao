@@ -220,6 +220,13 @@ hoje. Os números 1 a 30 são os de 21/10; os que saíram estão no fim.
 
 Conferido em 10/11 contra o código, e nada disso volta à mesa:
 
+- **decidido pelo dono em 14/11:** a proibição de ranking protege só as crianças e os adolescentes, e o
+  ranking das casas e da equipe é permitido para a Coordenação Geral e o Gestor Geral (fase 323); os
+  encontros de alinhamento com quem trabalha, registrados pela coordenação da casa e pela Coordenação Geral,
+  lidos pela pessoa, por quem registrou, pela coordenação da casa e pela Coordenação Geral, com ciência e
+  comentário e o aviso do próximo encontro (fase 322); e o funcionário do mês, um por casa pela coordenação
+  e um da Fundação pela Coordenação Geral, com o porquê (fase 324). Ainda aberto: quem vê o funcionário do
+  mês (por ora, a equipe da casa vê o da casa, e as oito casas veem o da Fundação);
 - o prazo do convite (24 horas, 08/10); a Coordenação Geral recebendo os graves (fase 178); o PIA, a
   receita e a vacinação avisando antes (fases 178 e 191); a barra no pé e o topo compacto no celular
   (fase 184); o painel do Gestor contando o conceito escolar (fase 137);
@@ -280,7 +287,7 @@ Conferido em 10/11 contra o código, e nada disso volta à mesa:
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **321 fases.** 180 suítes e 1597 testes; a suíte inteira, verde em duas condições de
+- **322 fases.** 181 suítes e 1606 testes; a suíte inteira, verde em duas condições de
   relógio na fase 290, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

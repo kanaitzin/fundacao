@@ -295,7 +295,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 14/11/2026, fase 321
+### Onde estamos — 14/11/2026, fase 322
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -480,8 +480,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 319 | **o cadastro e o perfil dizem o que falta** (pedido de 13/11): **vinte folhas do perfil e do dossiê nasciam com o botão de gravar apagado sem dizer por quê**, e o cadastro aceitava nascimento no futuro, 31 de fevereiro, acolhimento antes do nascimento e guia que ainda não chegou; hoje cada folha diz o que falta acima do botão (`OQueFalta`), e a regra das datas é uma só para o servidor, a tela e o protótipo (`datas-do-cadastro.regra.ts`) |
 | 320 | **a Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada** (pedido de 13/11): treze folhas com o botão apagado sem dizer por quê; a folha de decidir a substituição sem Fechar; **no protótipo, o café dizendo 20 de 15** (as crianças do acervo), toda marcação assinada por quem estava olhando, e a linha do almoço no Dia escrita à mão com outros números; o *Abrir chamada* do Dia levando à lista; e **a tela prometia o adendo da chamada confirmada, que não existia**: hoje a técnica e a coordenação o escrevem ao lado da marcação da hora, que não muda (checks/1719 e 1720; a revisão do banco achou o adendo para quem chegou depois e o INSERT direto de chamada já confirmada) |
 | 321 | **o e-mail do esqueci e do convite pelo Gmail do Pão** (pedido de 14/11): decidido pelo dono que o domínio é do Google e que no piloto o remetente é a conta dele, pela senha de app; o primeiro envio a um Gmail de verdade (o modelo do esqueci, com nome fictício, à caixa do dono, pelo conector desta sessão); e o `instalar.sh` conferindo a senha de app e o remetente igual à conta, que o Gmail troca calado |
+| 322 | **os encontros de alinhamento** (pedido de 14/11): a coordenação da casa e a Coordenação Geral registram o encontro mensal, trimestral, semestral ou anual com quem trabalha, com pontos positivos, o que melhorar e combinados; a pessoa lê, dá ciência e comenta; o próximo encontro avisa no sino (`staff_alignment`, alignments/1721); sem nota nem pontuação; e a proibição de ranking passa a proteger só as crianças |
 
-**Medido no fim da 321:** 260 migrações, 156 tabelas, 180 suítes, 1597 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 322:** 261 migrações, 159 tabelas, 181 suítes, 1606 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -619,7 +620,8 @@ o item respondido sai do §0.
 - **323, o ranking**, para a Coordenação Geral e o Gestor Geral: as casas por **organização documental** (dossiê
   completo, PIA e reavaliação em dia, receita e vacinação em dia, ATAs fechadas no prazo), pelo **cuidado** (doses no
   horário, chamadas confirmadas, frequência escolar marcada, atendimentos e visitas) e pelo **uso do sistema**, por casa
-  e por pessoa dentro de cada casa. Avisado ao dono: mede registro, não cuidado; a casa com crianças mais difíceis
+  e por pessoa dentro de cada casa, e **o dinheiro que cada casa gastou** (pedido no mesmo dia; pelo que as notas e
+  compras registram, em total e dividido pelos acolhidos da casa). Avisado ao dono: mede registro, não cuidado; a casa com crianças mais difíceis
   pode parecer pior.
 - **324, o funcionário do mês, os dois:** um por casa, escolhido pela coordenação com o porquê, e um da Fundação,
   escolhido pela Coordenação Geral com o porquê. *Quem vê* não foi respondido: o da casa, a equipe da casa; o da

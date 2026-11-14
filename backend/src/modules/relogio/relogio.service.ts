@@ -6,6 +6,7 @@ import { MedicationsService } from '../medications';
 import { ActivitiesService, AgendaService } from '../activities';
 import { AniversariosService, PiaService, ReavaliacaoService, VencimentosService } from '../people';
 import { EducacaoService } from '../nursing';
+import { EncontrosService } from '../alignments';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { anotarImplantacao } from '../../kernel/implantacao/anotar';
 
@@ -49,6 +50,7 @@ export class RelogioService {
     @Inject(VencimentosService) private readonly vencimentos: VencimentosService,
     @Inject(ReavaliacaoService) private readonly reavaliacao: ReavaliacaoService,
     @Inject(EducacaoService) private readonly educacao: EducacaoService,
+    @Inject(EncontrosService) private readonly encontros: EncontrosService,
   ) {}
 
   /** A conta em nome de quem o relógio escreve. */
@@ -100,6 +102,7 @@ export class RelogioService {
       ['receita e vacinação vencendo', (casa) => this.vencimentos.avisarDaCasa(user, casa)],
       ['reavaliação chegando', (casa) => this.reavaliacao.avisarDaCasa(user, casa)],
       ['vínculo educacional terminando', (casa) => this.educacao.avisarVinculosDaCasa(user, casa)],
+      ['próximo encontro de alinhamento', (casa) => this.encontros.avisarProximos(user, casa)],
     ];
 
     for (const casa of casas) {
@@ -113,6 +116,17 @@ export class RelogioService {
           resultado.push({ casa: casa.code, rotina: nome, erro });
         }
       }
+    }
+
+    /* O encontro de quem atende todas as casas (a Enfermagem, o Líder Noturno Geral) não
+       tem casa: o aviso do próximo roda uma vez, fora das casas (fase 322). */
+    try {
+      await this.encontros.avisarProximos(user, null);
+      resultado.push({ casa: 'sem casa', rotina: 'próximo encontro de alinhamento' });
+    } catch (e) {
+      const erro = e instanceof Error ? e.message : String(e);
+      this.log.error(`sem casa · próximo encontro de alinhamento: ${erro}`);
+      resultado.push({ casa: 'sem casa', rotina: 'próximo encontro de alinhamento', erro });
     }
 
     const falhas = resultado.filter((r) => r.erro);

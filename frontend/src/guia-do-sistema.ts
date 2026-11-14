@@ -57,6 +57,7 @@ export const COM_A_ACOLHE: Record<string, string> = {
   escala: 'Ela lê a escala, conta as horas de cada pessoa com a conta feita, e inclui alguém no rascunho do mês com você.',
   equipe: 'Ela abre o cadastro de pessoa nova e preenche com você. Senha e desativação ficam com você, na própria tela.',
   trabalho: 'Ela lê o que cada setor registrou no período e resume, sem pôr pessoas em ordem de quem fez mais.',
+  encontros: 'Ela abre a folha do encontro e escreve no campo que você pedir, para você conferir; ela não lê os encontros.',
   periodo: 'Ela lê o período escolhido e resume a semana ou o mês, com os números conferidos pela conta.',
   cozinha: 'Ela abre o pedido de lanche ou de cesta básica e preenche com você, e lembra as restrições da casa.',
   campos_do_perfil: 'Ela explica o que cada campo mostra para quem está no turno. Ligar e desligar fica com você.',
@@ -149,6 +150,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 322, dia: '14/11/2026', aba: 'encontros',
+    texto: 'Os encontros de alinhamento. A coordenação da casa registra o encontro com quem trabalha nela, e a Coordenação Geral com todos abaixo dela: mensal, trimestral, semestral ou anual, com os pontos positivos, o que podemos melhorar e os combinados. Na Equipe, o botão Alinhamentos no cartão de cada pessoa abre os encontros dela, e de lá dá para ver o trabalho dela. Cada pessoa lê os próprios encontros na tela Encontros de alinhamento, dá ciência e pode comentar, e quem registrou é avisado. Quem registra marca a data do próximo encontro e recebe o aviso no sino nesse dia. O registro não se apaga: a correção é um adendo.' },
   { fase: 321, dia: '14/11/2026',
     texto: 'O e-mail do esqueci minha senha e do convite está pronto para sair pelo Gmail da Fundação quando o sistema estiver no ar: com o logo do Pão dos Pobres, o botão para criar a senha e a validade do link em destaque. Nesta versão de demonstração nenhum e-mail sai: o link para a senha nova aparece na própria tela, e agora abre também em outra aba ou no celular, vale uma hora e serve uma vez.' },
   { fase: 320, dia: '13/11/2026', aba: 'chamada',

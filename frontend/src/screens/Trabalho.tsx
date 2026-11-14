@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Explica } from '../explica';
+import { pessoaPedida } from '../pessoa-a-abrir';
 
 /**
  * ============================================================================
@@ -86,6 +87,12 @@ export function Trabalho() {
   const [voc, setVoc] = useState<Vocabulario | null>(null);
   const [membros, setMembros] = useState<Membro[]>([]);
   const [alvo, setAlvo] = useState('');            // "pessoa:<id>" ou "setor:<cod>"
+  /* Quem veio dos encontros de alinhamento (fase 322) já entra com a pessoa escolhida.
+     Num efeito, e não no inicializador do estado: o StrictMode o roda duas vezes (fase 190). */
+  useEffect(() => {
+    const pedida = pessoaPedida('trabalho');
+    if (pedida) setAlvo(`pessoa:${pedida}`);
+  }, []);
   const [de, setDe] = useState('');
   const [ate, setAte] = useState('');
   const [finalidade, setFinalidade] = useState('');
