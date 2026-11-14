@@ -4999,6 +4999,38 @@ const lerEsqueci = (): { email: string; gasto: boolean } | null => {
 const gravarEsqueci = (p: { email: string; gasto: boolean }) => {
   try { sessionStorage.setItem(CHAVE_ESQUECI, JSON.stringify(p)); } catch { /* sem armazenamento */ }
 };
+/*
+ * O LINK QUE ABRE EM OUTRA ABA OU NO CELULAR (fase 321). O pedido ficava só na aba
+ * em que foi feito, e o link aberto pelo e-mail dizia sempre *Convite inválido*. O
+ * link do protótipo passa a levar de quem é e quando foi pedido: vale uma hora e
+ * serve uma vez neste navegador. No sistema de verdade o link é um segredo sorteado
+ * pelo servidor; aqui as contas são de demonstração.
+ */
+const CHAVE_ESQUECI_USADOS = 'rede-acolher.prototipo.esqueci-usados';
+const UMA_HORA_MS = 3600_000;
+const paraLink = (t: string) => btoa(String.fromCharCode(...new TextEncoder().encode(t)))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const doLink = (t: string) => new TextDecoder().decode(
+  Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)));
+const linkDoEsqueci = (email: string, quando = Date.now()) =>
+  `${CONVITE_ESQUECI}.${paraLink(email)}.${quando.toString(36)}`;
+const usadosDoEsqueci = (): string[] => {
+  try { return JSON.parse(localStorage.getItem(CHAVE_ESQUECI_USADOS) ?? '[]'); } catch { return []; }
+};
+/** O pedido que o link carrega: de quem, se ainda vale e se já foi usado neste navegador. */
+function pedidoDoLink(convite: string): { email: string; gasto: boolean } | null {
+  const [marca, email64, quando36] = convite.split('.');
+  if (marca !== CONVITE_ESQUECI || !email64 || !quando36) return null;
+  let email = '';
+  try { email = doLink(email64).toLowerCase().trim(); } catch { return null; }
+  const quando = parseInt(quando36, 36);
+  if (!Number.isFinite(quando) || Date.now() - quando > UMA_HORA_MS || quando - Date.now() > 60_000) return null;
+  return { email, gasto: usadosDoEsqueci().includes(convite) };
+}
+const gastarOLink = (convite: string) => {
+  try { localStorage.setItem(CHAVE_ESQUECI_USADOS, JSON.stringify([...usadosDoEsqueci(), convite].slice(-50))); }
+  catch { /* sem armazenamento */ }
+};
 
 /*
  * O ESTADO DO SERVIDOR DE MENTIRA VIVE FORA DA FUNÇÃO QUE RESPONDE.
@@ -6086,20 +6118,22 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   if (rota === '/auth/esqueci-a-senha') {
     if (!String(b.email ?? '').trim()) return new Recusa(400, 'Informe o e-mail.');
-    const u = USUARIOS[String(b.email).toLowerCase().trim()];
-    if (u && !EMAIL_A_CONFIRMAR.has(u.id)) gravarEsqueci({ email: String(b.email).toLowerCase().trim(), gasto: false });
+    const emailPedido = String(b.email).toLowerCase().trim();
+    const u = USUARIOS[emailPedido];
+    if (u && !EMAIL_A_CONFIRMAR.has(u.id)) gravarEsqueci({ email: emailPedido, gasto: false });
     return {
       ok: true,
       aviso: 'Se este e-mail estiver cadastrado, enviamos para ele um link para criar uma senha '
         + 'nova. O link vale uma hora e serve uma vez. Confira também a caixa de spam. Se não chegar, '
         + 'a coordenação pode reenviar o seu acesso.',
       /* Só aqui, e para todo e-mail igual: o protótipo não manda e-mail. */
-      linkDoPrototipo: `?convite=${CONVITE_ESQUECI}`,
+      linkDoPrototipo: `?convite=${linkDoEsqueci(emailPedido)}`,
     };
   }
   if ((rota === '/auth/convite/conferir' || rota === '/auth/convite/concluir')
-      && String(b.convite ?? '') === CONVITE_ESQUECI) {
-    const pedidoEsqueci = lerEsqueci();
+      && (String(b.convite ?? '') === CONVITE_ESQUECI || String(b.convite ?? '').startsWith(`${CONVITE_ESQUECI}.`))) {
+    const doLinkNovo = String(b.convite) !== CONVITE_ESQUECI;
+    const pedidoEsqueci = doLinkNovo ? pedidoDoLink(String(b.convite)) : lerEsqueci();
     const u = pedidoEsqueci && !pedidoEsqueci.gasto ? USUARIOS[pedidoEsqueci.email] : null;
     if (!u || !pedidoEsqueci) {
       return new Recusa(410, 'Convite inválido ou vencido. Peça um novo à coordenação.');
@@ -6108,7 +6142,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return { valido: true, nome: u.fullName, email: pedidoEsqueci.email, motivo: 'esqueci' };
     }
     if (!senhaAceita(b.novaSenha)) return new Recusa(400, FRASE_DA_SENHA);
-    gravarEsqueci({ ...pedidoEsqueci, gasto: true });
+    if (doLinkNovo) gastarOLink(String(b.convite)); else gravarEsqueci({ ...pedidoEsqueci, gasto: true });
     u.senha = String(b.novaSenha);
     eu = u;
     sessaoVencida = false;
