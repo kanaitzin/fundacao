@@ -216,6 +216,53 @@ describe('O encontro de alinhamento com quem trabalha', () => {
       { ...quem, id: ids.educ, role: 'educador' as any }, null)).rejects.toThrow(/fora_de_escopo/);
   });
 
+  /** Roda como o papel da aplicação, com a identidade dada, e desfaz no fim. */
+  const comoAplicacao = async <T>(quem: string, fn: () => Promise<T>) => {
+    await admin.query('BEGIN');
+    try {
+      await admin.query('SET LOCAL ROLE rede_app');
+      await admin.query(`SELECT set_config('app.user_id', $1, true)`, [quem]);
+      return await fn();
+    } finally { await admin.query('ROLLBACK'); }
+  };
+
+  it('a conta desativada não lê, não dá ciência e não escreve adendo (1723)', async () => {
+    const r = await post('coord3', '/alignments/encontros', encontro(ids.educ2));
+    expect(r.status).toBe(201);
+    const id = r.body.id as string;
+    await admin.query(`SELECT set_config('app.user_id', '', false)`);
+    await admin.query(`UPDATE app_user SET active = false WHERE id = ANY($1)`, [[ids.educ2, ids.coord3]]);
+    try {
+      expect(await comoAplicacao(ids.educ2, async () =>
+        (await admin.query(`SELECT count(*)::int AS n FROM staff_alignment WHERE id = $1`, [id])).rows[0].n)).toBe(0);
+      await expect(comoAplicacao(ids.educ2, () =>
+        admin.query(`SELECT app_responder_alinhamento($1, 'resposta de quem saiu')`, [id]))).rejects.toThrow(/alinhamento_inexistente/);
+      await expect(comoAplicacao(ids.coord3, () =>
+        admin.query(`SELECT app_adendo_do_alinhamento($1, 'adendo de quem saiu da casa')`, [id]))).rejects.toThrow(/alinhamento_inexistente/);
+    } finally {
+      await admin.query(`UPDATE app_user SET active = true WHERE id = ANY($1)`, [[ids.educ2, ids.coord3]]);
+    }
+  });
+
+  it('o próximo encontro de quem registrou e saiu fica pendente, sem se perder (1723)', async () => {
+    const r = await post('coord3', '/alignments/encontros',
+      encontro(ids.tecnica, { dia: somar(hoje, -1), proximo: hoje }));
+    expect(r.status).toBe(201);
+    const id = r.body.id as string;
+    const { rows: [{ id: AI3 }] } = await admin.query(`SELECT id FROM house WHERE code = 'AI3'`);
+    await admin.query(`UPDATE app_user SET active = false WHERE id = $1`, [ids.coord3]);
+    try {
+      const encontros = app.get(EncontrosService);
+      const quem = await app.get(RelogioService).quemSou('enfermagem@paodospobres.dev');
+      await encontros.avisarProximos(quem, AI3);
+      const { rows: [linha] } = await admin.query(
+        `SELECT next_noticed_at FROM staff_alignment WHERE id = $1`, [id]);
+      expect(linha.next_noticed_at).toBeNull();
+    } finally {
+      await admin.query(`UPDATE app_user SET active = true WHERE id = $1`, [ids.coord3]);
+    }
+  });
+
   it('a aplicação não escreve nas tabelas direto, e a regra da tela é a do banco', async () => {
     await admin.query('BEGIN');
     try {

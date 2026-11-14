@@ -865,8 +865,10 @@ export function App() {
    */
   /* A Coordenação Geral não tem casa de trabalho: abre nas Unidades, para
      escolher em qual entra, em vez de cair na primeira da lista (fase 176). */
+  /* Os encontros de alinhamento (fase 322) estão em quase todo cargo, e nunca são a tela
+     em que se entra: a portaria, que não tem aba do turno, abre no portão. */
   const primeira = me.todasAsCasas && !escolhida && ve('casas')
-    ? 'casas' : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas');
+    ? 'casas' : (abasDoTurno[0]?.aba ?? doMais.find((a) => a !== 'encontros') ?? doMais[0] ?? 'casas');
   const abaEfetiva = ((aba && (aba === 'avisos' || ve(aba)))
     ? aba : primeira) as Exclude<typeof aba, null>;
   // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira

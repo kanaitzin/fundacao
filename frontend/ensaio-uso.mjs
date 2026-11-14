@@ -3197,10 +3197,16 @@ await fechar();
 await fechar();
 console.log('\n🚪 O portão — a portaria com login mínimo (fase 160)');
 await trocar('portaria');
-/* A portaria tem uma tela só, e desde a fase 184 não ganha barra: era um
-   "Mais" sozinho que abria uma folha com a tela onde ela já estava. */
+/* Desde a fase 184 a portaria não ganhava barra: era um "Mais" sozinho que abria uma
+   folha com a tela onde ela já estava. Desde a 322 ela tem duas telas, o portão e os
+   encontros de alinhamento, e as duas vão na própria barra, como a da cozinha; ela
+   continua entrando pelo portão. */
 await fechar();
-cobrar('a portaria não tem barra de seções', (await pg.locator('nav.tabbar').count()) === 0);
+{
+  const naBarra = (await pg.locator('nav.tabbar button').allInnerTexts()).map((t) => t.trim()).filter(Boolean);
+  cobrar('a barra da portaria tem só o portão e os encontros',
+    naBarra.length === 0 || naBarra.every((t) => /Portaria|Encontros/.test(t)), naBarra.join(' · '));
+}
 erros.length = 0;
 const portao = await conteudo();
 cobrar('a portaria abre direto no portão', /Portaria/.test(portao) && /Visitantes/.test(portao) && /Quem chegou/.test(portao), portao.slice(0, 300));
