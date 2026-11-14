@@ -5,7 +5,7 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-14T01:00-03:00
+- **Atualizado em:** 2026-11-14T01:30-03:00
 - **Situação:** fechada a 320 (a Chamada e O Dia da Casa revistos, e o adendo da chamada confirmada, checks/1719 e 1720), esperando o sim do dono para ir ao site (o site está na 319).
 - **Fase:** 315 a 320, fechadas. A próxima livre é a 321.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
