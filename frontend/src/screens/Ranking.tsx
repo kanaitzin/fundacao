@@ -183,15 +183,15 @@ export function Ranking() {
                     </div>
                   ))}
                   <div className="eyebrow">A equipe da casa, pelo que registrou</div>
-                  {eq === undefined ? (
-                    <button className="btn sec" onClick={() => { void abrirEquipe(c); }}>Abrir a equipe</button>
-                  ) : eq === 'abrindo' ? <p className="mutetxt">Abrindo…</p>
+                  {/* Um botão só, no mesmo lugar, abre e fecha a equipe (o ensaio:cabe volta por ele). */}
+                  <button className="btn sec" aria-expanded={eq !== undefined}
+                          onClick={() => { if (eq === undefined) void abrirEquipe(c);
+                            else setEquipe((x) => { const y = { ...x }; delete y[c.houseId]; return y; }); }}>
+                    {eq === undefined ? 'Abrir a equipe' : 'Fechar a equipe'}
+                  </button>
+                  {eq === undefined ? null : eq === 'abrindo' ? <p className="mutetxt">Abrindo…</p>
                     : typeof eq === 'string' ? <div className="notice c-crit" role="alert">{eq}</div>
                       : eq.pessoas.length === 0 ? <p className="mutetxt">Ninguém na equipe desta casa no período.</p> : (
-                        <>
-                        <button className="btn ghost sm" onClick={() => setEquipe((x) => { const y = { ...x }; delete y[c.houseId]; return y; })}>
-                          Fechar a equipe
-                        </button>
                         <ol className="ranking-pessoas">
                           {eq.pessoas.map((p) => (
                             <li key={p.id}>
@@ -208,7 +208,6 @@ export function Ranking() {
                             </li>
                           ))}
                         </ol>
-                        </>
                       )}
                 </div>
               )}
