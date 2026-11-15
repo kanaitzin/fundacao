@@ -1,6 +1,6 @@
 {
   "name": "alignments",
-  "descricao": "Reuniões de equipe, combinados e a pauta que quem trabalha na casa propõe (§9.4): o que ficou estabelecido, escrito num lugar só e legível por todo mundo do turno — e a resposta a quem propôs, inclusive quando é não. E o encontro de alinhamento com quem trabalha (fase 322): a coordenação e a Coordenação Geral escrevem, a pessoa lê e dá ciência.",
+  "descricao": "Reuniões de equipe, combinados e a pauta que quem trabalha na casa propõe (§9.4): o que ficou estabelecido, escrito num lugar só e legível por todo mundo do turno — e a resposta a quem propôs, inclusive quando é não. E o encontro de alinhamento com quem trabalha (fase 322): a coordenação e a Coordenação Geral escrevem, a pessoa lê e dá ciência. E o funcionário do mês (fase 324): um por casa, da coordenação da casa, e um da Fundação, da Coordenação Geral, com o porquê.",
   "depends": [
     "identity"
   ],
@@ -17,7 +17,8 @@
     "house_statute",
     "staff_alignment",
     "staff_alignment_reply",
-    "staff_alignment_addendum"
+    "staff_alignment_addendum",
+    "staff_of_month"
   ],
   "removivel": true,
   "observacao": "Sem ele a casa não perde nenhum fluxo operacional: os combinados voltam a viver no papel da reunião e na memória de quem estava lá — que é exatamente o problema que ele resolve."

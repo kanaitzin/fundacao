@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 159 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 160 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **267 migrações** | `.sql` dentro das partições |
-| **159 tabelas** | `CREATE TABLE` nas migrações |
-| **184 suítes** | `backend/test/*.spec.ts` |
-| **1625 testes** | `it(` / `test(` nas suítes |
+| **268 migrações** | `.sql` dentro das partições |
+| **160 tabelas** | `CREATE TABLE` nas migrações |
+| **185 suítes** | `backend/test/*.spec.ts` |
+| **1630 testes** | `it(` / `test(` nas suítes |
 | **42 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **15 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -535,6 +535,7 @@ arqueologia.
 | 322 | **Os encontros de alinhamento com quem trabalha** (pedido e decisões do dono em 14/11). A coordenação da casa registra o encontro com quem trabalha na casa dela (menos outra coordenação), e a Coordenação Geral com todos abaixo dela (menos o Gestor Geral): mensal, trimestral, semestral ou anual, com os pontos positivos, o que podemos melhorar (se tiver) e os combinados, e o próximo encontro, cujo dia o relógio avisa a quem registrou, uma vez (`staff_alignment`, alignments/1721, onze rotinas por casa e uma fora das casas). Leem a própria pessoa, quem registrou, a coordenação da casa (menos o encontro de outra coordenação) e a Coordenação Geral; o Gestor Geral não lê. A pessoa dá ciência uma vez, com comentário, e quem registrou é avisado; o adendo é de quem registrou e não muda o que estava escrito. **Sem nota e sem pontuação.** A tela *Encontros de alinhamento* é de toda a equipe (cada um lê os seus) e, para a coordenação, mostra a equipe em ordem de nome; na Equipe, o botão *Alinhamentos* do cartão abre os encontros da pessoa, e de lá se vê o trabalho dela (fase 117), já escolhida. **E a regra mudou, por decisão do dono:** a proibição de ranking (§5 regra 3) protege só as crianças e os adolescentes; o ranking das casas e da equipe para a Coordenação Geral e o Gestor Geral vem na 323, e o funcionário do mês na 324. **Medido na 322:** a `o-encontro-de-alinhamento` (9 de 9: quem registra, quem lê, a ciência, o adendo, a Coordenação Geral com a coordenação e a Enfermagem, as datas, o relógio uma vez só, e a aplicação sem escrita direta), as conferências de catálogo e código, e a sonda no protótipo a 390 e 1366 px (a coordenação registra pela Equipe, o Ver o trabalho chega com a pessoa escolhida, o educador dá ciência com comentário, a Coordenação Geral vê a equipe e a Enfermagem, e o Gestor Geral não tem a tela; nenhum erro, nada andando para o lado). **E, no mesmo dia, a pedido do dono** (*o cargo aparece junto ao nome; deixe o cargo com cores, para diferenciar do nome da pessoa*, e *a equipe técnica tem uma assistente social e uma psicóloga*): o cargo vai numa **etiqueta cheia na cor do cargo** ao lado do nome (`EtiquetaDoCargo`, `cargos.tsx`), na Equipe, nos encontros, na ATA, na passagem, na escala, no topo e na Minha conta, com a forma diferente da pílula de estado; a Equipe deixou de pintar o setor com as cores de estado (o âmbar da cozinha, o verde do Líder Diurno); **os nomes fictícios do protótipo deixaram de levar o cargo no sobrenome** (*Tatiane Técnica*, *Carla Coordenadora*, *Paulo da Portaria*); e **a profissão de quem é da equipe técnica** (identity/1722: `app_user.profissao`, só para o cargo `equipe_tecnica`, gravada por quem administra a conta, a lista em `identity/profissao.regra.ts`) aparece no lugar de *Equipe técnica*: Assistente social, Psicóloga, Psicólogo, Psicopedagoga ou Psicopedagogo, escolhida por quem cadastra e nunca deduzida do nome. A `a-profissao-da-equipe-tecnica` (6 de 6). **Na conferência, por outra conta:** o `ensaio:uso` achou **a portaria abrindo nos Encontros**, e não no portão (a lista em ordem alfabética punha os Encontros na frente; hoje eles nunca são a tela de entrada, e a portaria tem as duas telas na barra, como a cozinha); e a revisão da 1721, provada como o papel da aplicação, achou **a conta desativada lendo o encontro, dando ciência e escrevendo adendo**, e **o aviso do próximo encontro consumido sem ninguém receber** quando quem registrou saiu (fechados na alignments/1723, com dois casos que reprovam sem ela). **E, pedido do dono no mesmo dia, quem acompanha a criança** (*fui delegar alguém para levar uma criança a uma atividade externa e apareceram a cozinha e a portaria*): a lista do responsável da Agenda tirava a cozinha desde a 0580, e a portaria, que veio na 160, nunca saiu; a mesma lista serve ao Dia (quem realizou, a quem delegar, quem substitui), e a designação da atividade e o acompanhante da internação aceitavam qualquer pessoa. Hoje a regra mora em `app_acompanha_crianca` (activities/1724), com o gatilho no acompanhante da internação (nursing/1725), o espelho em `identity/quem-acompanha.regra.ts` e a suíte `quem-acompanha-a-crianca`, que reprova sem as duas migrações. |
 | 325 | **A escala de plantão é de quem cuida das crianças** (pedido do dono em 15/11: *também não controlamos a escala da cozinha ou da portaria; eles entram para ver só as partes deles, ou a equipe da casa e os líderes imprimem para eles*). A Escala oferecia toda conta ativa da casa para escalar, substituir e montar o rascunho do mês, a cozinha e a portaria incluídas. Hoje as três portas da escala recusam as duas no banco (identity/1726, pela mesma regra da 1724), a tela não as oferece e o protótipo recusa igual. A 323 e a 324 continuam reservadas para o ranking e o funcionário do mês. |
 | 323 | **O ranking das casas e da equipe** (pedido e decisões do dono em 14/11). Para a Coordenação Geral e o Gestor Geral, a tela *Ranking das casas* põe as oito casas em ordem pela organização documental (PIA, reavaliação, receita e vacinação em dia, dossiê completo e ATAs fechadas sem pendência), pelo cuidado registrado (doses no horário, chamadas confirmadas, frequência escolar marcada, atendimentos técnicos e visitas por acolhido) e pelo uso do sistema (quem da equipe registrou e quantos registros por pessoa), com a nota de 0 a 100 de cada grupo e a geral, e o gasto com medicamento em total e por acolhido. Ao abrir uma casa, os indicadores e o que cada pessoa da equipe registrou no período, quem não registrou com zero. O banco devolve só contagens e recusa os outros cargos (`app_ranking_das_casas`, `app_ranking_das_pessoas`, `app_ve_o_ranking`, reports/1727); a nota e a ordem saem do `reports/ranking.regra.ts`, a mesma conta no servidor e no protótipo. Nenhuma criança aparece, nem contagem por criança, e o aviso *mede o que foi registrado, e não o cuidado* fica à vista. Abrir fica na auditoria (`painel.ranking`, `painel.ranking_pessoas`). |
+| 324 | **O funcionário do mês** (pedido e decisões do dono em 14/11). Dois por mês, no alto da tela *Encontros de alinhamento*: o da casa, escolhido pela coordenação da casa entre quem trabalha nela (a cozinha e a portaria incluídas), e o da Fundação, escolhido pela Coordenação Geral, cada um com o porquê de pelo menos 20 letras. Escolhe-se o mês corrente ou o anterior, nunca a si mesma nem o Gestor Geral; a pessoa escolhida recebe o aviso no sino. Trocar é uma escolha nova com o motivo, e a de antes continua em *Os meses anteriores*. Leem o da casa quem trabalha nela, a Coordenação Geral e o Gestor Geral; o da Fundação, todas as contas ativas (o mais aberto que cabe no pedido, a conferir com o dono). Sem nota, ponto nem ordem entre pessoas. A aplicação não escreve na tabela (`staff_of_month`, `app_escolher_o_do_mes`, `app_escolhe_o_do_mes`, `app_le_o_do_mes`, alignments/1728); a regra do mês e dos mínimos mora em `alignments/funcionario-do-mes.regra.ts`. No protótipo, o da Fundação se escolhe entre a equipe da Casa 03 e quem atende todas as casas. |
 
 ---
 
@@ -582,7 +583,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-267 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+268 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -649,7 +650,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              184 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              185 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -3119,7 +3120,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 267 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 268 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

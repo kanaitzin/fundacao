@@ -382,6 +382,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'painel.metricas': 'Painel das oito casas aberto',
   /* O ranking das casas e da equipe (fase 323): abrir também deixa linha. */
   'painel.ranking': 'Ranking das casas aberto',
+  /* O funcionário do mês (fase 324): a escolha e a troca, com a casa (nula para a da Fundação). */
+  'funcionario_do_mes.escolhido': 'Funcionário do mês escolhido',
   'painel.ranking_pessoas': 'Ranking da equipe de uma casa aberto',
   /* O período da casa (fase 121). Uma leitura que junta seis meses de uma casa
      numa tela só deixa linha por ter sido aberta. A SAÍDA em arquivo deixa a

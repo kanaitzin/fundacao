@@ -151,6 +151,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 324, dia: '15/11/2026', aba: 'encontros',
+    texto: 'O funcionário do mês. No alto da tela Encontros de alinhamento aparecem dois: o da casa, escolhido pela coordenação da casa, e o da Fundação, escolhido pela Coordenação Geral, cada um com o porquê escrito por quem escolheu. A pessoa escolhida recebe o aviso no sino. Escolhe-se o mês de agora ou o anterior; trocar pede o motivo, e a escolha de antes continua em Os meses anteriores. Quem trabalha na casa lê o da casa, e as oito casas leem o da Fundação.' },
   { fase: 323, dia: '15/11/2026', aba: 'ranking',
     texto: 'O Ranking das casas, para a Coordenação Geral e o Gestor Geral. As oito casas em ordem pela organização documental (PIA, reavaliação, receita e vacinação em dia, dossiê completo e ATAs fechadas sem pendência), pelo cuidado registrado (doses no horário, chamadas confirmadas, frequência escolar marcada, atendimentos e visitas por acolhido) e pelo uso do sistema, cada uma com a nota de 0 a 100, e o gasto com medicamento por acolhido. Ver os números e a equipe abre os indicadores da casa e o que cada pessoa da equipe registrou no período. O ranking mede o que foi registrado, e não o cuidado, e nenhuma criança aparece nele.' },
   { fase: 325, dia: '15/11/2026',

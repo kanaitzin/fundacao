@@ -70,6 +70,7 @@ const PALAVRAS: Record<string, string[]> = {
   trabalho: ['trabalho da equipe'],
   unidades: ['todas as unidades', 'dia em ordem', 'dia das unidades'],
   painel: ['painel das unidades', 'limite de vagas', 'vagas', 'ocupacao', 'lotacao'],
+  encontros: ['funcionario do mes', 'funcionaria do mes', 'destaque do mes', 'encontro de alinhamento'],
   ranking: ['ranking', 'melhor casa', 'qual casa', 'classificacao das casas', 'quem registrou mais'],
   metricas: ['painel', 'numeros', 'oito casas', 'como estao as casas', 'gasto', 'gastamos'],
   avisos: ['aviso', 'sino', 'notificac', 'alerta'],

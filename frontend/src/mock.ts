@@ -76,6 +76,9 @@ function tirarACasa(texto: string): { casa: string | null; texto: string } {
 
 function casaDoPedido(rota: string, q: URLSearchParams, corpo: Record<string, unknown>, metodo: string): string {
   if (DA_INSTITUICAO.some((re) => re.test(rota))) return CASA_MODELO;
+  /* O funcionário do mês da Fundação (fase 324) mora na casa-modelo; o da casa, em cada casa. */
+  if (rota === '/alignments/funcionario-do-mes' && metodo === 'POST' && !corpo.houseId) return CASA_MODELO;
+  if (rota === '/alignments/funcionario-do-mes/candidatos' && !q.get('houseId')) return CASA_MODELO;
   if (rota === '/impacto/marcos' && metodo === 'GET' && !q.get('houseId')) return CASA_MODELO;
   const pedida = q.get('houseId') ?? q.get('casaId')
     ?? (typeof corpo.houseId === 'string' ? corpo.houseId : null)
@@ -265,6 +268,12 @@ function responderNaCasa<T>(id: string, rota: string, seg: string[], q: URLSearc
     return trocarNaSaida(r, casa(casaAberta).trocar) as T;
   }
   if (modelo && metodo === 'GET') return juntarAsCasas(rota, q, r) as T;
+  if (!modelo && metodo === 'GET' && rota === '/alignments/funcionario-do-mes') {
+    /* O da Fundação mora na casa-modelo (fase 324): a casa aberta diz o dela, e a Fundação vem de lá. */
+    const daCasa = trocarNaSaida(r, s.trocar) as { daFundacao: unknown[] };
+    const daFundacao = (naCasa(CASA_MODELO, rota, new URLSearchParams()) as typeof daCasa)?.daFundacao ?? [];
+    return { ...daCasa, daFundacao } as T;
+  }
   return (modelo ? r : trocarNaSaida(r, s.trocar)) as T;
 }
 

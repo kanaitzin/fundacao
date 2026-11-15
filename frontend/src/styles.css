@@ -3218,3 +3218,9 @@ label{ letter-spacing:-.005em }
   .ranking-topo { flex-wrap:wrap }
   .ranking-nota { white-space:normal; flex-basis:100%; text-align:left }
 }
+
+/* O funcionário do mês (fase 324): os dois cartões lado a lado no computador, um embaixo do outro no celular. */
+.do-mes-grade { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:12px }
+.do-mes { min-width:0; overflow-wrap:anywhere; border:1px solid var(--line); border-radius:12px; padding:10px 12px }
+.do-mes-antes { list-style:none; margin:6px 0 0; padding:0 }
+.do-mes-antes li { padding:6px 0; border-top:1px solid var(--line) }

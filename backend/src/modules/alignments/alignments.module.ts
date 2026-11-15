@@ -4,6 +4,8 @@ import { AlignmentsController } from './alignments.controller';
 import { AlignmentsService } from './alignments.service';
 import { EncontrosController } from './encontros.controller';
 import { EncontrosService } from './encontros.service';
+import { FuncionarioDoMesController } from './funcionario-do-mes.controller';
+import { FuncionarioDoMesService } from './funcionario-do-mes.service';
 
 /**
  * Módulo `alignments` — o que a equipe combinou, escrito.
@@ -12,8 +14,8 @@ import { EncontrosService } from './encontros.service';
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [AlignmentsController, EncontrosController],
-  providers: [AlignmentsService, EncontrosService],
+  controllers: [AlignmentsController, EncontrosController, FuncionarioDoMesController],
+  providers: [AlignmentsService, EncontrosService, FuncionarioDoMesService],
   exports: [AlignmentsService, EncontrosService],
 })
 export class AlignmentsModule {}

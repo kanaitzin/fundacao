@@ -159,7 +159,7 @@ export const PORTAS: Porta[] = [
     descricao: 'Quem trabalha nesta casa, por setor.' },
   { aba: 'encontros', icone: 'alinhamentos', grupo: 'gestao', familia: 'equipe',
     titulo: 'Encontros de alinhamento',
-    descricao: 'O registro dos encontros com a coordenação: pontos positivos, o que melhorar e os combinados.' },
+    descricao: 'O funcionário do mês e o registro dos encontros com a coordenação: pontos positivos, o que melhorar e os combinados.' },
   { aba: 'trabalho', icone: 'trabalho', grupo: 'gestao', familia: 'equipe',
     titulo: 'O trabalho da equipe',
     descricao: 'O que cada pessoa e cada setor registrou, em ordem. Sem contar nada.' },

@@ -5,6 +5,7 @@ import { OQueFalta } from '../o-que-falta';
 import { dia, diaEHora } from '../rotulos';
 import { EtiquetaDoCargo } from '../cargos';
 import { pedirAPessoa, pessoaPedida } from '../pessoa-a-abrir';
+import { FuncionarioDoMes } from '../funcionario-do-mes';
 
 /**
  * OS ENCONTROS DE ALINHAMENTO (fase 322, pedido e decisões do dono em 14/11).
@@ -33,8 +34,8 @@ interface Pessoa {
 }
 interface Periodicidade { code: string; label: string }
 
-export function Encontros({ meuId, ve, irPara }: {
-  meuId: string; ve: (aba: string) => boolean; irPara: (aba: string) => void;
+export function Encontros({ meuId, ve, irPara, casaId = null }: {
+  meuId: string; ve: (aba: string) => boolean; irPara: (aba: string) => void; casaId?: string | null;
 }) {
   const [meus, setMeus] = useState<Encontro[]>([]);
   const [equipe, setEquipe] = useState<Pessoa[]>([]);
@@ -88,6 +89,9 @@ export function Encontros({ meuId, ve, irPara }: {
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         {recado && <div className="notice c-ok recado-da-vez" role="status">{recado}</div>}
       </div>
+
+      {/* O funcionário do mês (fase 324): o da casa aberta e o da Fundação, com o porquê. */}
+      <FuncionarioDoMes key={`${meuId}|${casaId ?? ''}`} casaId={casaId} />
 
       {podeRegistrar && (
         <div className="card">

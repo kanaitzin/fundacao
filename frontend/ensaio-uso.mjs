@@ -5948,6 +5948,64 @@ console.log('\n🏆 O ranking das casas e da equipe (fase 323)');
   await pgR.close();
 }
 
+console.log('\n🌟 O funcionário do mês (fase 324)');
+{
+  const pgM = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosM = [];
+  pgM.on('pageerror', (e) => errosM.push(e.message));
+  const esp = (ms = 700) => pgM.waitForTimeout(ms);
+  const mainM = () => pgM.locator('main.conteudo');
+  const cargoM = async (c) => { cargoAtual = c; await pgM.locator('select.troca-cargo-sel').selectOption(c); await esp(1000); };
+  const portaM = async (titulo) => {
+    await pgM.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(350);
+    await pgM.locator('.overlay .sheet button.card.row')
+      .filter({ has: pgM.locator('b.ff', { hasText: new RegExp(`^\\s*${titulo}\\s*$`) }) }).first().click();
+    await esp(1000);
+  };
+  await pgM.goto(`file://${ARQUIVO}`); await esp();
+  await pgM.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgM.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  await cargoM('coordenador');
+  await portaM('Encontros de alinhamento');
+  cobrar('os Encontros abrem com o funcionário do mês, ainda sem escolha',
+    /Funcionário do mês/.test(await mainM().innerText()) && /Ainda sem escolha neste mês/.test(await mainM().innerText()));
+  cobrar('a coordenação da casa escolhe o da casa, e não o da Fundação',
+    (await mainM().getByRole('button', { name: 'Escolher o da casa' }).count()) === 1
+    && (await mainM().getByRole('button', { name: 'Escolher o da Fundação' }).count()) === 0);
+  await mainM().getByRole('button', { name: 'Escolher o da casa' }).click(); await esp(500);
+  const folhaM = pgM.locator('[role=dialog]');
+  cobrar('a folha diz o que falta', /Falta escolher a pessoa e escrever o porquê/.test(await folhaM.innerText()));
+  await folhaM.locator('#do-mes-pessoa').selectOption({ label: 'Mário Silva' });
+  await folhaM.locator('#do-mes-porque').fill('Organizou a mudança de quarto das meninas com escuta e paciência.');
+  await folhaM.getByRole('button', { name: 'Registrar a escolha' }).click(); await esp(900);
+  cobrar('a escolha da casa aparece com o porquê e quem escolheu',
+    /Mário Silva/.test(await mainM().innerText()) && /mudança de quarto/.test(await mainM().innerText())
+    && /Escolha de Carla Menezes/.test(await mainM().innerText()));
+  await mainM().getByRole('button', { name: 'Escolher o da casa' }).click(); await esp(500);
+  await folhaM.locator('#do-mes-pessoa').selectOption({ label: 'Joana Lima' });
+  await folhaM.locator('#do-mes-porque').fill('Segurou a noite inteira com o Kauã febril, com calma e registro.');
+  cobrar('trocar a escolha do mês pede o motivo', /por que trocar/.test(await folhaM.innerText()));
+  await folhaM.locator('#do-mes-motivo').fill('A equipe lembrou na reunião da noite difícil da Joana.');
+  await folhaM.getByRole('button', { name: 'Registrar a escolha' }).click(); await esp(900);
+  await mainM().getByRole('button', { name: 'Os meses anteriores' }).first().click().catch(() => {}); await esp(300);
+  const depoisDaTroca = await mainM().innerText();
+  cobrar('a troca vale, e a escolha de antes continua registrada',
+    /Joana Lima/.test(depoisDaTroca) && /Mário Silva \(trocada depois\)/.test(depoisDaTroca));
+  await cargoM('coordenacao_geral');
+  await portaM('Encontros de alinhamento');
+  await mainM().getByRole('button', { name: 'Escolher o da Fundação' }).click(); await esp(500);
+  await folhaM.locator('#do-mes-pessoa').selectOption({ index: 1 });
+  await folhaM.locator('#do-mes-porque').fill('Esteve nas oito casas no mês e ajudou a organizar as receitas de todas.');
+  await folhaM.getByRole('button', { name: 'Registrar a escolha' }).click(); await esp(900);
+  await cargoM('educador');
+  await portaM('Encontros de alinhamento');
+  const ed = await mainM().innerText();
+  cobrar('o educador lê o da casa e o da Fundação, sem botão de escolher',
+    /Joana Lima/.test(ed) && /oito casas no mês/.test(ed) && !/Escolher o da/.test(ed));
+  cobrar('nenhuma exceção no funcionário do mês', errosM.length === 0, errosM[0]);
+  await pgM.close();
+}
+
 /*
  * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
  * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.

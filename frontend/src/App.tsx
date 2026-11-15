@@ -1436,7 +1436,7 @@ export function App() {
                   irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); marcarChegada(); }} />
         )}
         {abaEfetiva === 'encontros' && ve('encontros') && (
-          <Encontros meuId={me.id} ve={ve}
+          <Encontros meuId={me.id} ve={ve} casaId={casaAtual?.id ?? null}
                      irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); marcarChegada(); }} />
         )}
 

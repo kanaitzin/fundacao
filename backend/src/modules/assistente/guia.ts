@@ -104,7 +104,7 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 - O período da casa (periodo): como foi a casa na semana, no mês ou no intervalo escolhido, com relatório em Word.
 - O trabalho da equipe (trabalho): o que cada pessoa e cada setor registrou, em ordem, sem contar nada.
 - Ranking das casas (ranking): só para o Gestor Geral e a Coordenação Geral; as casas em ordem pela organização documental, pelo cuidado registrado e pelo uso do sistema, o gasto por acolhido e, dentro de cada casa, o que cada pessoa registrou. Mede o registro, não o cuidado, e nenhuma criança aparece.
-- Encontros de alinhamento (encontros): o registro de cada encontro mensal, trimestral, semestral ou anual entre a coordenação e quem trabalha, com pontos positivos, o que podemos melhorar e os combinados; a pessoa lê o seu e dá ciência.
+- Encontros de alinhamento (encontros): no alto, o funcionário do mês da casa (escolhido pela coordenação da casa) e o da Fundação (escolhido pela Coordenação Geral), com o porquê; e o registro de cada encontro mensal, trimestral, semestral ou anual entre a coordenação e quem trabalha, com pontos positivos, o que podemos melhorar e os combinados; a pessoa lê o seu e dá ciência.
 - O trabalho social (impacto): o que o acolhimento produziu nas oito casas, a trajetória de cada criança.
 - Painel das unidades (painel): ocupação, entradas e saídas, e o quadro de cada mês, sem ranking.
 - Equipe (equipe): contas, cargos, convites, quem trabalha na casa por setor.
@@ -244,6 +244,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /alignments/agenda?houseId=  pauta proposta
 - /alignments/kinds  tipos de combinado
 - /alignments/statute?houseId=  regras de convivência
+- /alignments/funcionario-do-mes?houseId=  o funcionário do mês da casa e o da Fundação, com o porquê de quem escolheu
 - /notifications  os avisos da pessoa
 - /notifications/count  quantos avisos esperam
 - /houses  as casas no alcance
@@ -285,6 +286,7 @@ export const FORA_DO_CATALOGO: Record<string, string> = {
   '/alignments/encontros/comigo': 'o encontro de alinhamento é entre a pessoa e a coordenação; a assistente não lê',
   '/alignments/encontros/equipe': 'o encontro de alinhamento é entre a pessoa e a coordenação; a assistente não lê',
   '/alignments/encontros/pessoa/:x': 'o encontro de alinhamento é entre a pessoa e a coordenação; a assistente não lê',
+  '/alignments/funcionario-do-mes/candidatos': 'é só a lista de quem pode ser escolhido, que a folha da escolha mostra',
   '/devices': 'aparelhos e sincronização são da TI',
   '/sync/conflicts': 'aparelhos e sincronização são da TI',
   '/sync/status': 'aparelhos e sincronização são da TI',

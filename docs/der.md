@@ -1039,7 +1039,7 @@ ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a 
 de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
 retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
-## Inventário — 159 tabelas por partição
+## Inventário — 160 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -1054,7 +1054,7 @@ retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 | checks (6) | collective_check, check_result, check_result_amendment, check_bulk, house_check_model, check_result_addendum |
 | notifications (5) | notification, escalation, escalation_level, push_subscription, notification_push |
 | archive (2) | archive_item, archive_attempt |
-| alignments (8) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute, staff_alignment, staff_alignment_reply, staff_alignment_addendum |
+| alignments (9) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute, staff_alignment, staff_alignment_reply, staff_alignment_addendum, staff_of_month |
 | routine (2) | routine_version, routine_item |
 | assistente (3) | assistant_suggestion, assistant_word, assistant_word_decision |
 | statements (3) | witness_option, statement, statement_request |
@@ -1530,6 +1530,19 @@ coordenação da casa (menos o encontro de outra coordenação) e a Coordenaçã
 (`app_le_o_alinhamento`, na política de leitura das três). A aplicação não escreve nelas: só as funções
 `app_registrar_alinhamento`, `app_responder_alinhamento` e `app_adendo_do_alinhamento`, e o relógio marca o
 aviso do próximo encontro pela `app_alinhamentos_que_chegam`. Ninguém atualiza nem apaga o que foi escrito.
+
+
+### `staff_of_month` — o funcionário do mês
+O funcionário do mês (fase 324, alignments/1728, pedido e decidido pelo dono em 14/11). Uma linha é uma
+escolha: a casa (`house_id`, nula para o da Fundação), o mês (`month`, sempre o primeiro dia; o corrente ou o
+anterior), a pessoa (`person_id`, nunca quem escolhe nem o Gestor Geral; na casa, quem trabalha nela) e o
+porquê (`reason`, de 20 a 2.000 letras), com `chosen_by` e `chosen_at`. **Trocar é uma linha nova**: aponta
+para a de antes (`replaces_id`, única) com o motivo (`change_reason`, de 10 a 2.000 letras), e a de antes
+continua; vale a última da corrente. Uma escolha original por casa (ou pela Fundação) e mês. **Não há nota,
+ponto nem ordem entre pessoas.** **Quem escolhe:** a coordenação da casa, o da casa; a Coordenação Geral, o da
+Fundação (`app_escolhe_o_do_mes`). **Quem lê:** o da casa, quem trabalha na casa, a Coordenação Geral e o
+Gestor Geral; o da Fundação, toda conta ativa da instituição (`app_le_o_do_mes`, na política de leitura). A
+aplicação não escreve na tabela: só a `app_escolher_o_do_mes`.
 
 ### `document.mirror_of` e `prescription_document.kind` — o espelho no dossiê
 Nenhuma tabela nova: a fase 125 é **uma coluna em cada lado** e uma função.

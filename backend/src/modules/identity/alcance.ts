@@ -141,7 +141,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       + 'precisa navegar.',
     areas: [
       { area: 'encontros', titulo: AREAS.encontros,
-        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        faz: 'Lê o funcionário do mês da casa e o da Fundação, com o porquê, e o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
         servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word: a '
@@ -197,7 +197,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'Conduz o turno diurno da casa: o que o educador alcança, mais o fechamento.',
     areas: [
       { area: 'encontros', titulo: AREAS.encontros,
-        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        faz: 'Lê o funcionário do mês da casa e o da Fundação, com o porquê, e o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
         servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word: a '
@@ -274,7 +274,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'Psicologia e serviço social da casa: o caso, não o turno.',
     areas: [
       { area: 'encontros', titulo: AREAS.encontros,
-        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        faz: 'Lê o funcionário do mês da casa e o da Fundação, com o porquê, e o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
         servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'portaria', titulo: AREAS.portaria,
         faz: 'Marca, no contato da criança, quem está autorizado a visitar, com CPF e foto 3×4, '
@@ -384,7 +384,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       + 'e quem as gera é a equipe da casa.',
     areas: [
       { area: 'encontros', titulo: AREAS.encontros,
-        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        faz: 'Lê o funcionário do mês da casa e o da Fundação, com o porquê, e o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
         servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Vê nome, restrição e substituição orientada.',
@@ -413,7 +413,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       + 'entrada e a saída. Não abre perfil, saúde, relato, ocorrência nem ATA.',
     areas: [
       { area: 'encontros', titulo: AREAS.encontros,
-        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        faz: 'Lê o funcionário do mês da casa e o da Fundação, com o porquê, e o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
         servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'portaria', titulo: AREAS.portaria,
         faz: 'Confere quem chega pela foto e pelo documento, e registra a entrada e a saída da visita.',
@@ -436,7 +436,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       + 'Noturno Geral e a Coordenação Geral.',
     areas: [
       { area: 'encontros', titulo: AREAS.encontros,
-        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        faz: 'Lê o funcionário do mês da casa e o da Fundação, com o porquê, e o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
         servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'internacao', titulo: AREAS.internacao,
         faz: 'Acompanha a criança internada, registra a medicação que o hospital deu e baixa o '
@@ -471,7 +471,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'A noite das oito unidades. Também exceção funcional.',
     areas: [
       { area: 'encontros', titulo: AREAS.encontros,
-        faz: 'Lê o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
+        faz: 'Lê o funcionário do mês da casa e o da Fundação, com o porquê, e o registro dos próprios encontros de alinhamento com a coordenação, dá ciência e pode comentar.',
         servidor: 'Lê só os encontros registrados com ele. Quem registra é a coordenação da casa e a Coordenação Geral.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word: a '
@@ -529,7 +529,8 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'encontros', titulo: AREAS.encontros,
         faz: 'Registra o encontro de alinhamento com quem trabalha na casa (mensal, trimestral, semestral ou '
           + 'anual), com os pontos positivos, o que podemos melhorar e os combinados, e lê os de antes. A '
-          + 'Coordenação Geral registra com todos abaixo dela. E lê os próprios encontros.',
+          + 'Coordenação Geral registra com todos abaixo dela. E lê os próprios encontros. Escolhe o funcionário do mês: a '
+          + 'coordenação da casa, o da casa; a Coordenação Geral, o da Fundação, sempre com o porquê.',
         servidor: 'Não há nota nem pontuação. O registro não se reescreve: a correção é um adendo. A coordenação '
           + 'da casa não lê o encontro de outra coordenação; quem lê é a pessoa, quem registrou, a coordenação da '
           + 'casa e a Coordenação Geral.' },

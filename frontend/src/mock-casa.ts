@@ -37,6 +37,8 @@ import { LEEM_O_SIGILO, MARCAM_O_SIGILO, TIRAM_O_SIGILO } from '../../backend/sr
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
+import { FRASE_QUEM_ESCOLHE_O_DO_MES, MOTIVO_DA_TROCA_MINIMO, PORQUE_MINIMO, mesesQueSeEscolhem, rotuloDoMes }
+  from '../../backend/src/modules/alignments/funcionario-do-mes.regra';
 import { AVISO_DO_RANKING, FRASE_QUEM_VE_O_RANKING, GRUPOS_DO_RANKING, TIPOS_DE_REGISTRO, montarRanking,
   pessoasEmOrdem, type ContagensDaCasa, type PessoaNoRanking } from '../../backend/src/modules/reports/ranking.regra';
 import { prazoDaReavaliacao } from '../../backend/src/modules/people/reavaliacao.regra';
@@ -461,6 +463,9 @@ const diaAntes = (dias: number) => {
   const d = new Date(`${HOJE}T12:00:00-03:00`); d.setDate(d.getDate() - dias);
   return d.toISOString().slice(0, 10);
 };
+/** O funcionário do mês (fase 324): as escolhas desta casa e, na casa-modelo, as da Fundação. */
+const DO_MES: { id: string; casa: boolean; mes: string; pessoaId: string; porque: string; porId: string;
+  em: string; substitui: string | null; motivoDaTroca: string | null }[] = [];
 const ENCONTROS: {
   id: string; pessoaId: string; porId: string; casa: string | null; periodicidade: string; dia: string;
   positivos: string; melhorar: string | null; combinados: string | null; proximo: string | null; em: string;
@@ -7253,6 +7258,67 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
   /* ---------- Os encontros de alinhamento (fase 322): a mesma regra do banco (1721). ---------- */
+  /* ---------- O funcionário do mês (fase 324): a mesma regra do banco (1728). ---------- */
+  if (seg[0] === 'alignments' && seg[1] === 'funcionario-do-mes') {
+    const quem = (id: string) => EQUIPE_CASA.find((m) => m.id === id)
+      ?? Object.values(USUARIOS).map((u) => ({ id: u.id, nome: u.fullName, cargo: u.role })).find((u) => u.id === id);
+    const geral = TODAS_AS_CASAS.has(eu.id);
+    const daCasa = (houseId: unknown) => !!houseId;
+    const escolhe = (casa: boolean) => eu.role === 'coordenador' && (casa ? !geral : geral);
+    const podeSer = (casa: boolean, id: string) => {
+      const p = quem(id);
+      if (!p || id === eu.id || DESATIVADOS.has(id) || p.cargo === 'gestor_geral') return false;
+      return casa ? EQUIPE_CASA.some((m) => m.id === id) : true;
+    };
+    const vale = (e: typeof DO_MES[number]) => !DO_MES.some((x) => x.substitui === e.id);
+    const emPortugues = (e: typeof DO_MES[number]) => {
+      const p = quem(e.pessoaId);
+      return { id: e.id, mes: e.mes, mesRotulo: rotuloDoMes(e.mes), pessoaId: e.pessoaId, pessoa: p?.nome ?? '',
+        cargo: p?.cargo ?? '', profissao: p ? profissaoDe(p.id, p.cargo) : null, porque: e.porque,
+        por: quem(e.porId)?.nome ?? '', em: e.em, casa: e.casa ? cfg.casa.code : null, vale: vale(e),
+        motivoDaTroca: e.motivoDaTroca };
+    };
+    const meses = mesesQueSeEscolhem(HOJE);
+    if (seg[2] === 'candidatos' && metodo === 'GET') {
+      const casa = daCasa(q.get('houseId'));
+      if (!escolhe(casa)) return new Recusa(403, FRASE_QUEM_ESCOLHE_O_DO_MES);
+      const transversais = Object.values(USUARIOS).map((u) => ({ id: u.id, nome: u.fullName, cargo: u.role }))
+        .filter((u) => !EQUIPE_CASA.some((m) => m.id === u.id));
+      return { pessoas: [...EQUIPE_CASA, ...(casa ? [] : transversais)].filter((p) => podeSer(casa, p.id))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+        .map((p) => ({ id: p.id, nome: p.nome, cargo: p.cargo, profissao: profissaoDe(p.id, p.cargo) })) };
+    }
+    if (seg.length === 2 && metodo === 'GET') {
+      return {
+        houseId: q.get('houseId') || null,
+        mesesQueSeEscolhem: meses.map((m) => ({ mes: m, rotulo: rotuloDoMes(m) })),
+        daCasa: DO_MES.filter((e) => e.casa).sort((a, b) => b.mes.localeCompare(a.mes) || b.em.localeCompare(a.em)).map(emPortugues),
+        daFundacao: DO_MES.filter((e) => !e.casa).sort((a, b) => b.mes.localeCompare(a.mes) || b.em.localeCompare(a.em)).map(emPortugues),
+        podeEscolherDaCasa: !!q.get('houseId') && escolhe(true), podeEscolherDaFundacao: escolhe(false),
+      };
+    }
+    if (seg.length === 2 && metodo === 'POST') {
+      const casa = daCasa(b.houseId);
+      if (!escolhe(casa)) return new Recusa(403, FRASE_QUEM_ESCOLHE_O_DO_MES);
+      const mes = String(b.mes ?? '');
+      if (!meses.includes(mes)) return new Recusa(400, 'Escolha o mês: o de agora ou o anterior.');
+      if (!podeSer(casa, String(b.pessoaId ?? ''))) {
+        return new Recusa(400, casa ? 'Escolha alguém que trabalha nesta casa. Você não escolhe a si mesma.'
+          : 'Escolha alguém da Fundação. Você não escolhe a si mesma.');
+      }
+      const porque = String(b.porque ?? '').trim();
+      if (porque.length < PORQUE_MINIMO) return new Recusa(400, `Escreva o porquê da escolha, com pelo menos ${PORQUE_MINIMO} letras.`);
+      const atual = DO_MES.find((e) => e.casa === casa && e.mes === mes && vale(e));
+      const motivo = String(b.motivoDaTroca ?? '').trim();
+      if (atual && motivo.length < MOTIVO_DA_TROCA_MINIMO) {
+        return new Recusa(409, `Este mês já tem a escolha. Para trocar, escreva o motivo da troca, com pelo menos ${MOTIVO_DA_TROCA_MINIMO} letras.`);
+      }
+      const id = uid();
+      DO_MES.push({ id, casa, mes, pessoaId: String(b.pessoaId), porque, porId: eu.id, em: new Date().toISOString(),
+        substitui: atual?.id ?? null, motivoDaTroca: atual ? motivo : null });
+      return { ok: true, id, aviso: 'Escolha registrada. A pessoa recebe o aviso com o porquê.' };
+    }
+  }
   if (seg[0] === 'alignments' && seg[1] === 'encontros') {
     const pessoaPor = (id: string) => EQUIPE_CASA.find((m) => m.id === id)
       ?? Object.values(USUARIOS).map((u) => ({ id: u.id, nome: u.fullName, cargo: u.role })).find((u) => u.id === id);
