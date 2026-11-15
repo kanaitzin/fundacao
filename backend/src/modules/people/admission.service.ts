@@ -9,6 +9,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { isValidCpf, normalizeCpf } from '../../kernel/common/cpf';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { recusaDasDatasDoCadastro } from './datas-do-cadastro.regra';
+import { numerosDoCns, recusaDosDadosDoCadastro } from './dados-do-cadastro.regra';
 import { ReavaliacaoService } from './reavaliacao.service';
 
 /**
@@ -157,6 +158,11 @@ export class AdmissionService {
       nascimento: pessoa.birthDate, acolhimento: acolhimento.admittedOn, guia: judicial.guideDate,
     }, hojeNaInstituicao());
     if (recusaDeData) throw new BadRequestException(recusaDeData);
+
+    /* RG, cartão SUS, filiação e raça/cor (fase 326): a mesma regra da tela e do protótipo. */
+    const recusaDosDados = recusaDosDadosDoCadastro(pessoa);
+    if (recusaDosDados) throw new BadRequestException(recusaDosDados);
+    if (pessoa.cns) pessoa.cns = numerosDoCns(pessoa.cns);
 
     const cpf = pessoa.cpf ? normalizeCpf(pessoa.cpf) : '';
     if (cpf && !isValidCpf(cpf)) throw new BadRequestException('CPF inválido. Confira os números digitados.');

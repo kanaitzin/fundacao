@@ -6006,6 +6006,49 @@ console.log('\n🌟 O funcionário do mês (fase 324)');
   await pgM.close();
 }
 
+console.log('\n🪪 O cadastro com os documentos, e o que falta para completar (fase 326)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  const esp = (ms = 700) => pgC.waitForTimeout(ms);
+  await pgC.goto(`file://${ARQUIVO}`); await esp();
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgC.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(1200);
+  await pgC.locator('nav.tabbar button', { hasText: 'Acolhidos' }).first().click(); await esp(800);
+  await pgC.getByRole('button', { name: /Cadastrar acolhido/ }).first().click(); await esp(800);
+  await pgC.getByText(/Seguir sem CPF por enquanto/).first().click(); await esp(300);
+  await pgC.getByRole('button', { name: 'Chegou sem documentos' }).click();
+  await pgC.locator('#nome').fill('Rafaela do Ensaio');
+  await pgC.locator('#nasc').fill('2016-04-10');
+  cobrar('a raça/cor vem nas opções do IBGE', (await pgC.locator('#raca option').allInnerTexts()).includes('Parda'));
+  await pgC.locator('#raca').selectOption('parda');
+  await pgC.locator('#rg').fill('1122334455');
+  await pgC.locator('#cns').fill('123'); await esp(300);
+  cobrar('o cartão SUS curto diz que tem 15 números', /15 números/.test(await pgC.locator('.o-que-falta').innerText().catch(() => '')));
+  await pgC.locator('#cns').fill('700 0000 0000 0001');
+  await pgC.locator('#fil').fill('Joana do Ensaio');
+  await pgC.getByRole('button', { name: 'Continuar' }).click(); await esp(500);
+  await pgC.locator('#dt').fill(new Date().toISOString().slice(0, 10));
+  await pgC.getByRole('button', { name: 'Continuar' }).click(); await esp(500);
+  await pgC.locator('#mot').selectOption({ index: 1 }); await pgC.locator('#org').selectOption({ index: 1 });
+  await pgC.getByRole('button', { name: 'Continuar' }).click(); await esp(500);
+  const conferir = await pgC.locator('main.conteudo').innerText();
+  cobrar('o Conferir mostra o RG, o cartão SUS, a filiação e a raça/cor',
+    /1122334455/.test(conferir) && /700 0000 0000 0001/.test(conferir) && /Joana do Ensaio/.test(conferir) && /Parda/.test(conferir));
+  await pgC.getByRole('button', { name: 'Cadastrar acolhido' }).click(); await esp(1800);
+  const cartao = await pgC.locator('.completar-cadastro').innerText().catch(() => '');
+  cobrar('o perfil novo diz o que falta para completar o cadastro, com os obrigatórios do dossiê',
+    /Para completar o cadastro/i.test(cartao) && /documentos obrigatórios do dossiê/.test(cartao) && /Guia de acolhimento/.test(cartao));
+  cobrar('e não pede o RG nem o cartão SUS, que já vieram no cadastro', !/O RG|O cartão SUS/.test(cartao));
+  await pgC.locator('.completar-cadastro').getByRole('button', { name: 'Abrir o dossiê' }).click(); await esp(1000);
+  cobrar('o botão do cartão abre o dossiê', /obrigatórios faltando|Dossiê/.test(await pgC.locator('main.conteudo').innerText()));
+  cobrar('nenhuma exceção no cadastro novo', errosC.length === 0, errosC[0]);
+  await pgC.close();
+}
+
 /*
  * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
  * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.

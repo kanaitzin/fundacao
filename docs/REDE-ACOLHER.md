@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **271 migrações** | `.sql` dentro das partições |
+| **272 migrações** | `.sql` dentro das partições |
 | **160 tabelas** | `CREATE TABLE` nas migrações |
 | **185 suítes** | `backend/test/*.spec.ts` |
-| **1633 testes** | `it(` / `test(` nas suítes |
+| **1634 testes** | `it(` / `test(` nas suítes |
 | **42 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **15 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -536,6 +536,7 @@ arqueologia.
 | 325 | **A escala de plantão é de quem cuida das crianças** (pedido do dono em 15/11: *também não controlamos a escala da cozinha ou da portaria; eles entram para ver só as partes deles, ou a equipe da casa e os líderes imprimem para eles*). A Escala oferecia toda conta ativa da casa para escalar, substituir e montar o rascunho do mês, a cozinha e a portaria incluídas. Hoje as três portas da escala recusam as duas no banco (identity/1726, pela mesma regra da 1724), a tela não as oferece e o protótipo recusa igual. A 323 e a 324 continuam reservadas para o ranking e o funcionário do mês. **A revisão à mão da 1726, em 15/11, achou mais três portas** (provadas como o papel da aplicação numa transação desfeita): a coordenação gravava a cozinha direto na `shift_assignment`, o *repetir o mês* copiava para o rascunho quem estava na escala quatro semanas antes, e publicar o rascunho a punha na escala; hoje um gatilho na própria tabela da escala e na do rascunho recusa a cozinha e a portaria em toda gravação e troca de pessoa, o repetir não as copia, e o rascunho antigo que ainda as tenha não publica e diz a frase (identity/1729). |
 | 323 | **O ranking das casas e da equipe** (pedido e decisões do dono em 14/11). Para a Coordenação Geral e o Gestor Geral, a tela *Ranking das casas* põe as oito casas em ordem pela organização documental (PIA, reavaliação, receita e vacinação em dia, dossiê completo e ATAs fechadas sem pendência), pelo cuidado registrado (doses no horário, chamadas confirmadas, frequência escolar marcada, atendimentos técnicos e visitas por acolhido) e pelo uso do sistema (quem da equipe registrou e quantos registros por pessoa), com a nota de 0 a 100 de cada grupo e a geral, e o gasto com medicamento em total e por acolhido. Ao abrir uma casa, os indicadores e o que cada pessoa da equipe registrou no período, quem não registrou com zero. O banco devolve só contagens e recusa os outros cargos (`app_ranking_das_casas`, `app_ranking_das_pessoas`, `app_ve_o_ranking`, reports/1727); a nota e a ordem saem do `reports/ranking.regra.ts`, a mesma conta no servidor e no protótipo. Nenhuma criança aparece, nem contagem por criança, e o aviso *mede o que foi registrado, e não o cuidado* fica à vista. Abrir fica na auditoria (`painel.ranking`, `painel.ranking_pessoas`). |
 | 324 | **O funcionário do mês** (pedido e decisões do dono em 14/11). Dois por mês, no alto da tela *Encontros de alinhamento*: o da casa, escolhido pela coordenação da casa entre quem trabalha nela (a cozinha e a portaria incluídas), e o da Fundação, escolhido pela Coordenação Geral, cada um com o porquê de pelo menos 20 letras. Escolhe-se o mês corrente ou o anterior, nunca a si mesma nem o Gestor Geral; a pessoa escolhida recebe o aviso no sino. Trocar é uma escolha nova com o motivo, e a de antes continua em *Os meses anteriores*. Leem o da casa quem trabalha nela, a Coordenação Geral e o Gestor Geral; o da Fundação, todas as contas ativas (o mais aberto que cabe no pedido, a conferir com o dono). Sem nota, ponto nem ordem entre pessoas. A aplicação não escreve na tabela (`staff_of_month`, `app_escolher_o_do_mes`, `app_escolhe_o_do_mes`, `app_le_o_do_mes`, alignments/1728); a regra do mês e dos mínimos mora em `alignments/funcionario-do-mes.regra.ts`. No protótipo, o da Fundação se escolhe entre a equipe da Casa 03 e quem atende todas as casas. |
+| 326 | **O cadastro pergunta os documentos, e o perfil diz o que falta; e a conferência de cada setor** (pedidos do dono em 15/11: *volte a trabalhar no cadastro dos acolhidos, nos documentos e nos dados*, e *confira tudo o que fizemos desde a reunião no Pão, como usuário de cada setor*). O banco guardava o RG, o cartão SUS e a filiação desde a fase 235, mas o cadastro não perguntava: só entravam pela correção, com motivo, como se fossem erro. Hoje o cadastro pergunta os três, opcionais, e a raça/cor vem nas categorias do IBGE, autodeclarada (`people/dados-do-cadastro.regra.ts`, a mesma regra no servidor, na tela e no protótipo; people/1732). O cartão SUS guarda só os números e precisa ter 15. No perfil, a equipe técnica, a coordenação e o Gestor Geral veem *Para completar o cadastro de …*: os documentos obrigatórios do dossiê que faltam, a família, os cuidados essenciais, a escola e a equipe de referência, o RG e o cartão SUS, cada um com o botão do lugar de resolver; some quando não falta nada. **A conferência por setor** (as telas de cada cargo abertas no protótipo, 198 telas sem erro, e as regras provadas como o papel da aplicação) achou: o plano da Cozinha dizendo *chamada feita: comeram 2* com a chamada ainda aberta em 2 de 14 (hoje diz que está em andamento e quantas crianças foram conferidas, reports/1730); a Enfermagem e o Líder Noturno Geral, que alcançam a casa sem vínculo, sem ler o funcionário do mês dela (alignments/1731); e o *Abrir a equipe* do Ranking sem volta. |
 
 ---
 
@@ -583,7 +584,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-271 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+272 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -3120,7 +3121,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 271 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 272 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

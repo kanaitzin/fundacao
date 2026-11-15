@@ -3224,3 +3224,8 @@ label{ letter-spacing:-.005em }
 .do-mes { min-width:0; overflow-wrap:anywhere; border:1px solid var(--line); border-radius:12px; padding:10px 12px }
 .do-mes-antes { list-style:none; margin:6px 0 0; padding:0 }
 .do-mes-antes li { padding:6px 0; border-top:1px solid var(--line) }
+
+/* Para completar o cadastro (fase 326): o que falta, cada item com o botão que resolve. */
+.completar-cadastro { margin-bottom: 12px }
+.completar-item { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap }
+.completar-item > span { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere }

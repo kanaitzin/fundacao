@@ -295,7 +295,7 @@ tinham fechado sem o relógio adiantado).
 pauta arrumada para o Marcelo; e a setinha de trocar de casa e o 1.0, com o `implantacao`.
 **Se o dono preferir outra ordem, vale a dele**, e este bloco se reescreve.
 
-### Onde estamos — 15/11/2026, fase 324
+### Onde estamos — 15/11/2026, fase 326
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -484,8 +484,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 325 | **a escala de plantão é de quem cuida das crianças** (pedido de 15/11): a cozinha e a portaria saem da Escala (escalar, substituir e o rascunho do mês), no banco, na tela e no protótipo (identity/1726) |
 | 323 | **o ranking das casas e da equipe** (pedido de 14/11): para a Coordenação Geral e o Gestor Geral, as oito casas em ordem pelos documentos, pelo cuidado registrado e pelo uso do sistema, o gasto por acolhido e, em cada casa, o que cada pessoa registrou; o banco devolve só contagens e recusa os outros (reports/1727), a conta é a do `ranking.regra.ts`; nenhuma criança aparece |
 | 324 | **o funcionário do mês** (pedido de 14/11): no alto dos Encontros de alinhamento, o da casa (da coordenação da casa) e o da Fundação (da Coordenação Geral), com o porquê; trocar pede o motivo e não apaga a de antes; a pessoa é avisada (alignments/1728) |
+| 326 | **o cadastro pergunta os documentos, e o perfil diz o que falta** (pedido de 15/11): RG, cartão SUS e filiação no cadastro (people/1732), raça/cor nas opções do IBGE, e o cartão *Para completar o cadastro* no perfil; e a conferência de cada setor: a chamada da cozinha em andamento (reports/1730), o funcionário do mês para a Enfermagem (alignments/1731) e o Abrir a equipe do Ranking que fecha |
 
-**Medido no fim da 324:** 271 migrações, 160 tabelas, 185 suítes, 1633 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 326:** 272 migrações, 160 tabelas, 185 suítes, 1634 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;

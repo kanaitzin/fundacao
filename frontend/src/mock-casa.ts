@@ -84,6 +84,7 @@ import { CASAS_DA_FUNDACAO, CASA_MODELO, trocadorDeNomes, type ConfigDaCasa } fr
 import { QUEM_POE_FOTO } from '../../backend/src/modules/people/foto.regra';
 import { QUEM_VE_CPF_INTEIRO } from '../../backend/src/modules/people/cpf-na-portaria.regra';
 import { recusaDasDatasDoCadastro } from '../../backend/src/modules/people/datas-do-cadastro.regra';
+import { numerosDoCns, recusaDosDadosDoCadastro } from '../../backend/src/modules/people/dados-do-cadastro.regra';
 import { FRASE_DA_SENHA, senhaAceita, senhaInicialSorteada } from '../../backend/src/kernel/common/senha.regra';
 import { PROFISSOES, ehProfissao } from '../../backend/src/modules/identity/profissao.regra';
 import { idDoPrototipo, sorteioDoPrototipo, sorteioFixo } from './prototipo-guardado';
@@ -10534,6 +10535,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const recusaDeData = recusaDasDatasDoCadastro({ nascimento: b.pessoa?.birthDate,
       acolhimento: b.acolhimento?.admittedOn, guia: b.judicial?.guideDate }, HOJE);
     if (recusaDeData) return new Recusa(400, recusaDeData);
+    /* RG, cartão SUS, filiação e raça/cor (fase 326): a mesma regra do servidor. */
+    const recusaDosDados = recusaDosDadosDoCadastro(b.pessoa ?? {});
+    if (recusaDosDados) return new Recusa(400, recusaDosDados);
     const semCpf = !String(b.pessoa?.cpf ?? '').trim();
     const cpfNumero = String(b.pessoa?.cpf ?? '').replace(/\D/g, '');
     if (!semCpf && !cpfConfere(cpfNumero)) return new Recusa(400, 'CPF inválido. Confira os números digitados.');
@@ -10553,6 +10557,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       genero: b.pessoa?.gender || undefined, raca: b.pessoa?.race || undefined,
       naturalidade: b.pessoa?.birthplace || undefined, nis: b.pessoa?.nis || undefined,
       registroCivil: b.pessoa?.civilRegistry || undefined,
+      rg: String(b.pessoa?.rg ?? '').trim() || undefined,
+      cns: numerosDoCns(b.pessoa?.cns) || undefined,
+      filiacao: String(b.pessoa?.filiation ?? '').trim() || undefined,
       judicial: {
         motivo: (responder('/people/admission/options', [], q, {}, 'GET') as any)
           .motivos.find((m: any) => m.cod === b.judicial?.reasonCategory)?.label ?? '—',

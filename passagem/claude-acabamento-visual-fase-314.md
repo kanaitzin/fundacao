@@ -5,9 +5,9 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-15T15:43-03:00
-- **Situação:** revisão da 1726 em medição: a cozinha e a portaria entravam na escala pela gravação direta, pelo repetir o mês e pelo publicar (identity/1729). Publica-se quando a suíte nas duas condições e o ensaio:uso passarem.
-- **Fase:** 324 fechada. A próxima livre é a 326.
+- **Atualizado em:** 2026-11-15T18:23-03:00
+- **Situação:** fase 326 em medição: o cadastro com RG, cartão SUS, filiação e raça/cor do IBGE, o cartão Para completar o cadastro no perfil, e os consertos da conferência por setor (1729 a 1731, Ranking).
+- **Fase:** 326 em medição. A próxima livre é a 327.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora

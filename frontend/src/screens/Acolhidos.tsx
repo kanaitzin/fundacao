@@ -986,6 +986,12 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </div>
       )}
 
+      {/* O que falta para completar o cadastro (fase 326), para quem completa: logo depois de
+          cadastrar, o perfil mostrava cada campo vazio num lugar, e nada dizia por onde começar. */}
+      {QUEM_CADASTRA.includes(papel) && (aba === 'geral' || aba === 'documentos') && (
+        <ParaCompletarOCadastro perfil={p} onAba={setAba} onDossie={() => setDossie(true)}
+                                onCorrigir={() => setCorrigindo(true)} onDetalhe={() => setEditandoDetalhe(true)} />
+      )}
       <AcoesDoPerfil papel={papel} onAba={setAba} onDossie={() => setDossie(true)} />
       <AbasDoPerfil aba={aba} onAba={setAba} leAtendimento={leAtendimento} />
 
@@ -2167,6 +2173,65 @@ function FichaQuemE({ perfil: p, numeros }: { perfil: Perfil; numeros: NumerosDa
  * primeiro plantão: quem é, onde mora, há quanto tempo está acolhida, em que
  * escola estuda, quem é a família dela e quem cuida do caso.
  */
+/**
+ * PARA COMPLETAR O CADASTRO (fase 326, pedido do dono em 15/11).
+ *
+ * O que ainda falta no cadastro da criança, numa lista só, cada item com o botão que leva ao
+ * lugar de resolver: os documentos obrigatórios do dossiê, a família, os cuidados essenciais, a
+ * escola e a equipe de referência, o RG e o cartão SUS. Some quando não falta nada. Não guarda
+ * nada próprio: lê o perfil e o dossiê que já existem.
+ */
+function ParaCompletarOCadastro({ perfil: p, onAba, onDossie, onCorrigir, onDetalhe }: {
+  perfil: Perfil; onAba: (a: AbaDoPerfil) => void; onDossie: () => void;
+  onCorrigir: () => void; onDetalhe: () => void;
+}) {
+  const [faltamNoDossie, setFaltamNoDossie] = useState<string[] | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    api<{ categorias: { obrigatoriosQueFaltam: string[] }[] }>(`/people/${p.id}/dossie`)
+      .then((d) => { if (vivo) setFaltamNoDossie(d.categorias.flatMap((c) => c.obrigatoriosQueFaltam)); })
+      .catch(() => { if (vivo) setFaltamNoDossie([]); });
+    return () => { vivo = false; };
+  }, [p.id, p.documentos.length]);
+  const itens: { chave: string; texto: string; botao: string; acao: () => void }[] = [];
+  if (faltamNoDossie && faltamNoDossie.length) {
+    itens.push({ chave: 'dossie', botao: 'Abrir o dossiê', acao: onDossie,
+      texto: `${quantos(faltamNoDossie.length, 'documento obrigatório', 'documentos obrigatórios')} do dossiê: ${faltamNoDossie.join(', ')}.` });
+  }
+  if (!p.contatos.some((c) => c.ativo)) {
+    itens.push({ chave: 'familia', botao: 'Família e visitas', acao: () => onAba('familia'),
+      texto: 'Ninguém da família cadastrado, nem a referência familiar autorizada.' });
+  }
+  if (!p.cuidadosEssenciais) {
+    itens.push({ chave: 'cuidados', botao: 'Escrever os cuidados', acao: onDetalhe,
+      texto: 'Os cuidados essenciais, o que quem cuida precisa saber já hoje.' });
+  }
+  if (!p.escola?.nome || !p.equipeReferencia) {
+    itens.push({ chave: 'escola', botao: 'Escola e equipe', acao: onDetalhe,
+      texto: [!p.escola?.nome && 'a escola', !p.equipeReferencia && 'a equipe de referência']
+        .filter(Boolean).join(' e ').replace(/^./, (x) => x.toUpperCase()) + '.' });
+  }
+  if (!p.rg || !p.cns) {
+    itens.push({ chave: 'identificacao', botao: 'Corrigir o cadastro', acao: onCorrigir,
+      texto: [!p.rg && 'o RG', !p.cns && 'o cartão SUS'].filter(Boolean).join(' e ')
+        .replace(/^./, (x) => x.toUpperCase()) + '.' });
+  }
+  if (faltamNoDossie === null || itens.length === 0) return null;
+  return (
+    <section className="card completar-cadastro" aria-label={`Para completar o cadastro de ${p.nome}`}>
+      <div className="eyebrow">Para completar o cadastro de {p.nome}</div>
+      <ul className="lista">
+        {itens.map((i) => (
+          <li key={i.chave} className="completar-item">
+            <span>{i.texto}</span>
+            <button className="btn sm sec" onClick={i.acao}>{i.botao}</button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function VisaoGeral({ perfil: p, numeros, papel, houseId, onAba }: {
   perfil: Perfil; numeros: NumerosDaCrianca | null; papel: string; houseId: string;
   onAba: (a: AbaDoPerfil) => void;

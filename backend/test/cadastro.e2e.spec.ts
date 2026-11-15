@@ -282,4 +282,25 @@ describe('Cadastro do acolhido — dados completos, área judicial e limite da c
       `SELECT code, capacity FROM house WHERE code <> 'AI3' ORDER BY code`);
     for (const casa of rows) expect(casa.capacity).toBe(20);
   });
+  it('o cadastro guarda o RG, o cartão SUS só com os números, a filiação e a raça/cor (fase 326)', async () => {
+    const res = await request(http).post('/api/v1/people/admission').set(auth(tokens.tecnica))
+      .send(cadastro('Lia Documentada (fictícia)', { pessoa: {
+        rg: '1122334455', cns: '700 0000 0000 0001', filiation: 'Maria Fictícia\nJoão Fictício', race: 'parda' },
+        acolhimento: { capacityReason: 'Conferência do cadastro com os documentos, fase 326.' } }));
+    expect([res.status, res.body.message]).toEqual([201, undefined]);
+    pessoasCriadas.push(res.body.personId);
+    const { rows: [p] } = await admin.query(
+      `SELECT rg, cns, filiation, race FROM person WHERE id = $1`, [res.body.personId]);
+    expect(p).toEqual({ rg: '1122334455', cns: '700000000000001', filiation: 'Maria Fictícia\nJoão Fictício', race: 'parda' });
+    for (const [extra, frase] of [
+      [{ cns: '123' }, /cartão SUS tem 15 números/],
+      [{ race: 'morena' }, /raça\/cor numa das opções/],
+    ] as [Record<string, string>, RegExp][]) {
+      const r = await request(http).post('/api/v1/people/admission').set(auth(tokens.tecnica))
+        .send(cadastro('Dado Errado (fictício)', { pessoa: extra,
+          acolhimento: { capacityReason: 'Conferência do cadastro com os documentos, fase 326.' } }));
+      expect(r.status).toBe(400);
+      expect(r.body.message).toMatch(frase);
+    }
+  });
 });

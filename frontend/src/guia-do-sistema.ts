@@ -151,6 +151,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 326, dia: '15/11/2026', aba: 'acolhidos',
+    texto: 'O cadastro do acolhido pergunta também o RG, o cartão SUS e a filiação, e a raça/cor nas opções do IBGE, autodeclarada. No perfil, a equipe técnica e a coordenação veem o cartão Para completar o cadastro, com o que ainda falta: os documentos obrigatórios do dossiê, a família, os cuidados essenciais, a escola e a equipe de referência, o RG e o cartão SUS, cada um com o botão que leva ao lugar de resolver. E três acertos: a Cozinha diz quando a chamada da refeição ainda está em andamento, em vez de chamada feita; a Enfermagem e o Líder Noturno Geral leem o funcionário do mês da casa; e no Ranking, o Abrir a equipe também fecha.' },
   { fase: 324, dia: '15/11/2026', aba: 'encontros',
     texto: 'O funcionário do mês. No alto da tela Encontros de alinhamento aparecem dois: o da casa, escolhido pela coordenação da casa, e o da Fundação, escolhido pela Coordenação Geral, cada um com o porquê escrito por quem escolheu. A pessoa escolhida recebe o aviso no sino. Escolhe-se o mês de agora ou o anterior; trocar pede o motivo, e a escolha de antes continua em Os meses anteriores. Quem trabalha na casa lê o da casa, e as oito casas leem o da Fundação.' },
   { fase: 323, dia: '15/11/2026', aba: 'ranking',

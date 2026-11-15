@@ -3,6 +3,7 @@ import { api, ErroApi } from '../api';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
 import { formatCpf, isValidCpf } from '../../../backend/src/kernel/common/cpf';
 import { avisoDaIdade, idadeEm, recusaDasDatasDoCadastro } from '../../../backend/src/modules/people/datas-do-cadastro.regra';
+import { RACAS_IBGE, rotuloDaRaca, recusaDosDadosDoCadastro } from '../../../backend/src/modules/people/dados-do-cadastro.regra';
 
 /**
  * CADASTRO COMPLETO DO ACOLHIDO (§6.1, §13.1).
@@ -84,6 +85,10 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
   const [birthplace, setBirthplace] = useState('');
   const [nis, setNis] = useState('');
   const [civilRegistry, setCivilRegistry] = useState('');
+  /* O RG, o cartão SUS e a filiação (fase 326): o banco guardava, o cadastro não perguntava. */
+  const [rg, setRg] = useState('');
+  const [cns, setCns] = useState('');
+  const [filiation, setFiliation] = useState('');
 
   // Bloco 2 — a chegada
   const [admittedOn, setAdmittedOn] = useState(hoje());
@@ -166,7 +171,8 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
   /* AS DATAS QUE A PRESSA TROCA (fase 319): a mesma regra do servidor, passo a passo,
      dita no lugar do que falta. */
   const recusaDeData = [
-    recusaDasDatasDoCadastro({ nascimento: birthDate }, hoje()),
+    recusaDasDatasDoCadastro({ nascimento: birthDate }, hoje())
+      ?? recusaDosDadosDoCadastro({ race, cns, rg, filiation }),
     recusaDasDatasDoCadastro({ nascimento: birthDate, acolhimento: admittedOn }, hoje()),
     recusaDasDatasDoCadastro({ guia: guideDate }, hoje()),
     null,
@@ -191,6 +197,8 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
             gender: gender || undefined, race: race || undefined,
             birthplace: birthplace.trim() || undefined, nis: nis.trim() || undefined,
             civilRegistry: civilRegistry.trim() || undefined,
+            rg: rg.trim() || undefined, cns: cns.trim() || undefined,
+            filiation: filiation.trim() || undefined,
             essentialCare: essentialCare.trim() || undefined,
           },
           acolhimento: {
@@ -401,12 +409,17 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
                 )}
 
                 <label className="f" htmlFor="gen">Gênero <small>— opcional</small></label>
-                <input id="gen" className="field" value={gender}
+                <input id="gen" className="field" value={gender} list="generos"
                        onChange={(e) => setGender(e.target.value)} />
+                <datalist id="generos"><option value="Feminino" /><option value="Masculino" /></datalist>
 
                 <label className="f" htmlFor="raca">Raça/cor <small>— opcional, autodeclarada</small></label>
-                <input id="raca" className="field" value={race}
-                       onChange={(e) => setRace(e.target.value)} />
+                {/* As categorias do IBGE, as dos formulários da rede (fase 326). Autodeclarada:
+                    quem cadastra não escolhe pela aparência; sem a declaração, não declarada. */}
+                <select id="raca" className="field" value={race} onChange={(e) => setRace(e.target.value)}>
+                  <option value="">Ainda não perguntado</option>
+                  {RACAS_IBGE.map((r) => <option key={r.cod} value={r.cod}>{r.label}</option>)}
+                </select>
 
                 <label className="f" htmlFor="nat">Naturalidade <small>— opcional</small></label>
                 <input id="nat" className="field" value={birthplace}
@@ -416,6 +429,16 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
                 <input id="nis" className="field" value={nis}
                        onChange={(e) => setNis(e.target.value)} />
 
+                <label className="f" htmlFor="rg">RG <small>— opcional</small></label>
+                <input id="rg" className="field" value={rg} maxLength={30}
+                       onChange={(e) => setRg(e.target.value)} />
+                <label className="f" htmlFor="cns">Cartão SUS <small>— opcional, 15 números</small></label>
+                <input id="cns" className="field" value={cns} inputMode="numeric" maxLength={20}
+                       onChange={(e) => setCns(e.target.value)} />
+                <label className="f" htmlFor="fil">Filiação <small>— opcional, como está na certidão</small></label>
+                <textarea id="fil" rows={2} value={filiation} maxLength={300}
+                          onChange={(e) => setFiliation(e.target.value)}
+                          placeholder="Um nome por linha: a mãe e o pai, como estão no papel." />
                 <label className="f" htmlFor="rc">Registro civil <small>— opcional</small></label>
                 <input id="rc" className="field" value={civilRegistry}
                        onChange={(e) => setCivilRegistry(e.target.value)}
@@ -564,6 +587,10 @@ export function Cadastro({ houseId, casaLabel, onPronto, onAbrirPerfil, onRegist
             {socialName && <Linha rotulo="Nome civil" valor={fullName} />}
             <Linha rotulo="Nascimento"
                    valor={birthDate ? `${dia(birthDate)} (${idadeEm(birthDate, hoje())} anos)` : ''} />
+            {rg.trim() && <Linha rotulo="RG" valor={rg.trim()} />}
+            {cns.trim() && <Linha rotulo="Cartão SUS" valor={cns.trim()} />}
+            {filiation.trim() && <Linha rotulo="Filiação" valor={filiation.trim().split('\n').join(' e ')} />}
+            {race && <Linha rotulo="Raça/cor" valor={rotuloDaRaca(race) ?? ''} />}
             <Linha rotulo="CPF" valor={semCpf ? 'sem CPF por enquanto: entra com um número provisório' : formatCpf(cpf)} />
             <Linha rotulo="Acolhido em" valor={dia(admittedOn)} />
             <Linha rotulo="Trazido por" valor={broughtBy || '—'} />
