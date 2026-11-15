@@ -86,6 +86,7 @@ export const AREAS = {
   encontros: 'Encontros de alinhamento',
   periodo: 'O período da casa',
   metricas: 'As oito casas, em números',
+  ranking: 'Ranking das casas',
   casas: 'Unidades',
   sugestoes: 'Sugestões de melhoria',
   guia: 'Guia do sistema',
@@ -519,6 +520,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'ranking', titulo: AREAS.ranking,
+        faz: 'Só a Coordenação Geral: as casas em ordem pela organização documental, pelo cuidado registrado e pelo uso do '
+          + 'sistema, o gasto por acolhido e, dentro de cada casa, o que cada pessoa registrou.',
+        servidor: 'Decisão do dono em 14/11: o ranking das casas e da equipe é do Gestor Geral e da '
+          + 'Coordenação Geral. Mede o registro, não o cuidado, e a tela diz isso. Nenhuma criança '
+          + 'aparece, nem contagem por criança. Abrir fica registrado.' },
       { area: 'encontros', titulo: AREAS.encontros,
         faz: 'Registra o encontro de alinhamento com quem trabalha na casa (mensal, trimestral, semestral ou '
           + 'anual), com os pontos positivos, o que podemos melhorar e os combinados, e lê os de antes. A '
@@ -634,6 +641,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'Escopo institucional. Abre UMA casa por vez, e cada abertura fica registrada.',
     areas: [
+      { area: 'ranking', titulo: AREAS.ranking,
+        faz: 'As casas em ordem pela organização documental, pelo cuidado registrado e pelo uso do '
+          + 'sistema, o gasto por acolhido e, dentro de cada casa, o que cada pessoa registrou.',
+        servidor: 'Decisão do dono em 14/11: o ranking das casas e da equipe é do Gestor Geral e da '
+          + 'Coordenação Geral. Mede o registro, não o cuidado, e a tela diz isso. Nenhuma criança '
+          + 'aparece, nem contagem por criança. Abrir fica registrado.' },
       { area: 'sugestoes', titulo: AREAS.sugestoes,
         faz: 'Lê as sugestões de melhoria das oito casas, com o nome de quem sugeriu.',
         servidor: 'Ninguém sugere em nome de outro, e nada se apaga.' },

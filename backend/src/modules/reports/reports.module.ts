@@ -6,6 +6,7 @@ import { ReportsService } from './reports.service';
 import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
 import { MetricasService } from './metricas.service';
+import { RankingService } from './ranking.service';
 import { PeriodoService } from './periodo.service';
 import { OQueMudouService } from './o-que-mudou.service';
 import { NumerosDaCriancaService } from './numeros-da-crianca.service';
@@ -22,7 +23,7 @@ import { DocumentoService } from './documento.service';
 @Module({
   imports: [IdentityModule],
   controllers: [FollowupsController, ReportsController, ImpactoController],
-  providers: [FollowupsService, ReportsService, ImpactoService, PanelService, MetricasService,
+  providers: [FollowupsService, ReportsService, ImpactoService, PanelService, MetricasService, RankingService,
     PeriodoService, ConteudoService, DocumentoService, OQueMudouService, NumerosDaCriancaService],
   exports: [ReportsService, FollowupsService],
 })

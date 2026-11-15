@@ -3197,3 +3197,24 @@ label{ letter-spacing:-.005em }
 .encontro-partes{ margin:10px 0 6px }
 .encontro-partes dt{ font-weight:700; font-size:13px; color:var(--ink-2); margin-top:8px }
 .encontro-partes dd{ margin:2px 0 0; white-space:pre-wrap; overflow-wrap:anywhere }
+
+/* O ranking das casas (fase 323). A barra usa a tinta do gráfico, nunca a cor de estado:
+   a casa de baixo não está "em vermelho". */
+.ranking-lista, .ranking-pessoas, .ranking-indicadores { list-style:none; margin:0; padding:0 }
+.ranking-casa { margin-bottom:10px }
+.ranking-topo { display:flex; align-items:center; gap:10px; min-width:0 }
+.ranking-topo .grow { min-width:0; overflow-wrap:anywhere }
+.ranking-pos { font-size:22px; font-weight:700; min-width:2.2em; text-align:center; color:var(--muted, inherit) }
+.ranking-nota { white-space:nowrap; text-align:right }
+.ranking-barra { height:10px; border-radius:6px; background:var(--gr-trilho); margin:8px 0 4px; overflow:hidden }
+.ranking-barra > div { height:100%; background:var(--gr-tinta); border-radius:6px }
+.ranking-detalhe { margin-top:8px }
+.ranking-indicadores li { display:flex; justify-content:space-between; gap:12px; padding:6px 0;
+  border-bottom:1px solid var(--line, rgba(0,0,0,.08)) }
+.ranking-indicadores li span { min-width:0; overflow-wrap:anywhere }
+.ranking-indicadores li b { white-space:nowrap }
+.ranking-pessoas li { padding:8px 0; border-bottom:1px solid var(--line, rgba(0,0,0,.08)) }
+@media (max-width: 420px) {
+  .ranking-topo { flex-wrap:wrap }
+  .ranking-nota { white-space:normal; flex-basis:100%; text-align:left }
+}

@@ -26,6 +26,7 @@ import { Trabalho } from './screens/Trabalho';
 import { Encontros } from './screens/Encontros';
 import { Periodo } from './screens/Periodo';
 import { Metricas } from './screens/Metricas';
+import { Ranking } from './screens/Ranking';
 import { Dia } from './screens/Dia';
 import { PainelPlantao } from './screens/PainelPlantao';
 import { DiaDasUnidades } from './screens/DiaDasUnidades';
@@ -76,7 +77,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'impacto', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao', 'trabalho', 'periodo', 'metricas',
-  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao', 'implantacao', 'sugestoes', 'guia']);
+  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao', 'implantacao', 'sugestoes', 'guia', 'ranking']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -445,7 +446,11 @@ const CONVITE_DA_URL = (() => {
 })();
 
 /** As telas que juntam as casas: com elas abertas, o botão do alto diz *Todas as casas*. */
-const VISAO_DAS_OITO = new Set(['metricas', 'unidades', 'casas', 'impacto']);
+const VISAO_DAS_OITO = new Set(['metricas', 'unidades', 'casas', 'impacto', 'ranking']);
+/* Na coordenação, só a Coordenação Geral alcança estas: a saúde da implantação (decisão de
+   05/10) e o ranking das casas (decisão do dono em 14/11, fase 323). O mapa é por cargo, e
+   estas são as que dependem da marca. */
+const SO_DA_COORDENACAO_GERAL = new Set(['implantacao', 'ranking']);
 
 /** As telas que mostram UMA casa: quem não tem casa de trabalho precisa ver qual (fase 213). */
 const TELAS_DA_CASA = new Set(['dia', 'chamada', 'acolhidos', 'passagem', 'agenda', 'plantao',
@@ -500,7 +505,7 @@ export function App() {
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria' | 'campos_do_perfil'
-    | 'trabalho' | 'encontros' | 'periodo' | 'metricas'
+    | 'trabalho' | 'encontros' | 'periodo' | 'metricas' | 'ranking'
     | 'alinhamentos' | 'painel' | 'sincronizacao' | 'implantacao' | 'sugestoes'
     | 'rotina' | 'escala' | 'avisos' | 'guia' | null>(null);
   /* Vale para UMA abertura: saindo dos Acolhidos, a escolha some. Sem isto,
@@ -778,7 +783,7 @@ export function App() {
   /* A saúde da implantação é do servidor das oito: na coordenação, só a
      Coordenação Geral a alcança (decisão de 05/10). O mapa é por cargo, e esta
      é a única área que depende da marca. */
-  const ve = (area: string) => (area === 'implantacao' && me.role === 'coordenador'
+  const ve = (area: string) => (SO_DA_COORDENACAO_GERAL.has(area) && me.role === 'coordenador'
     ? !!me.todasAsCasas : alcanca(me.role, area));
   /* A folha Mais, filtrada pelo que a pessoa escreveu. A ORDEM é a alfabética
      (pedido de 12/11), com o Guia na frente, que é o Comece aqui. Os ensaios entram
@@ -1436,6 +1441,7 @@ export function App() {
         )}
 
         {abaEfetiva === 'metricas' && ve('metricas') && <Metricas />}
+        {abaEfetiva === 'ranking' && ve('ranking') && <Ranking />}
         {abaEfetiva === 'trabalho' && ve('trabalho') && <Trabalho />}
         {abaEfetiva === 'periodo' && ve('periodo') && (
           <Periodo casaId={casaAtual?.id ?? null} />

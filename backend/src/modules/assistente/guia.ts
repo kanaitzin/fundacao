@@ -103,6 +103,7 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 - Acompanhamentos (acompanhamentos): relatórios semanais e mensais por eixo, aprovação e devolução com motivo.
 - O período da casa (periodo): como foi a casa na semana, no mês ou no intervalo escolhido, com relatório em Word.
 - O trabalho da equipe (trabalho): o que cada pessoa e cada setor registrou, em ordem, sem contar nada.
+- Ranking das casas (ranking): só para o Gestor Geral e a Coordenação Geral; as casas em ordem pela organização documental, pelo cuidado registrado e pelo uso do sistema, o gasto por acolhido e, dentro de cada casa, o que cada pessoa registrou. Mede o registro, não o cuidado, e nenhuma criança aparece.
 - Encontros de alinhamento (encontros): o registro de cada encontro mensal, trimestral, semestral ou anual entre a coordenação e quem trabalha, com pontos positivos, o que podemos melhorar e os combinados; a pessoa lê o seu e dá ciência.
 - O trabalho social (impacto): o que o acolhimento produziu nas oito casas, a trajetória de cada criança.
 - Painel das unidades (painel): ocupação, entradas e saídas, e o quadro de cada mês, sem ranking.
@@ -228,6 +229,8 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /reports/house-monthly?houseId=&mes=AAAA-MM  o mês da casa
 - /reports/kitchen?houseId=  o relatório da cozinha
 - /reports/metrics?de=&ate=  números das unidades no período
+- /reports/ranking?de=&ate=  o ranking das casas (só Gestor Geral e Coordenação Geral): documentos, cuidado, uso do sistema e gasto, nunca por criança
+- /reports/ranking/ID/pessoas?de=&ate=  o que cada pessoa da equipe de uma casa registrou no período
 - /reports/panel  painel das unidades
 - /followups?houseId=  acompanhamentos pendentes (pode &tipo=)
 - /followups/ID  um acompanhamento

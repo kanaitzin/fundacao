@@ -46,6 +46,7 @@ export const COM_A_ACOLHE: Record<string, string> = {
   guia: 'Pergunte a ela como se faz qualquer coisa do sistema. Ela explica o passo a passo e leva você até a tela certa.',
   avisos: 'Ela lê os seus avisos e diz o que cada um pede, e leva você à tela de onde o aviso veio.',
   metricas: 'Ela lê os números das casas e monta tabela com as contas feitas, que você baixa como planilha. Casa não se compara com casa: ela mostra cada uma no seu contexto.',
+  ranking: 'Ela explica como cada nota é feita e leva você à tela. Ela não diz por que uma casa ficou acima de outra: o ranking mede o registro, e a conversa sobre o porquê é com a casa.',
   dia: 'Ela lê o dia da casa e diz o que ainda espera alguém. Para o que apareceu agora no turno, abre o formulário de atividade urgente e preenche com você.',
   chamada: 'Ela abre uma chamada nova da casa e preenche o formulário com você. Quem marca a presença é você, criança por criança.',
   acolhidos: 'Ela acha a criança pelo nome, abre o perfil e a aba do assunto (pedir um documento abre a aba Documentos e o dossiê), e abre o formulário que você pedir (alergia, contato, conquista, atendimento, escola). Também cadastra a chegada de uma criança com você.',
@@ -150,6 +151,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 323, dia: '15/11/2026', aba: 'ranking',
+    texto: 'O Ranking das casas, para a Coordenação Geral e o Gestor Geral. As oito casas em ordem pela organização documental (PIA, reavaliação, receita e vacinação em dia, dossiê completo e ATAs fechadas sem pendência), pelo cuidado registrado (doses no horário, chamadas confirmadas, frequência escolar marcada, atendimentos e visitas por acolhido) e pelo uso do sistema, cada uma com a nota de 0 a 100, e o gasto com medicamento por acolhido. Ver os números e a equipe abre os indicadores da casa e o que cada pessoa da equipe registrou no período. O ranking mede o que foi registrado, e não o cuidado, e nenhuma criança aparece nele.' },
   { fase: 325, dia: '15/11/2026',
     texto: 'A escala de plantão mostra só quem cuida das crianças. Ao escalar, trocar alguém ou montar o mês, a cozinha e a portaria não aparecem mais: elas entram para ver a própria tela, e a equipe da casa imprime o que precisarem.' },
   { fase: 322, dia: '14/11/2026', aba: 'encontros',

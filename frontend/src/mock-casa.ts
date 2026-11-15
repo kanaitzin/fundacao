@@ -37,6 +37,8 @@ import { LEEM_O_SIGILO, MARCAM_O_SIGILO, TIRAM_O_SIGILO } from '../../backend/sr
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
+import { AVISO_DO_RANKING, FRASE_QUEM_VE_O_RANKING, GRUPOS_DO_RANKING, TIPOS_DE_REGISTRO, montarRanking,
+  pessoasEmOrdem, type ContagensDaCasa, type PessoaNoRanking } from '../../backend/src/modules/reports/ranking.regra';
 import { prazoDaReavaliacao } from '../../backend/src/modules/people/reavaliacao.regra';
 import { QUEM_LE_O_ULTIMO_CONTATO, VINCULO_QUE_NAO_CONTA, ultimoContato }
   from '../../backend/src/modules/people/ultimo-contato.regra';
@@ -7065,6 +7067,88 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         'As casas aparecem na ordem do código.',
       ],
     };
+  }
+  /*
+   * O RANKING DAS CASAS (fase 323). Esta cópia conta os registros DESTA casa, como o
+   * `app_ranking_das_casas` (reports/1727); o `mock.ts` junta a linha de cada casa e a
+   * conta das notas é a do `ranking.regra.ts`, a mesma do servidor. Nenhuma criança sai.
+   */
+  if (rota === '/reports/ranking' || /^\/reports\/ranking\/[^/]+\/pessoas$/.test(rota)) {
+    if (!(eu.role === 'gestor_geral' || (eu.role === 'coordenador' && TODAS_AS_CASAS.has(eu.id)))) {
+      return new Recusa(403, FRASE_QUEM_VE_O_RANKING);
+    }
+    semearVisitas();
+    const ateR = (q.get('ate') || HOJE) > HOJE ? HOJE : (q.get('ate') || HOJE);
+    const deR = q.get('de') || emDias(-29, 0, 0).slice(0, 10);
+    if (deR > ateR) return new Recusa(400, 'A data inicial vem depois da final. Confira o período.');
+    const noPeriodo = (iso: string | null | undefined) => !!iso && iso.slice(0, 10) >= deR && iso.slice(0, 10) <= ateR;
+    /* O horário da dose e da chamada é o instante, em ISO: o que já passou é o de antes de agora. */
+    const agoraIso = new Date().toISOString();
+    /* Os registros de cada pessoa, pelo nome que o protótipo guarda. */
+    const registros: { quem: string; tipo: string }[] = [
+      ...LINHAS_ATA.filter((l) => noPeriodo(l.escritaEm)).map((l) => ({ quem: l.quem, tipo: 'ata' })),
+      ...DOSES.filter((d) => d.confirmadaPor && noPeriodo(d.administradaEm)).map((d) => ({ quem: d.confirmadaPor as string, tipo: 'dose' })),
+      ...CHAMADAS.filter((k) => k.status === 'confirmada' && k.confirmadaPor && noPeriodo(k.confirmadaEm ?? HOJE))
+        .map((k) => ({ quem: k.confirmadaPor as string, tipo: 'chamada' })),
+      ...Object.values(FREQUENCIA_EDU).flat().filter((m) => m.por && noPeriodo(m.em)).map((m) => ({ quem: m.por as string, tipo: 'frequencia' })),
+      ...ATENDIMENTOS_TECNICOS.filter((a) => noPeriodo(a.registradoEm)).map((a) => ({ quem: a.por, tipo: 'atendimento' })),
+      ...VISITAS.filter((v) => noPeriodo(v.entrou)).map((v) => ({ quem: v.por, tipo: 'visita' })),
+      ...OCORRENCIAS.filter((o) => noPeriodo(o.abertaEm)).map((o) => ({ quem: o.abertaPor, tipo: 'ocorrencia' })),
+    ];
+    const equipe = EQUIPE_CASA.filter((m) => m.cargo !== 'gestor_geral');
+    if (rota !== '/reports/ranking') {
+      const pessoas: PessoaNoRanking[] = equipe.map((m) => {
+        const porTipo = Object.fromEntries(TIPOS_DE_REGISTRO.map((t) => [t.chave,
+          registros.filter((x) => x.quem === m.nome && x.tipo === t.chave).length]));
+        return { id: m.id, nome: m.nome, cargo: m.cargo, porTipo,
+          total: Object.values(porTipo).reduce((t, n) => t + n, 0) };
+      });
+      return { de: deR, ate: ateR, houseId: CASA.id, aviso: AVISO_DO_RANKING, tipos: TIPOS_DE_REGISTRO,
+        pessoas: pessoasEmOrdem(pessoas) };
+    }
+    const kids = todosKids();
+    const docs = (k: { id: string }, chave: string) => DOSSIE_DOCS.filter((d) => d.personId === k.id && d.chave === chave);
+    const emDia = (k: { id: string }, chave: string) => docs(k, chave).some((d) => !d.validoAte || d.validoAte >= HOJE);
+    const tresMeses = (() => { const d = new Date(`${HOJE}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 3); return d.toISOString().slice(0, 10); })();
+    const obrigatorios = DOSSIE_EXIGIDO.filter((i) => i.obrigatorio).map((i) => i.chave);
+    const doLivro = ARQUIVO_ATAS.filter((d) => d.data >= deR && d.data <= ateR && d.data < HOJE)
+      .flatMap((d) => [d.diurno, d.noturno]).filter(Boolean);
+    const dosesDaEquipe = DOSES.filter((d) => d.horario <= agoraIso && ['administrado_no_horario', 'administrado_com_atraso',
+      'nao_administrado', 'aguardando_confirmacao'].includes(d.estado));
+    const chamadasAteAgora = CHAMADAS.filter((k) => k.horario <= agoraIso);
+    let esperada = 0, marcada = 0;
+    for (const v of Object.values(VINCULOS_EDU).flat()) {
+      const marcas = new Set((FREQUENCIA_EDU[v.id] ?? []).map((m) => m.dia));
+      for (let d = new Date(`${deR}T12:00:00Z`); d.toISOString().slice(0, 10) <= ateR; d.setUTCDate(d.getUTCDate() + 1)) {
+        const diaIso = d.toISOString().slice(0, 10);
+        if (diaIso < v.inicio || (v.encerradoEm && diaIso >= v.encerradoEm.slice(0, 10))) continue;
+        if (!v.dias.includes(diaIsoDaSemana(diaIso))) continue;
+        esperada += 1; if (marcas.has(diaIso)) marcada += 1;
+      }
+    }
+    const compras = COMPRAS_MED.filter((c) => c.em >= deR && c.em <= ateR);
+    const linha: ContagensDaCasa = {
+      houseId: CASA.id, codigo: CASA.code, nome: CASA.name,
+      acolhidos: kids.length, equipe: equipe.length,
+      piaEmDia: kids.filter((k) => emDia(k, 'pia')).length,
+      reavaliacaoEmDia: kids.filter((k) => docs(k, 'relatorio_reavaliacao').some((d) => (d.emitidoEm ?? d.anexadoEm.slice(0, 10)) > tresMeses)
+        || (k.episodios ?? []).some((e) => !e.ended_at && e.started_at.slice(0, 10) > tresMeses)).length,
+      comReceita: kids.filter((k) => docs(k, 'receita').length > 0).length,
+      receitaEmDia: kids.filter((k) => emDia(k, 'receita')).length,
+      vacinaEmDia: kids.filter((k) => emDia(k, 'caderneta_vacinacao')).length,
+      dossieCompleto: kids.filter((k) => obrigatorios.every((ch) => docs(k, ch).length > 0)).length,
+      atas: doLivro.length, atasSemPendencia: doLivro.filter((c: any) => c.status === 'fechada').length,
+      doses: dosesDaEquipe.length, dosesNoHorario: dosesDaEquipe.filter((d) => d.estado === 'administrado_no_horario').length,
+      chamadas: chamadasAteAgora.length, chamadasConfirmadas: chamadasAteAgora.filter((k) => k.status === 'confirmada').length,
+      frequenciaEsperada: esperada, frequenciaMarcada: marcada,
+      atendimentos: ATENDIMENTOS_TECNICOS.filter((a) => a.dia >= deR && a.dia <= ateR).length,
+      visitas: VISITAS.filter((v) => noPeriodo(v.entrou)).length,
+      registros: registros.filter((x) => equipe.some((m) => m.nome === x.quem)).length,
+      pessoasQueRegistraram: equipe.filter((m) => registros.some((x) => x.quem === m.nome)).length,
+      notasCentavos: compras.reduce((t, c) => t + (c.totalCentavos ?? 0), 0),
+      notasSemValor: compras.filter((c) => c.totalCentavos == null).length,
+    };
+    return { de: deR, ate: ateR, aviso: AVISO_DO_RANKING, grupos: GRUPOS_DO_RANKING, casas: montarRanking([linha]) };
   }
   if (rota === '/staff/work/options') {
     return {

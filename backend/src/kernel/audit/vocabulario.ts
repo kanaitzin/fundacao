@@ -380,6 +380,9 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
      Geral já deixa linha cada vez que abre UMA casa — não seria coerente
      abrir as oito sem deixar nenhuma. */
   'painel.metricas': 'Painel das oito casas aberto',
+  /* O ranking das casas e da equipe (fase 323): abrir também deixa linha. */
+  'painel.ranking': 'Ranking das casas aberto',
+  'painel.ranking_pessoas': 'Ranking da equipe de uma casa aberto',
   /* O período da casa (fase 121). Uma leitura que junta seis meses de uma casa
      numa tela só deixa linha por ter sido aberta. A SAÍDA em arquivo deixa a
      dela por `documento.export`, com a finalidade escrita — é o mesmo caminho

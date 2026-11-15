@@ -70,8 +70,12 @@ describe('O Guia do sistema', () => {
     const fase = Number(/### Onde estamos — [^,]+, fase (\d+)/.exec(claude)?.[1]);
     expect(fase).toBeGreaterThan(230);
     expect(NOVIDADES[0].fase).toBe(fase);
-    // A mais recente em cima, sem fase repetida.
-    expect(NOVIDADES.every((n, i) => i === 0 || NOVIDADES[i - 1].fase > n.fase)).toBe(true);
+    // A mais recente em cima, pela data, sem fase repetida. A data e não o número: a 323 e a
+    // 324 foram reservadas em 14/11 e entregues depois da 325, e quem lê as Novidades quer
+    // saber o que chegou por último.
+    const quando = (d: string) => d.split('/').reverse().join('-');
+    expect(NOVIDADES.every((n, i) => i === 0 || quando(NOVIDADES[i - 1].dia) >= quando(n.dia))).toBe(true);
+    expect(new Set(NOVIDADES.map((n) => n.fase)).size).toBe(NOVIDADES.length);
     // A novidade que aponta para uma tela aponta para uma que existe.
     expect(NOVIDADES.filter((n) => n.aba && !telas.includes(n.aba)).map((n) => n.aba)).toEqual([]);
   });

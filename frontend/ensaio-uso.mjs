@@ -5903,6 +5903,51 @@ console.log('\n🤝 Os encontros de alinhamento (fase 322)');
   await pgE.close();
 }
 
+console.log('\n🏆 O ranking das casas e da equipe (fase 323)');
+{
+  const pgR = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosR = [];
+  pgR.on('pageerror', (e) => errosR.push(e.message));
+  const esp = (ms = 700) => pgR.waitForTimeout(ms);
+  const mainR = () => pgR.locator('main.conteudo');
+  const cargoR = async (c) => { cargoAtual = c; await pgR.locator('select.troca-cargo-sel').selectOption(c); await esp(1000); };
+  const temPorta = async (titulo) => {
+    await pgR.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(350);
+    const n = await pgR.locator('.overlay .sheet b.ff', { hasText: new RegExp(`^\\s*${titulo}\\s*$`) }).count();
+    return n;
+  };
+  await pgR.goto(`file://${ARQUIVO}`); await esp();
+  await pgR.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgR.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  await cargoR('coordenacao_geral');
+  cobrar('a Coordenação Geral tem o Ranking das casas no Mais', (await temPorta('Ranking das casas')) === 1);
+  await pgR.locator('.overlay .sheet button.card.row')
+    .filter({ has: pgR.locator('b.ff', { hasText: /^\s*Ranking das casas\s*$/ }) }).first().click(); await esp(1200);
+  const tela = await mainR().innerText();
+  cobrar('o ranking abre com o aviso de que mede o registro, e não o cuidado',
+    /mede o que foi registrado, e não o cuidado/.test(tela) && /Ranking das casas/.test(tela));
+  cobrar('o ranking traz as oito casas em ordem, com a nota', (tela.match(/\dº/g) ?? []).length === 8 && /de 100/.test(tela));
+  await mainR().getByRole('tab', { name: 'Gasto' }).click(); await esp(300);
+  cobrar('o Gasto diz o valor por acolhido', /por acolhido/.test(await mainR().innerText()));
+  await mainR().getByRole('tab', { name: 'Geral' }).click(); await esp(300);
+  await mainR().getByRole('button', { name: 'Ver os números e a equipe' }).first().click(); await esp(400);
+  await mainR().getByRole('button', { name: 'Abrir a equipe' }).first().click(); await esp(1200);
+  const det = await mainR().locator('.ranking-detalhe').first().innerText();
+  cobrar('a casa aberta mostra os indicadores e a equipe pelo que registrou',
+    /Doses dadas no horário/.test(det) && /registros?\b/.test(det) && /Nenhum registro no período|Linhas da ATA|Atendimentos técnicos/.test(det));
+  cobrar('nenhuma criança no ranking', !/Alice|Kauã|Lara/.test(await mainR().innerText()));
+  await cargoR('coordenador');
+  cobrar('a coordenação de uma casa não tem o ranking', (await temPorta('Ranking das casas')) === 0);
+  await pgR.keyboard.press('Escape'); await esp(300);
+  await cargoR('gestor_geral');
+  cobrar('o Gestor Geral tem o ranking', (await temPorta('Ranking das casas')) === 1);
+  await pgR.keyboard.press('Escape'); await esp(300);
+  await cargoR('educador');
+  cobrar('o educador não tem o ranking', (await temPorta('Ranking das casas')) === 0);
+  cobrar('nenhuma exceção no ranking', errosR.length === 0, errosR[0]);
+  await pgR.close();
+}
+
 /*
  * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
  * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.

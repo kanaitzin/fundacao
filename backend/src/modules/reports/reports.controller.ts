@@ -9,6 +9,7 @@ import { ReportsService } from './reports.service';
 import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
 import { MetricasService } from './metricas.service';
+import { RankingService } from './ranking.service';
 import { PeriodoService } from './periodo.service';
 import { OQueMudouService } from './o-que-mudou.service';
 import { NumerosDaCriancaService } from './numeros-da-crianca.service';
@@ -222,6 +223,7 @@ export class ReportsController {
     @Inject(ReportsService) private readonly reports: ReportsService,
     @Inject(PanelService) private readonly panel: PanelService,
     @Inject(MetricasService) private readonly metricas_: MetricasService,
+    @Inject(RankingService) private readonly ranking_: RankingService,
     @Inject(PeriodoService) private readonly periodo: PeriodoService,
     @Inject(OQueMudouService) private readonly oQueMudou: OQueMudouService,
     @Inject(NumerosDaCriancaService) private readonly numeros: NumerosDaCriancaService,
@@ -263,6 +265,21 @@ export class ReportsController {
   metricas(@CurrentUser() user: AuthenticatedUser,
            @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
     return this.metricas_.porCasa(user, de, ate);
+  }
+
+  /** O ranking das casas (fase 323): só o Gestor Geral e a Coordenação Geral; o banco recusa os outros. */
+  @Get('ranking')
+  ranking(@CurrentUser() user: AuthenticatedUser,
+          @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
+    return this.ranking_.dasCasas(user, de, ate);
+  }
+
+  /** As pessoas de uma casa pelo que registraram (fase 323). Nunca uma criança. */
+  @Get('ranking/:houseId/pessoas')
+  rankingDasPessoas(@CurrentUser() user: AuthenticatedUser,
+                    @Param('houseId', ParseUUIDPipe) houseId: string,
+                    @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
+    return this.ranking_.dasPessoas(user, houseId, de, ate);
   }
 
   /**

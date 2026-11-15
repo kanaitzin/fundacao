@@ -36,6 +36,8 @@ const TRACO = {
 const DESENHOS: Record<string, string[]> = {
   /* ---- as cinco do turno ---- */
   painel_numeros: ['M4 20V10', 'M10 20V4', 'M16 20v-7', 'M22 20H2'],
+  /* O pódio do ranking das casas (fase 323): três degraus, sem medalha nem coroa. */
+  ranking:  ['M3 20h18', 'M9 20V8h6v12', 'M3 20v-7h6', 'M15 20v-4h6v4'],
   dia:      ['M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z',
              'M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2',
              'M8 12h8', 'M8 16h5'],

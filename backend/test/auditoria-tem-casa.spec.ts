@@ -47,7 +47,7 @@ const SEM_CASA = new Set([
      nenhuma: é a pergunta "esta criança já passou pela Fundação?". */
   'person.cpf_check',
   /* O QUE É DAS OITO CASAS DE UMA VEZ. */
-  'relogio.dia', 'painel.metricas', 'ata_geral.close_pending',
+  'relogio.dia', 'painel.metricas', 'painel.ranking', 'ata_geral.close_pending',
   /* A Coordenação Geral (fase 176) alcança as oito casas: marcá-la não é ato
      de casa nenhuma. */
   'staff.coordenacao_geral',

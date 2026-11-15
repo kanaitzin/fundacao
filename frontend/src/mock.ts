@@ -22,6 +22,7 @@ import { SemConexao, ErroApi, fraseSemSinal } from './api';
 import { CASA_MODELO, CASAS_DA_FUNDACAO, configDaCasa } from './casas-ficticias';
 import { criarServidorDaCasa } from './mock-casa';
 import { comODiario, repetirODiario, semPedido } from './prototipo-guardado';
+import { montarRanking, type ContagensDaCasa } from '../../backend/src/modules/reports/ranking.regra';
 
 type Servidor = ReturnType<typeof criarServidorDaCasa>;
 const CASAS = new Map<string, Servidor>();
@@ -35,7 +36,7 @@ function casa(id: string): Servidor {
 /** As rotas da instituição: respondidas pela casa-modelo. */
 const DA_INSTITUICAO = [
   /^\/auth\//, /^\/prototipo\//, /^\/users\/me$/, /^\/houses$/, /^\/houses\/directory$/,
-  /^\/reports\/panel$/, /^\/reports\/metrics$/, /^\/timeline\/all$/, /^\/shifts\/general-ata/,
+  /^\/reports\/panel$/, /^\/reports\/metrics$/, /^\/reports\/ranking$/, /^\/timeline\/all$/, /^\/shifts\/general-ata/,
   /^\/impacto\/panorama$/, /^\/implantacao\//, /^\/assistente\//, /^\/staff\/alcance$/,
   /^\/avisos-no-celular\//, /^\/transfers\//,
 ];
@@ -79,7 +80,8 @@ function casaDoPedido(rota: string, q: URLSearchParams, corpo: Record<string, un
   const pedida = q.get('houseId') ?? q.get('casaId')
     ?? (typeof corpo.houseId === 'string' ? corpo.houseId : null)
     ?? (typeof corpo.casaId === 'string' ? corpo.casaId : null)
-    ?? (/^\/houses\/([^/]+)/.exec(rota)?.[1] ?? null);
+    ?? (/^\/houses\/([^/]+)/.exec(rota)?.[1] ?? null)
+    ?? (/^\/reports\/ranking\/([^/]+)\/pessoas$/.exec(rota)?.[1] ?? null);
   const valida = (id: string | null) => (id && CASAS_DA_FUNDACAO.some((c) => c.id === id) ? id : null);
   return valida(pedida) ?? valida(casaAberta) ?? CASA_MODELO;
 }
@@ -139,6 +141,17 @@ function juntarAsCasas(rota: string, q: URLSearchParams, daModelo: unknown): unk
       if (k !== 'casas') total[k] = casas.reduce((t, c) => t + Number(c[k] ?? 0), 0);
     }
     return { ...p, casas, total };
+  }
+  if (rota === '/reports/ranking') {
+    /* O ranking (fase 323): cada casa conta os registros dela, e a nota é refeita sobre as
+       oito pela regra do servidor. */
+    const p = daModelo as { casas: ContagensDaCasa[] };
+    const linhas = CASAS_DA_FUNDACAO.map((c) => {
+      const r = (c.id === CASA_MODELO ? daModelo : naCasa(c.id, rota, q, false)) as typeof p;
+      const l = r?.casas?.[0];
+      return l ? { ...l, houseId: c.id, codigo: c.code, nome: c.name } : null;
+    }).filter((l): l is ContagensDaCasa => !!l);
+    return { ...p, casas: montarRanking(linhas) };
   }
   if (rota === '/impacto/panorama' && !q.get('houseId')) {
     const p = daModelo as { casas: Record<string, unknown>[] & { id: string }[]; total: Record<string, number>;
