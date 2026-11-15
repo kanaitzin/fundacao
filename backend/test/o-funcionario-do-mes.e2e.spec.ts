@@ -85,7 +85,7 @@ describe('O funcionário do mês', () => {
       `SELECT title FROM notification WHERE user_id = $1 AND entity = 'staff_of_month' AND entity_id = $2`,
       [ids.educ, ids.escolha]);
     expect(rows[0]?.title).toBe(`O funcionário do mês da casa em ${rotuloDoMes(mes)} é você`);
-    for (const quem of ['educ', 'educ2', 'cozinha', 'geral', 'gestor']) {
+    for (const quem of ['educ', 'educ2', 'cozinha', 'geral', 'gestor', 'enfermagem']) {
       const l = await get(quem, `/alignments/funcionario-do-mes?houseId=${ids.ai3}`);
       expect(l.status).toBe(200);
       const daCasa = l.body.daCasa.find((e: any) => e.id === ids.escolha);

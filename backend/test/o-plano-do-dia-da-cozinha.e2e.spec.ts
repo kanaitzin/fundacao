@@ -75,6 +75,27 @@ describe('O plano do dia da cozinha', () => {
     expect([...horas].sort()).toEqual(horas);
   });
 
+  it('a chamada ainda aberta diz que está em andamento, e não que foi feita (reports/1730)', async () => {
+    const { rows: [k] } = await admin.query(
+      `INSERT INTO collective_check (house_id, kind, title, reference_at, status, created_by)
+       VALUES ($1, 'alimentacao', $2, now(), 'aberta',
+               (SELECT id FROM app_user WHERE email = 'coord.ai3@paodospobres.dev')) RETURNING id`,
+      [ids.AI3, titulo]);
+    await admin.query(
+      `INSERT INTO check_result (check_id, person_id, option_code, recorded_by)
+       SELECT $1, s.person_id, 'normal', (SELECT id FROM app_user WHERE email = 'educador.ai3@paodospobres.dev')
+         FROM house_stay s WHERE s.house_id = $2 AND s.status = 'ativa' ORDER BY s.person_id LIMIT 1`,
+      [k.id, ids.AI3]);
+    try {
+      const m = (await plano('cozinha')).body.refeicoes.find((x: any) => x.titulo === titulo);
+      expect(m.chamada).toMatchObject({ confirmada: false, conferidas: 1, comeram: 1 });
+    } finally {
+      /* A chamada aberta de hoje não fica para as outras suítes contarem. */
+      await admin.query(`DELETE FROM check_result WHERE check_id = $1`, [k.id]);
+      await admin.query(`DELETE FROM collective_check WHERE id = $1`, [k.id]);
+    }
+  });
+
   it('quem está em casa segue a regra da ausência, e as restrições são só de quem está', async () => {
     const r = await plano('educador');
     const { rows: [n] } = await admin.query(

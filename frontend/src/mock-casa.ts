@@ -5766,7 +5766,8 @@ function responderPeriodo(
         const ops = feitas.flatMap((c) => Object.entries(c.resultados).filter(([id]) => daCasa.has(id)).map(([, r]) => r.opcao));
         const conta = (...cods: string[]) => ops.filter((o) => cods.includes(o)).length;
         return { titulo: m.titulo, hora: m.hora, pessoasDeCostume: m.pessoas ?? null, cor: m.cor,
-                 chamada: ops.length ? { feita: true, comeram: conta('normal', 'dieta_adaptada', 'parcial'),
+                 chamada: ops.length ? { feita: true, confirmada: feitas.every((c) => c.status === 'confirmada'),
+                   conferidas: ops.length, comeram: conta('normal', 'dieta_adaptada', 'parcial'),
                    parcial: conta('parcial'), recusou: conta('recusou'), ausente: conta('ausente_externa'),
                    dietaAdaptada: conta('dieta_adaptada') } : null };
       });

@@ -738,7 +738,9 @@ function RefeicoesDaCasa({ houseId, casaLabel }: { houseId: string; casaLabel: s
 interface Plano {
   dia: string; emCasa: number; fora: number;
   refeicoes: { titulo: string; hora: string; pessoasDeCostume: number | null;
-               chamada: { comeram: number; parcial: number; recusou: number; ausente: number; dietaAdaptada: number } | null }[];
+               chamada: { comeram: number; parcial: number; recusou: number; ausente: number; dietaAdaptada: number;
+                         /* Confirmada ou ainda em andamento (reports/1730). */
+                         confirmada?: boolean; conferidas?: number } | null }[];
   restricoes: { nome: string; restricao: string; substituicao: string | null; orientacao: string | null }[];
   pedidos: { id: string; tipo: string; paraQuem: string; quantidade: number; finalidade: string; entregarA: string | null }[];
 }
@@ -777,12 +779,14 @@ function PlanoDoDia({ houseId }: { houseId: string }) {
       ) : (
         <ol className="plano-refeicoes">
           {p.refeicoes.map((r) => (
-            <li key={`${r.hora}-${r.titulo}`} className={r.chamada ? 'feita' : ''}>
+            <li key={`${r.hora}-${r.titulo}`} className={r.chamada?.confirmada !== false && r.chamada ? 'feita' : ''}>
               <span className="plano-hora">{r.hora}</span>
               <span className="grow">
                 <b>{r.titulo}</b>
                 <span className="mutetxt">
-                  {r.chamada
+                  {r.chamada && r.chamada.confirmada === false
+                    ? ` · chamada em andamento: ${quantos(r.chamada.conferidas ?? 0, 'criança conferida', 'crianças conferidas')} até agora`
+                    : r.chamada
                     ? ` · chamada feita: comeram ${r.chamada.comeram}${r.chamada.recusou ? `, recusa ${r.chamada.recusou}` : ''}${r.chamada.dietaAdaptada ? `, dieta adaptada ${r.chamada.dietaAdaptada}` : ''}`
                     : r.pessoasDeCostume ? ` · costuma servir ${r.pessoasDeCostume}` : ''}
                 </span>
