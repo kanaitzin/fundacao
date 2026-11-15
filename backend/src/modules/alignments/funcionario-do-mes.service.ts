@@ -107,6 +107,11 @@ export class FuncionarioDoMesService {
         [houseId, mes, input.pessoaId, porque, motivo || null])).rows[0].id);
     } catch (e: any) {
       const m = String(e?.message ?? '');
+      /* Duas escolhas do mesmo mês ao mesmo tempo: o banco guarda uma só (a trava da
+         escolha original e a da troca), e quem chegou depois recebe a frase, e não um 500. */
+      if (e?.code === '23505' && /ux_som_original|staff_of_month_replaces_id_key/.test(String(e?.constraint ?? m))) {
+        throw new ConflictException('Alguém da coordenação acabou de registrar a escolha deste mês. Abra de novo para ver qual vale.');
+      }
       if (m.includes('do_mes_sem_alcance')) throw new ForbiddenException(FRASE_QUEM_ESCOLHE_O_DO_MES);
       if (m.includes('do_mes_fora_do_mes')) throw new BadRequestException('Escolha o mês: o de agora ou o anterior.');
       if (m.includes('do_mes_pessoa_fora')) {

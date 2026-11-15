@@ -140,6 +140,17 @@ describe('O funcionário do mês', () => {
     expect((await get('educ', '/alignments/funcionario-do-mes/candidatos')).status).toBe(403);
   });
 
+  it('duas escolhas do mesmo mês ao mesmo tempo: uma vale, e a outra recebe a frase, nunca 500', async () => {
+    const [x, y] = await Promise.all([
+      post('coord3', { houseId: ids.ai3, mes: anterior, pessoaId: ids.educ, porque }),
+      post('coord3', { houseId: ids.ai3, mes: anterior, pessoaId: ids.educ2, porque }),
+    ]);
+    expect([x.status, y.status].sort()).toEqual([201, 409]);
+    const { rows } = await admin.query(
+      `SELECT count(*)::int AS n FROM staff_of_month WHERE house_id = $1 AND month = $2`, [ids.ai3, anterior]);
+    expect(rows[0].n).toBe(1);
+  });
+
   it('ninguém grava direto na tabela, e o banco diz os mesmos mínimos do TypeScript', async () => {
     await admin.query('BEGIN');
     try {
