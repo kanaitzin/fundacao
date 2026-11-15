@@ -485,7 +485,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 323 | **o ranking das casas e da equipe** (pedido de 14/11): para a Coordenação Geral e o Gestor Geral, as oito casas em ordem pelos documentos, pelo cuidado registrado e pelo uso do sistema, o gasto por acolhido e, em cada casa, o que cada pessoa registrou; o banco devolve só contagens e recusa os outros (reports/1727), a conta é a do `ranking.regra.ts`; nenhuma criança aparece |
 | 324 | **o funcionário do mês** (pedido de 14/11): no alto dos Encontros de alinhamento, o da casa (da coordenação da casa) e o da Fundação (da Coordenação Geral), com o porquê; trocar pede o motivo e não apaga a de antes; a pessoa é avisada (alignments/1728) |
 
-**Medido no fim da 324:** 268 migrações, 160 tabelas, 185 suítes, 1630 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 324:** 268 migrações, 160 tabelas, 185 suítes, 1631 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
