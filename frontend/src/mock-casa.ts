@@ -9365,7 +9365,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         status: 'aberto', itens: [] };
       for (let d = mes; d.slice(0, 7) === mes.slice(0, 7); d = somar(d, 1)) {
         const origem = somar(d, -28) < mes ? somar(d, -28) : somar(d, -56);
-        for (const x of ESCALA.filter((e) => e.data === origem && !e.revogadaEm)) {
+        /* Quem não entra na escala não é copiado (identity/1729). */
+        for (const x of ESCALA.filter((e) => e.data === origem && !e.revogadaEm && acompanhaCrianca(e.cargo))) {
           r.itens.push({ id: uid(), userId: x.userId, quem: x.quem, cargo: x.cargo, data: d, turno: x.turno,
             inicio: x.inicio, fim: x.fim, nota: x.nota, incluidoAMao: false, conflito: null,
             conflitoCasa: null, retirado: false });

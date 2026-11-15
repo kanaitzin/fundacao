@@ -138,6 +138,45 @@ describe('Quem acompanha a criança', () => {
       .toEqual(['app_escalar', 'app_rascunho_incluir', 'app_substituir_no_plantao']);
   });
 
+  it('nem direto na tabela, nem repetindo o mês, nem publicando o rascunho a cozinha entra na escala (identity/1729)', async () => {
+    const mes = (await admin.query(
+      `SELECT (date_trunc('month', app_hoje()) + interval '2 month')::date::text AS m`)).rows[0].m;
+    await admin.query('BEGIN');
+    try {
+      /* A escala da cozinha de antes da 1726, quatro semanas antes do mês que se monta. */
+      await admin.query('ALTER TABLE shift_assignment DISABLE TRIGGER trg_escala_so_de_quem_cuida');
+      await admin.query(
+        `INSERT INTO shift_assignment (house_id, user_id, on_date, period, created_by)
+         VALUES ($1, $2, $3::date - 28, 'diurno', $4)`, [ids.casa, ids.cozinha, mes, ids.coord]);
+      await admin.query('ALTER TABLE shift_assignment ENABLE TRIGGER trg_escala_so_de_quem_cuida');
+      await admin.query('SET LOCAL ROLE rede_app');
+      await admin.query(`SELECT set_config('app.user_id', $1, true)`, [ids.coord]);
+      await admin.query('SAVEPOINT direto');
+      await expect(admin.query(
+        `INSERT INTO shift_assignment (house_id, user_id, on_date, period, created_by)
+         VALUES ($1, $2, app_hoje() + 3, 'diurno', $3)`, [ids.casa, ids.portaria, ids.coord]))
+        .rejects.toThrow(/não entram na escala de plantão/);
+      await admin.query('ROLLBACK TO SAVEPOINT direto');
+      const { rows: [r] } = await admin.query(
+        `SELECT rascunho_id FROM app_repetir_escala($1, $2::date)`, [ids.casa, mes]);
+      await admin.query('RESET ROLE');
+      const { rows: [n] } = await admin.query(
+        `SELECT count(*)::int AS n FROM shift_draft_item WHERE draft_id = $1 AND user_id = $2`,
+        [r.rascunho_id, ids.cozinha]);
+      expect(n.n).toBe(0);
+      /* O rascunho aberto de antes, que ainda tem a cozinha, não publica: diz a frase. */
+      await admin.query('ALTER TABLE shift_draft_item DISABLE TRIGGER trg_rascunho_so_de_quem_cuida');
+      await admin.query(
+        `INSERT INTO shift_draft_item (draft_id, user_id, on_date, period, added_by)
+         VALUES ($1, $2, $3::date + 1, 'diurno', $4)`, [r.rascunho_id, ids.cozinha, mes, ids.coord]);
+      await admin.query('ALTER TABLE shift_draft_item ENABLE TRIGGER trg_rascunho_so_de_quem_cuida');
+      await admin.query('SET LOCAL ROLE rede_app');
+      await admin.query(`SELECT set_config('app.user_id', $1, true)`, [ids.coord]);
+      await expect(admin.query(`SELECT * FROM app_publicar_rascunho($1)`, [r.rascunho_id]))
+        .rejects.toThrow(/não entram na escala de plantão/);
+    } finally { await admin.query('ROLLBACK'); }
+  });
+
   it('a regra do banco e a da tela dizem a mesma lista', async () => {
     const { rows: [f] } = await admin.query(`SELECT prosrc FROM pg_proc WHERE proname = 'app_acompanha_crianca'`);
     for (const cargo of NAO_ACOMPANHAM_CRIANCA) expect(f.prosrc).toContain(`'${cargo}'`);
