@@ -158,6 +158,28 @@ describe('O encontro de alinhamento com quem trabalha', () => {
     expect(await avisos(ids.educ, /adendo/i)).toBeGreaterThanOrEqual(1);
   });
 
+  it('nenhum colega lê o encontro, a ciência ou o adendo do outro, nem pelo banco (pedido de 15/11)', async () => {
+    const colegas = (await admin.query(
+      `SELECT id FROM app_user WHERE email = ANY($1)`,
+      [['educador2.ai3@paodospobres.dev', 'lider.ai3@paodospobres.dev', 'lider.noturno@paodospobres.dev',
+        'cozinha.ai3@paodospobres.dev', 'tecnica.ai3@paodospobres.dev']])).rows.map((r) => r.id);
+    expect(colegas).toHaveLength(5);
+    const { rows: [tem] } = await admin.query(
+      `SELECT (SELECT count(*) FROM staff_alignment_reply WHERE alignment_id = $1)::int AS r,
+              (SELECT count(*) FROM staff_alignment_addendum WHERE alignment_id = $1)::int AS a`, [ids.encontro]);
+    expect(tem).toEqual({ r: 1, a: 1 });
+    for (const quem of colegas) {
+      const vistos = await comoAplicacao(quem, async () => (await admin.query(
+        `SELECT (SELECT count(*) FROM staff_alignment WHERE subject_id = $1)::int
+              + (SELECT count(*) FROM staff_alignment_reply WHERE alignment_id = $2)::int
+              + (SELECT count(*) FROM staff_alignment_addendum WHERE alignment_id = $2)::int AS n`,
+        [ids.educ, ids.encontro])).rows[0].n);
+      expect(vistos).toBe(0);
+    }
+    const doColega = await get('educ2', '/alignments/encontros/comigo').expect(200);
+    expect(doColega.body.encontros.some((e: any) => e.id === ids.encontro)).toBe(false);
+  });
+
   it('a Coordenação Geral registra com a coordenação e com quem atende todas as casas', async () => {
     const comCoord = await post('geral', '/alignments/encontros',
       encontro(ids.coord3, { periodicidade: 'trimestral' }));
