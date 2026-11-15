@@ -275,6 +275,7 @@ export class ReportsController {
   }
 
   /** As pessoas de uma casa pelo que registraram (fase 323). Nunca uma criança. */
+  @RegistroDaRota('houseId', 'house')
   @Get('ranking/:houseId/pessoas')
   rankingDasPessoas(@CurrentUser() user: AuthenticatedUser,
                     @Param('houseId', ParseUUIDPipe) houseId: string,
