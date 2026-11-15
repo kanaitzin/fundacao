@@ -5,9 +5,9 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-14T20:57-03:00
-- **Situação:** fase 322 fechada e publicada no site (o encontro de alinhamento, a etiqueta do cargo, a profissão da técnica e quem acompanha a criança). A seguir, a 323 (o ranking) e a 324 (o funcionário do mês).
-- **Fase:** 322 fechada; 323 e 324 a seguir. A próxima livre é a 325.
+- **Atualizado em:** 2026-11-14T23:34-03:00
+- **Situação:** fase 325 em fechamento (a cozinha e a portaria fora da escala de plantão, pedido de 15/11). A 322 está no site.
+- **Fase:** 325 em fechamento; 323 e 324 reservadas (o ranking e o funcionário do mês). A próxima livre é a 326.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora

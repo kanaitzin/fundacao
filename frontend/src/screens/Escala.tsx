@@ -8,6 +8,7 @@ import { cargo as rotuloCargo, diaCurto as dia, tomDoAutor } from '../rotulos';
 import { Cargo, EtiquetaDoCargo } from '../cargos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { acompanhaCrianca } from '../../../backend/src/modules/identity/quem-acompanha.regra';
 
 /**
  * A ESCALA DE PLANTÃO (§5.12).
@@ -135,7 +136,9 @@ export function Escala({ houseId, casaLabel, papel }: {
            objeto com `equipe` dentro. Ler o formato errado aqui daria uma lista
            vazia sem erro nenhum, que é como a tela mente sem quebrar. */
         const eq = await api<Membro[]>('/staff').catch(() => [] as Membro[]);
-        setEquipe(eq.filter((m) => m.ativo));
+        /* A escala de plantão é de quem cuida das crianças: a cozinha e a portaria não
+           entram nela (identity/1726, pedido de 15/11). */
+        setEquipe(eq.filter((m) => m.ativo && acompanhaCrianca(m.cargo)));
       }
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir a escala.');

@@ -150,6 +150,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 325, dia: '15/11/2026',
+    texto: 'A escala de plantão mostra só quem cuida das crianças. Ao escalar, trocar alguém ou montar o mês, a cozinha e a portaria não aparecem mais: elas entram para ver a própria tela, e a equipe da casa imprime o que precisarem.' },
   { fase: 322, dia: '14/11/2026', aba: 'encontros',
     texto: 'Os encontros de alinhamento. A coordenação da casa registra o encontro com quem trabalha nela, e a Coordenação Geral com todos abaixo dela: mensal, trimestral, semestral ou anual, com os pontos positivos, o que podemos melhorar e os combinados. Na Equipe, o botão Alinhamentos no cartão de cada pessoa abre os encontros dela, e de lá dá para ver o trabalho dela. Cada pessoa lê os próprios encontros na tela Encontros de alinhamento, dá ciência e pode comentar, e quem registrou é avisado. Quem registra marca a data do próximo encontro e recebe o aviso no sino nesse dia. O registro não se apaga: a correção é um adendo. E o cargo de cada pessoa aparece numa etiqueta colorida ao lado do nome, na cor do cargo, separado do nome. Quem é da equipe técnica aparece pela profissão, como Assistente social ou Psicóloga, que a coordenação escolhe ao cadastrar ou editar a pessoa na Equipe. E, para levar uma criança a uma atividade, acompanhar uma internação, realizar ou substituir uma atividade, a lista mostra só quem cuida das crianças: a cozinha e a portaria não aparecem mais.' },
   { fase: 321, dia: '14/11/2026',

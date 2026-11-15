@@ -9238,6 +9238,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (seg[3] === 'itens' && metodo === 'POST') {
       const quem = EQUIPE_CASA.find((m) => m.id === String(b.userId ?? ''));
       if (!quem) return new Recusa(400, 'Esta pessoa não está ativa no sistema.');
+      if (!acompanhaCrianca(quem.cargo)) return new Recusa(400, 'A cozinha e a portaria não entram na escala de plantão. Elas veem a própria tela ao entrar, e a equipe da casa imprime o que precisarem.');
       if (String(b.data ?? '').slice(0, 7) !== r.mes.slice(0, 7)) {
         return new Recusa(400, 'O dia precisa ser do mês deste rascunho.');
       }
@@ -9287,6 +9288,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const quem = EQUIPE_CASA.find((m) => m.id === String(b.userId ?? ''));
     if (!quem) return new Recusa(400, 'Esta pessoa não está ativa no sistema.');
+    if (!acompanhaCrianca(quem.cargo)) return new Recusa(400, 'A cozinha e a portaria não entram na escala de plantão. Elas veem a própria tela ao entrar, e a equipe da casa imprime o que precisarem.');
     const passo = Number(b.repetirACada ?? 0);
     let data = String(b.data);
     let criadas = 0; let jaExistiam = 0;
@@ -9333,6 +9335,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const novo = EQUIPE_CASA.find((m) => m.id === String(b.novoUserId ?? ''));
     if (!novo) return new Recusa(400, 'Esta pessoa não está ativa no sistema.');
+    if (!acompanhaCrianca(novo.cargo)) return new Recusa(400, 'A cozinha e a portaria não entram na escala de plantão. Elas veem a própria tela ao entrar, e a equipe da casa imprime o que precisarem.');
     if (novo.id === alvo.userId) {
       return new Recusa(400, 'A pessoa que entra é a mesma que sai. Para só mudar o horário, '
         + 'retire e escale de novo.');

@@ -12,7 +12,8 @@
  *     recusado com frase;
  *  3. o acompanhante da internação não pode ser da cozinha nem da portaria, nem gravado
  *     direto no banco;
- *  4. a regra do banco e a da tela dizem a mesma lista.
+ *  4. a cozinha e a portaria não entram na escala de plantão (identity/1726, pedido de 15/11);
+ *  5. a regra do banco e a da tela dizem a mesma lista.
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -115,6 +116,26 @@ describe('Quem acompanha a criança', () => {
     const { rows: [gatilho] } = await admin.query(
       `SELECT count(*)::int AS n FROM pg_trigger WHERE tgname = 'trg_acompanhante_acompanha_crianca'`);
     expect(gatilho.n).toBe(1);
+  });
+
+  it('a cozinha e a portaria não entram na escala de plantão, nem pelo rascunho nem na troca (identity/1726)', async () => {
+    const amanha = new Date(Date.now() + 2 * 86400e3).toISOString().slice(0, 10);
+    for (const quem of ['cozinha', 'portaria']) {
+      await admin.query('BEGIN');
+      try {
+        await admin.query('SET LOCAL ROLE rede_app');
+        await admin.query(`SELECT set_config('app.user_id', $1, true)`, [ids.coord]);
+        await expect(admin.query(
+          `SELECT * FROM app_escalar($1, $2, $3::date, 'diurno', NULL, NULL, NULL, NULL, NULL)`,
+          [ids.casa, ids[quem], amanha])).rejects.toThrow(/não entram na escala de plantão/);
+      } finally { await admin.query('ROLLBACK'); }
+    }
+    const { rows } = await admin.query(
+      `SELECT proname FROM pg_proc
+        WHERE proname IN ('app_escalar', 'app_rascunho_incluir', 'app_substituir_no_plantao')
+          AND prosrc ~ 'não entram na escala de plantão'`);
+    expect(rows.map((r) => r.proname).sort())
+      .toEqual(['app_escalar', 'app_rascunho_incluir', 'app_substituir_no_plantao']);
   });
 
   it('a regra do banco e a da tela dizem a mesma lista', async () => {
