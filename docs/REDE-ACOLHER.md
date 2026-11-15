@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **269 migrações** | `.sql` dentro das partições |
+| **271 migrações** | `.sql` dentro das partições |
 | **160 tabelas** | `CREATE TABLE` nas migrações |
 | **185 suítes** | `backend/test/*.spec.ts` |
-| **1632 testes** | `it(` / `test(` nas suítes |
+| **1633 testes** | `it(` / `test(` nas suítes |
 | **42 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **15 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -583,7 +583,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-269 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+271 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -3120,7 +3120,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 269 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 271 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

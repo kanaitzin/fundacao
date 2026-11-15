@@ -188,6 +188,10 @@ export function Ranking() {
                   ) : eq === 'abrindo' ? <p className="mutetxt">Abrindo…</p>
                     : typeof eq === 'string' ? <div className="notice c-crit" role="alert">{eq}</div>
                       : eq.pessoas.length === 0 ? <p className="mutetxt">Ninguém na equipe desta casa no período.</p> : (
+                        <>
+                        <button className="btn ghost sm" onClick={() => setEquipe((x) => { const y = { ...x }; delete y[c.houseId]; return y; })}>
+                          Fechar a equipe
+                        </button>
                         <ol className="ranking-pessoas">
                           {eq.pessoas.map((p) => (
                             <li key={p.id}>
@@ -204,6 +208,7 @@ export function Ranking() {
                             </li>
                           ))}
                         </ol>
+                        </>
                       )}
                 </div>
               )}
