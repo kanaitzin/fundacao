@@ -5,9 +5,9 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-15T18:23-03:00
-- **Situação:** fase 326 em medição: o cadastro com RG, cartão SUS, filiação e raça/cor do IBGE, o cartão Para completar o cadastro no perfil, e os consertos da conferência por setor (1729 a 1731, Ranking).
-- **Fase:** 326 em medição. A próxima livre é a 327.
+- **Atualizado em:** 2026-11-15T18:56-03:00
+- **Situação:** fase 326 fechada e publicada no site (o cadastro com RG, cartão SUS, filiação e raça/cor do IBGE, o cartão Para completar o cadastro, e os consertos da conferência por setor). A seguir, a simulação da Casa 03 contra o servidor de verdade.
+- **Fase:** 326 fechada. A próxima livre é a 327.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
 
 ## O que está sendo feito agora
