@@ -5,7 +5,7 @@
 > Quando os dois branches se juntarem, a nota passa a morar no do visual.
 
 - **Branch:** `claude/acabamento-visual-fase-314`
-- **Atualizado em:** 2026-11-15T14:52-03:00
+- **Atualizado em:** 2026-11-15T15:31-03:00
 - **Situação:** fases 323 (o ranking) e 324 (o funcionário do mês) fechadas e publicadas no site. Espera do dono: quem lê o funcionário do mês (decidido como o mais aberto que cabe no pedido).
 - **Fase:** 324 fechada. A próxima livre é a 326.
 - **Pedido do dono:** em 12/11, à conta do visual, o plantão *mais intuitivo no uso*; e a esta conta, no fim do dia, *continue a fase 316*, quando o limite de lá acabou.
